@@ -1,0 +1,20 @@
+LONGSHOT — *charge and release*
+
+**Verb:** crank to charge a power bar. **Release A** to commit.
+
+The classic Track & Field / golf power meter, except the bar is **distance price must travel** and the
+payout scales with how far you cranked. Over-crank and you'll never touch it.
+
+```
+  LONGSHOT
+   ┌────────────────────────────┐
+   │████████████████░░░░░░░░░░░░│  +1.4%
+   └────────────────────────────┘
+        HOLD A · RELEASE TO FIRE
+              PAYS 6.8x
+```
+
+**Real primitive:** a one-touch / knock-in option — *does price touch +X% within 60s?* A genuine exotic,
+and the power bar is the most natural interface anyone has ever put on one.
+
+---

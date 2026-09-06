@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LONGSHOT Bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-id">
+    <span class="mark">LONGSHOT</span>
+    <span class="sub">charge a barrier, release to fire &mdash; and watch a one-touch option get priced in front of you</span>
+  </div>
+  <nav class="cart-nav" aria-label="Season One cartridges">
+    <span class="cart is-off">BOX<span class="cart-s">WK2</span></span>
+    <a class="cart" href="index.html">NERVE<span class="cart-s">READY</span></a>
+    <span class="cart is-on">LONGSHOT<span class="cart-s">READY</span></span>
+    <span class="cart is-off">ROUTE<span class="cart-s">WK3</span></span>
+    <span class="cart is-off">DRIP<span class="cart-s">WK4</span></span>
+    <button id="themeBtn" class="ghost-btn" type="button" aria-label="Switch colour theme">THEME</button>
+  </nav>
+</header>
+
+<main class="deck">
+
+  <!-- ============ LEFT: the device ============ -->
+  <section class="col col-device">
+
+    <div class="shell">
+      <div class="shell-top">
+        <span class="shell-brand">LONGSHOT</span>
+        <span class="shell-tag">SEASON ONE / WK 2</span>
+      </div>
+      <div class="screen-wrap">
+        <canvas id="screen" width="400" height="240" aria-label="Game screen"></canvas>
+      </div>
+      <div class="shell-controls">
+        <div class="crank" id="dial" title="Scroll or drag to crank">
+          <div class="crank-face"><span class="crank-arm" id="crankArm"></span></div>
+          <div class="crank-read">
+            <span class="crank-cap">CRANK &mdash; CHARGE</span>
+            <b id="crankVal">+0.00%</b>
+          </div>
+        </div>
+        <div class="pads">
+          <button class="pad" id="btnB" type="button">B</button>
+          <button class="pad pad-a" id="btnA" type="button"><span class="pad-hold" id="padHold"></span><span class="pad-let">A</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase-strip">
+      <span class="phase-dot" id="ph0"></span><b id="phName">CHARGE</b>
+      <span id="phHint">hold A, crank to the barrier you want, release to fire</span>
+    </div>
+
+    <div class="keys">
+      <div class="krow"><kbd>Z</kbd><span><b>A</b> &mdash; hold to charge &middot; release to fire &middot; in flight, <b>hold to sell back</b></span></div>
+      <div class="krow"><kbd>&uarr;</kbd><kbd>&darr;</kbd><span>Crank &mdash; overrides the auto-meter while you hold A</span></div>
+      <div class="krow"><kbd>X</kbd><span><b>B</b> &mdash; cancel a charge / next round</span></div>
+      <div class="krow"><kbd>space</kbd><span>Next round</span></div>
+    </div>
+
+    <div class="note">
+      <span class="note-tag">WHAT THIS ACTUALLY IS</span>
+      <p>A <b>one-touch (knock-in) option</b>: does price touch +X% at any point inside 60 seconds? It pays the
+      instant it touches and expires worthless if it never does. The power meter is the most natural interface
+      anyone has put on an exotic, which is the whole argument in <code>GAMES.md &sect;3&circledS;</code>.</p>
+      <p>Settlement reads the <em>true</em> price path. Your screen only draws the ticks you bought. On a 1&nbsp;Hz
+      feed the market can spike through your barrier and back between two samples &mdash; you get paid and never
+      see why. Those are marked <b>unseen touch</b> on the chart.</p>
+    </div>
+  </section>
+
+  <!-- ============ RIGHT: the bench ============ -->
+  <section class="col col-bench">
+
+    <div class="panel">
+      <div class="phead"><h2>The shot</h2><span class="meter-n" id="shotState">charging</span></div>
+      <div class="shot">
+        <div class="shot-c">
+          <span class="shot-k">BARRIER</span>
+          <b class="shot-v" id="sBar">+0.00%</b>
+          <span class="shot-n" id="sBarPx">&mdash;</span>
+        </div>
+        <div class="shot-c">
+          <span class="shot-k">TOUCH ODDS</span>
+          <b class="shot-v" id="sProb">&mdash;</b>
+          <span class="shot-n">2&Phi;(&minus;a / &sigma;&radic;T)</span>
+        </div>
+        <div class="shot-c">
+          <span class="shot-k">PAYS</span>
+          <b class="shot-v hot" id="sMult">&mdash;</b>
+          <span class="shot-n" id="sMultN">fair 1/p, less the house edge</span>
+        </div>
+        <div class="shot-c">
+          <span class="shot-k">SELL BACK</span>
+          <b class="shot-v" id="sVal">&mdash;</b>
+          <span class="shot-n">hold A in flight</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="phead">
+        <h2>Why over-cranking is fatal</h2>
+        <span class="meter-n">payout against barrier &mdash; log scale</span>
+      </div>
+      <div class="ladder-hold"><canvas id="ladder" aria-label="Payout ladder"></canvas></div>
+      <p class="meter-n" id="ladderNote">&mdash;</p>
+    </div>
+
+    <div class="panel panel-chart">
+      <div class="phead">
+        <h2>The flight</h2>
+        <div class="legend">
+          <span class="lg"><i class="sw sw-true"></i>True path</span>
+          <span class="lg"><i class="sw sw-paid"></i>Ticks you bought <small id="lgRate">10&nbsp;Hz</small></span>
+          <span class="lg"><i class="sw sw-crit"></i>Barrier</span>
+        </div>
+      </div>
+      <div class="chart-hold"><canvas id="chart" aria-label="Price chart"></canvas></div>
+      <div class="cfoot"><span id="cfL">fire</span><span id="lagRead" class="lag-read">&mdash;</span><span id="cfR">+60s</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><h2>How that multiplier is computed</h2></div>
+      <div class="tbl-hold">
+        <table class="calc">
+          <thead><tr><th>Term</th><th>Formula</th><th>Substituted</th><th class="ta-r">Value</th></tr></thead>
+          <tbody id="calcBody"></tbody>
+        </table>
+      </div>
+      <p class="meter-n">Reflection principle on a driftless random walk: the chance of ever touching a level is exactly
+      twice the chance of finishing beyond it. The &minus;&sigma;&sup2;/2 drift term is around 5&times;10&#8315;&#8309; over a
+      minute and is dropped.</p>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><h2>Data is ammunition</h2></div>
+      <div class="feeds">
+        <button class="feed" id="feedBasic" type="button" data-feed="0">
+          <span class="feed-n">BASIC</span><span class="feed-r">1 Hz</span>
+          <span class="feed-p">0.001 HBAR / tick</span>
+          <span class="feed-w">touches can happen unseen</span>
+        </button>
+        <button class="feed is-on" id="feedPrem" type="button" data-feed="1">
+          <span class="feed-n">PREMIUM</span><span class="feed-r">10 Hz</span>
+          <span class="feed-p">0.004 HBAR / tick</span>
+          <span class="feed-w">40&times; the burn rate</span>
+        </button>
+      </div>
+      <div class="meters">
+        <div class="meter">
+          <div class="meter-top"><span>COINS</span><b id="coinVal">1200</b></div>
+          <div class="bar"><i id="coinBar" style="width:100%"></i></div>
+          <span class="meter-n" id="coinBurn">&mdash;</span>
+        </div>
+        <div class="meter">
+          <div class="meter-top"><span>PRIVY CAP</span><b id="capVal">$0.00 / $10.00</b></div>
+          <div class="bar bar-cap"><i id="capBar" style="width:0%"></i></div>
+          <span class="meter-n">every stake and every coin comes out of this</span>
+        </div>
+      </div>
+      <div class="econ-row">
+        <span>Shots fired <b id="shotCount">0</b></span>
+        <span>Touched <b id="hitCount">0</b></span>
+        <span>Ticks bought <b id="tickCount">0</b></span>
+        <span>HBAR spent <b id="hbarSpent">0.0000</b></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="phead">
+        <h2>Knobs</h2>
+        <div class="presets">
+          <button class="chip is-on" data-preset="doc" type="button">GAMES.md</button>
+          <button class="chip" data-preset="real" type="button">Real ETH</button>
+          <button class="chip" data-preset="demo" type="button">Film it</button>
+        </div>
+      </div>
+      <div class="knobs" id="knobs"></div>
+      <label class="chk"><input type="checkbox" id="autoMeter" checked><span>Auto-meter &mdash; the bar sweeps on its own while A is held, golf-swing style. Off = pure crank, as <code>GAMES.md &sect;5</code> specifies.</span></label>
+      <label class="chk"><input type="checkbox" id="trueSettle" checked><span>Settlement reads the true path, not your feed &mdash; you can win on a touch you never saw</span></label>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><h2>Receipts</h2></div>
+      <ol class="log" id="log"></ol>
+    </div>
+
+  </section>
+</main>
+
+<script src="longshot.js"></script>
+</body>
+</html>

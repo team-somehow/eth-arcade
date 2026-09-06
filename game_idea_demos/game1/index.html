@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NERVE Bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-id">
+    <span class="mark">NERVE</span>
+    <span class="sub">walking bench &mdash; the game on the left, every number behind it on the right</span>
+  </div>
+  <nav class="cart-nav" aria-label="Season One cartridges">
+    <span class="cart is-off">BOX<span class="cart-s">WK2</span></span>
+    <span class="cart is-on">NERVE<span class="cart-s">READY</span></span>
+    <a class="cart" href="index2.html">LONGSHOT<span class="cart-s">READY</span></a>
+    <span class="cart is-off">ROUTE<span class="cart-s">WK3</span></span>
+    <span class="cart is-off">DRIP<span class="cart-s">WK4</span></span>
+    <button id="themeBtn" class="ghost-btn" type="button" aria-label="Switch colour theme">THEME</button>
+  </nav>
+</header>
+
+<main class="deck">
+
+  <!-- ============ LEFT: the device ============ -->
+  <section class="col col-device">
+
+    <div class="shell">
+      <div class="shell-top">
+        <span class="shell-brand">NERVE</span>
+        <span class="shell-tag">SEASON ONE / WK 1</span>
+      </div>
+
+      <div class="screen-wrap">
+        <canvas id="screen" width="400" height="240" aria-label="Game screen"></canvas>
+      </div>
+
+      <div class="shell-controls">
+        <div class="crank" id="dial" title="Scroll or drag to crank">
+          <div class="crank-face"><span class="crank-arm" id="crankArm"></span></div>
+          <div class="crank-read">
+            <span class="crank-cap">CRANK &mdash; SIZE</span>
+            <b id="crankVal">&times;1.0</b>
+          </div>
+        </div>
+        <div class="pads">
+          <button class="pad" id="btnB" type="button">B</button>
+          <button class="pad pad-a" id="btnA" type="button"><span class="pad-hold" id="padHold"></span><span class="pad-let">A</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="keys">
+      <div class="krow"><kbd>space</kbd><span>Start / restart the round</span></div>
+      <div class="krow"><kbd>&uarr;</kbd><kbd>&darr;</kbd><span>Crank &mdash; sets position size, narrows the beam</span></div>
+      <div class="krow"><kbd>Z</kbd><span><b>A</b> &mdash; tap: counterbalance left &nbsp;/&nbsp; <b>hold: cash out</b></span></div>
+      <div class="krow"><kbd>X</kbd><span><b>B</b> &mdash; counterbalance right</span></div>
+    </div>
+
+    <div class="note">
+      <span class="note-tag">DESIGN NOTE</span>
+      <p>A is doing two jobs from <code>GAMES.md &sect;5</code> &mdash; tap counterbalances left, hold cashes out. Play it once and
+      you will feel the bug: every panicked left-correction starts a cash-out timer. Worth resolving before you build the real one.</p>
+      <p>Second one, deliberate: the position is a <em>long</em>, so only the left edge kills. The right edge is a rail you lean
+      on &mdash; you cannot be liquidated by profit. And cranking mid-walk re-prices the whole beam, which is honest to
+      &ldquo;crank to add position size&rdquo; but makes the walker jump. Crank from &times;1 to &times;8 while walking and watch what happens.</p>
+    </div>
+  </section>
+
+  <!-- ============ RIGHT: the bench ============ -->
+  <section class="col col-bench">
+
+    <!-- price -->
+    <div class="panel panel-chart">
+      <div class="phead">
+        <h2>The price, and the price you paid to see</h2>
+        <div class="legend">
+          <span class="lg"><i class="sw sw-true"></i>True market</span>
+          <span class="lg"><i class="sw sw-paid"></i>Ticks you bought <small id="lgRate">10&nbsp;Hz</small></span>
+          <span class="lg"><i class="sw sw-crit"></i>Beam edge</span>
+        </div>
+      </div>
+      <div class="chart-hold">
+        <canvas id="chart" aria-label="Price chart"></canvas>
+      </div>
+      <div class="cfoot"><span>&minus;20s</span><span id="lagRead" class="lag-read">&mdash;</span><span>now</span></div>
+    </div>
+
+    <!-- calibration -->
+    <div class="panel panel-cal">
+      <div class="phead"><h2>Where the edge actually is</h2></div>
+      <div class="cal-grid">
+        <div class="cal">
+          <span class="cal-k">Beam edge <em>on screen</em></span>
+          <b class="cal-v" id="calBeam">&plusmn;1.000%</b>
+          <span class="cal-n">the move that walks you off</span>
+        </div>
+        <div class="cal">
+          <span class="cal-k">Real liquidation <em>onchain</em></span>
+          <b class="cal-v" id="calLiq">&plusmn;25.00%</b>
+          <span class="cal-n">1 / leverage</span>
+        </div>
+        <div class="cal cal-wide">
+          <span class="cal-k">Magnification</span>
+          <b class="cal-v" id="calSens">25&times;</b>
+          <span class="cal-n">The beam is a zoomed gauge pointed at a real liquidation price, the way a tachometer redline sits below the engine's actual limit. <code>SENS</code> is that zoom.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- calc -->
+    <div class="panel">
+      <div class="phead"><h2>What the walker's position is made of</h2></div>
+      <div class="tbl-hold">
+        <table class="calc">
+          <thead><tr><th>Term</th><th>Formula</th><th>Substituted</th><th class="ta-r">Value</th></tr></thead>
+          <tbody id="calcBody"></tbody>
+        </table>
+      </div>
+      <div class="share">
+        <div class="share-bar" aria-hidden="true">
+          <span class="share-seg share-drift" id="segDrift"></span>
+          <span class="share-seg share-wob" id="segWob"></span>
+        </div>
+        <div class="share-key">
+          <span><i class="sw sw-true"></i>market drift <b id="shDrift">0%</b></span>
+          <span><i class="sw sw-accent"></i>wobble <b id="shWob">0%</b></span>
+          <span class="share-far">beam used <b id="shUsed">0%</b></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- economy -->
+    <div class="panel">
+      <div class="phead"><h2>Data is ammunition</h2></div>
+      <div class="feeds">
+        <button class="feed" id="feedBasic" type="button" data-feed="0">
+          <span class="feed-n">BASIC</span><span class="feed-r">1 Hz</span>
+          <span class="feed-p">0.001 HBAR / tick</span>
+          <span class="feed-w">you fly blind for a full second</span>
+        </button>
+        <button class="feed is-on" id="feedPrem" type="button" data-feed="1">
+          <span class="feed-n">PREMIUM</span><span class="feed-r">10 Hz</span>
+          <span class="feed-p">0.004 HBAR / tick</span>
+          <span class="feed-w">40&times; the burn rate</span>
+        </button>
+      </div>
+      <div class="meters">
+        <div class="meter">
+          <div class="meter-top"><span>COINS</span><b id="coinVal">600</b></div>
+          <div class="bar"><i id="coinBar" style="width:100%"></i></div>
+          <span class="meter-n" id="coinBurn">&mdash;</span>
+        </div>
+        <div class="meter">
+          <div class="meter-top"><span>PRIVY CAP</span><b id="capVal">$0.00 / $10.00</b></div>
+          <div class="bar bar-cap"><i id="capBar" style="width:0%"></i></div>
+          <span class="meter-n">hard floor under a leveraged game</span>
+        </div>
+      </div>
+      <div class="econ-row">
+        <span>Ticks bought <b id="tickCount">0</b></span>
+        <span>HBAR spent <b id="hbarSpent">0.0000</b></span>
+        <span>Round <b id="roundNo">1</b></span>
+      </div>
+    </div>
+
+    <!-- tunables -->
+    <div class="panel">
+      <div class="phead">
+        <h2>Knobs</h2>
+        <div class="presets">
+          <button class="chip" data-preset="real" type="button">Real ETH</button>
+          <button class="chip is-on" data-preset="tense" type="button">Tense</button>
+          <button class="chip" data-preset="demo" type="button">Film it</button>
+        </div>
+      </div>
+      <div class="knobs" id="knobs"></div>
+      <label class="chk"><input type="checkbox" id="frozenLiq" checked><span>Market keeps moving during <code>INSERT COIN</code> &mdash; you can be liquidated on the freeze screen</span></label>
+    </div>
+
+    <!-- log -->
+    <div class="panel">
+      <div class="phead"><h2>Receipts</h2></div>
+      <ol class="log" id="log"></ol>
+    </div>
+
+  </section>
+</main>
+
+<script src="nerve.js"></script>
+</body>
+</html>

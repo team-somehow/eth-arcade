@@ -1,0 +1,28 @@
+NERVE — *the one people will remember*
+
+**Verb:** crank to add position size. **A/B** to counterbalance. **Hold A** to cash out.
+
+You're walking a beam. **Beam width is your liquidation distance** — crank up the size and the beam
+narrows. Real price volatility shakes it, live. Distance walked accrues real P&L. Step off, you're
+liquidated.
+
+```
+  NERVE                       ×4.0
+              ░░
+         ▄▄▄▄████▄▄▄▄
+    ═════════╤╧╧╧╧╤═════════
+            ╱  ╳  ╲            ← beam shakes with live ticks
+   ▁▁▁▁▁▁▁▁▁       ▁▁▁▁▁▁▁▁
+   PNL +$1.40   FEED 10Hz  ▓▓░ 21
+```
+
+This is where the concept earns its name. Market volatility stops being a chart and becomes a physical
+sensation in your hands — and because the shake is driven by a **real, metered feed**, buying the cheap
+1 Hz data means you feel the shake a second late and fall. That's the whole thesis of §2 delivered as
+gameplay in about eight seconds of video.
+
+**Real primitive:** a leveraged position with a real liquidation price.
+**Sponsors:** Hedera (burns ticks fastest — best INSERT COIN moment), Privy (the cap is the hard floor
+under a leveraged game, which is a *good* look), Arc.
+
+---
