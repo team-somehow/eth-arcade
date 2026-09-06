@@ -16,11 +16,13 @@ python main.py
 
 ## Controls
 
-| Action | Keyboard | Touch |
-|--------|----------|-------|
-| Navigate | ↑/↓ or W/S | Tap a list row to focus |
-| Launch (A) | Enter, Space, or X | Tap the focused row again |
-| Back / Quit (B) | Esc, Z, or Backspace | Tap anywhere on a launched game |
+| Action | Keyboard | Touch | Rotary encoder |
+|--------|----------|-------|----------------|
+| Navigate | ↑/↓ or W/S | Tap a list row to focus | Turn (CLK=21, DT=20) |
+| Launch (A) | Enter, Space, or X | Tap the focused row again | Short click (SW=16) |
+| Back / Quit (B) | Esc, Z, or Backspace | Tap anywhere on a launched game | Hold click (~0.65s) |
+
+Encoder wiring: **VCC→3.3V**, **GND→GND**, **SW→GPIO16**, **DT→GPIO20**, **CLK→GPIO21**.
 
 On the home screen, **B** quits. On a launched stub, **B** (or tap) returns home.
 

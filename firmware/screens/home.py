@@ -108,7 +108,7 @@ class HomeScreen:
         draw_text_center(
             surface,
             fonts["small"],
-            "A Launch   B Quit   D-pad Navigate",
+            "Turn: move   Click: A   Hold: B",
             DIM,
             (WIDTH // 2, y + FOOTER_HEIGHT // 2),
         )

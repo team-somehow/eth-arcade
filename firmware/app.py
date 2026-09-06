@@ -6,6 +6,7 @@ import sys
 
 import pygame
 
+from encoder import EncoderInput
 from games.placeholder import PlaceholderGame, handle_game_events
 from input import InputAction, actions_from_event
 from screens.home import HomeScreen, handle_home_events
@@ -21,18 +22,25 @@ class App:
         self.current = "home"
         self.home = HomeScreen()
         self.game = PlaceholderGame()
+        self.encoder = EncoderInput.try_open()
 
     def run(self) -> None:
-        while self.running:
-            events = list(pygame.event.get())
-            keyboard_actions: list[InputAction] = []
-            for event in events:
-                keyboard_actions.extend(actions_from_event(event))
+        try:
+            while self.running:
+                events = list(pygame.event.get())
+                actions: list[InputAction] = []
+                for event in events:
+                    actions.extend(actions_from_event(event))
+                if self.encoder is not None:
+                    actions.extend(self.encoder.poll())
 
-            self._dispatch(events, keyboard_actions)
-            self._draw()
-            pygame.display.flip()
-            self.clock.tick(FPS)
+                self._dispatch(events, actions)
+                self._draw()
+                pygame.display.flip()
+                self.clock.tick(FPS)
+        finally:
+            if self.encoder is not None:
+                self.encoder.close()
 
         pygame.quit()
         sys.exit(0)
@@ -40,17 +48,17 @@ class App:
     def _dispatch(
         self,
         events: list[pygame.event.Event],
-        keyboard_actions: list[InputAction],
+        actions: list[InputAction],
     ) -> None:
         if self.current == "home":
-            target = handle_home_events(self.home, events, keyboard_actions)
+            target = handle_home_events(self.home, events, actions)
             if target == "game":
                 self.game.set_title(self.home.focused_item().title)
                 self.current = "game"
             elif target == "quit":
                 self.running = False
         elif self.current == "game":
-            target = handle_game_events(self.game, events, keyboard_actions)
+            target = handle_game_events(self.game, events, actions)
             if target == "home":
                 self.current = "home"
             elif target == "quit":

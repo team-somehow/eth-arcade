@@ -7,8 +7,15 @@ SYSTEM_PYTHON = "/usr/bin/python3"
 
 
 def configure_sdl():
-    os.environ.setdefault("SDL_VIDEODRIVER", "kmsdrm")
-    os.environ.setdefault("SDL_VIDEO_KMSDRM_DEVICE_INDEX", "1")
+    # Prefer the running desktop (labwc/Wayland or X11). Only force KMSDRM
+    # when nothing already owns the DRM device.
+    has_session = bool(
+        os.environ.get("WAYLAND_DISPLAY") or os.environ.get("DISPLAY")
+    )
+    if not has_session:
+        os.environ.setdefault("SDL_VIDEODRIVER", "kmsdrm")
+        # card2 is the Waveshare SPI panel on this Pi 5; card1 is HDMI.
+        os.environ.setdefault("SDL_VIDEO_KMSDRM_DEVICE_INDEX", "2")
     os.environ.setdefault("SDL_MOUSE_RELATIVE", "0")
 
 
