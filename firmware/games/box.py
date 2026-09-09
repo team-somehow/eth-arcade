@@ -26,7 +26,7 @@ HALF_PX = TRACE.height // 2 - 9
 # flagged off-scale when it is really on screen. Labels draw over it instead.
 BAND_TOP = TRACE.top + 4
 BAND_BOTTOM = TRACE.bottom - 4
-TRACE_S = 24.0            # seconds of history across the trace
+TRACE_S = BoxModel.WINDOW_S * 1.2   # history across the trace: this window, plus a lead-in
 OPEN_LINE = (74, 96, 103)
 DEAD = (17, 30, 41)       # the AIM lane once the bet is locked
 
@@ -329,7 +329,7 @@ class BoxGame:
                     f'{format_usdc(int(m.live.payout))}'), YELLOW
         if m.pending is not None:
             return 'PLACED / A ADDS 10 MORE', CREAM
-        return 'CRANK / A BUYS NEXT 20s', MUTED
+        return f'CRANK / A BUYS NEXT {self.model.WINDOW_S:.0f}s', MUTED
 
     def draw_status(self, s: pygame.Surface) -> None:
         m = self.model

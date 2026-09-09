@@ -1,9 +1,10 @@
-"""TICK launcher. One cartridge (RUSH) plus the money loader."""
+"""TICK launcher. One cartridge (BOX RUN) plus the money loader."""
 from __future__ import annotations
 from dataclasses import dataclass
 
 import pygame
 
+from games.box_model import BoxModel
 from input import InputAction, event_position
 from ui import NAVY, PANEL, CREAM, YELLOW, MINT, MUTED, label, footer
 
@@ -14,7 +15,8 @@ class LauncherItem:
     title: str
 
 
-TITLES = {'box': ('BOX RUN', 'WHERE WILL ETH LAND?', 'CRANK THE BOX. A BUYS 20s.'),
+TITLES = {'box': ('BOX RUN', 'WHERE WILL ETH LAND?',
+                  f'CRANK THE BOX. A BUYS {BoxModel.WINDOW_S:.0f}s.'),
           'rush': ('RUSH', 'KEEP IT TURNING.', 'THE DIAL IS THE BET.')}
 
 

@@ -5,9 +5,9 @@ expires, whatever box you bought for it settles against the live price and the
 next window starts in the same frame. The dial is always live — cranking moves
 an aim cursor, and pressing A buys the next window at wherever the cursor sits.
 
-The box is always the same size — a fixed slice of the price, about $2 wide on
-$2,500 ETH — so there is nothing to learn about it and nothing that changes
-under you. Its one degree of freedom is how far from spot you park it, and that
+The box is always the same size — a fixed slice of the price, about $1.41 wide
+on $2,500 ETH for a ten-second window — so there is nothing to learn about it
+and nothing that changes under you. Its one degree of freedom is how far from spot you park it, and that
 distance is the whole risk decision. Only the *payout* reacts to the market,
 priced from measured volatility of the live tick stream over the true remaining
 horizon rather than a hardcoded table: the same box pays more when the market is
@@ -89,15 +89,22 @@ class Result:
 
 
 class BoxModel:
-    WINDOW_S = 20.0
+    WINDOW_S = 10.0
     STAKE = 10 * MICRO       # micro-USDC added per press of A
     # Geometry in basis points of the window's opening price: constant, so the
     # box never changes size on screen or in dollars, and never rescales under
-    # a bet that is already placed. At $2,500 ETH these are a $2.00 box, 25c
-    # crank steps and $3.00 of reach either way.
+    # a bet that is already placed.
+    #
+    # These are quoted for a 20-second window and scaled by the square root of
+    # time, because that is how far a price travels. Halving the window without
+    # shrinking the box would make a box on spot a near-certainty paying 1.2x
+    # and everything else a capped lottery ticket — a flatter game, not a
+    # faster one. Scaled, any WINDOW_S keeps the same ladder of odds.
+    REFERENCE_S = 20.0
     BOX_BPS = 8.0
     STEP_BPS = 1.0
     REACH_BPS = 12.0
+    SCALE = (WINDOW_S / REFERENCE_S) ** 0.5
     # Half the visible price band. Exactly reach + half a box, so the cursor
     # can never be cranked out of view.
     VIEW_BPS = REACH_BPS + BOX_BPS / 2
@@ -157,7 +164,7 @@ class BoxModel:
         tick, and taken from the price rather than from volatility so a placed
         box is never redrawn at a different size than it was bought at.
         """
-        base = self.window_open / 10_000
+        base = self.window_open / 10_000 * self.SCALE
         self.half = base * self.BOX_BPS / 2
         self.step = base * self.STEP_BPS
         self.reach = base * self.REACH_BPS

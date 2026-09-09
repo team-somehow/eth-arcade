@@ -52,11 +52,12 @@ class WindowClockTests(unittest.TestCase):
         self.assertGreater(m.window_end, now + 2 * m.WINDOW_S)
         self.assertEqual((m.rounds, m.wallet.balance), (0, START))
 
-    def test_window_length_is_exactly_twenty_seconds(self):
+    def test_windows_are_ten_seconds_long(self):
         m = model()
         feed(m, [2500.0])
         first = m.window_end
         m.update(first + .001)
+        self.assertEqual(m.WINDOW_S, 10.0)
         self.assertAlmostEqual(m.window_end - first, m.WINDOW_S)
 
     def test_rolling_is_time_driven_not_frame_driven(self):
@@ -309,27 +310,43 @@ class PricingTests(unittest.TestCase):
         # Volatility moves the odds, never the geometry: the box is a fixed
         # slice of the price, so it is identical in both markets.
         for m in (calm, wild):
-            self.assertAlmostEqual(2 * m.half / m.window_open, m.BOX_BPS / 10_000, places=12)
-            self.assertAlmostEqual(m.view_half / m.window_open, m.VIEW_BPS / 10_000, places=12)
-        self.assertAlmostEqual(2 * calm.half, 2.0, places=2)
+            self.assertAlmostEqual(2 * m.half / m.window_open,
+                                   m.BOX_BPS / 10_000 * m.SCALE, places=12)
+            self.assertAlmostEqual(m.view_half / m.window_open,
+                                   m.VIEW_BPS / 10_000 * m.SCALE, places=12)
+        self.assertAlmostEqual(2 * calm.half, 1.41, places=2)
         self.assertGreater(wild.quote(wild.price, T0), calm.quote(calm.price, T0))
 
     def test_a_placed_box_is_never_redrawn_at_another_size(self):
         m = model()
         now = warm(m)
         m.buy(now)
-        placed = m.pending.half
-        # A violent burst mid-window must not resize a bet already down.
+        order, placed = m.pending, m.pending.half
+        # A violent burst must not resize a bet already down, and the bell
+        # carrying it from pending to live must not either.
         feed(m, [2500.0 + (8.0 if i % 2 else -8.0) for i in range(40)], now + .2)
-        self.assertEqual(m.pending.half, placed)
-        self.assertEqual(m.half, placed)
+        self.assertIs(m.live, order)
+        self.assertEqual(order.half, placed)
 
     def test_the_fixture_is_roughly_live_eth_volatility(self):
         m = model()
         warm(m)
-        # About 0.04% over 20 seconds, or a dollar on $2,500.
-        self.assertLess(.5, m.window_sigma())
-        self.assertLess(m.window_sigma(), 2.0)
+        # About 0.03% over ten seconds, or 70c on $2,500.
+        self.assertLess(.4, m.window_sigma())
+        self.assertLess(m.window_sigma(), 1.4)
+
+    def test_shrinking_the_window_keeps_the_same_ladder_of_odds(self):
+        """A shorter window with a square-root-scaled box prices the same."""
+        m = model()
+        warm(m)
+        on_spot = m.quote(m.window_open, m.window_end - m.WINDOW_S)
+        far = m.quote(m.window_open + m.reach, m.window_end - m.WINDOW_S)
+        # The ladder the 20-second build had: about 2x on spot, double digits
+        # at full reach, and not pinned to the cap at either end.
+        self.assertLess(1.5, on_spot)
+        self.assertLess(on_spot, 2.6)
+        self.assertGreater(far, 5.0)
+        self.assertLess(far, m.MAX_MULTIPLE)
 
     def test_volatility_falls_back_before_enough_ticks_arrive(self):
         m = model()
@@ -356,7 +373,7 @@ class AimTests(unittest.TestCase):
         before = m.aim
         m.crank(1)
         self.assertAlmostEqual(m.aim - before, m.step, places=9)
-        self.assertAlmostEqual(m.step, m.window_open * m.STEP_BPS / 10_000, places=9)
+        self.assertAlmostEqual(m.step, m.window_open * m.STEP_BPS / 10_000 * m.SCALE, places=9)
         # Reach is measured from the window's open, so the cursor can never be
         # cranked outside the drawn price band.
         for _ in range(400):
