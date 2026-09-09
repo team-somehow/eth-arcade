@@ -13,19 +13,22 @@ from ui import NAVY, PANEL, GRID, CREAM, MUTED, YELLOW, MINT, RED, Sounds, label
 from wallet import LOAD_CHOICES, MICRO, DemoFunding, UsdcFunding, Wallet, format_usdc
 
 # Chart geometry. Time reads left to right: history, this window's bell, the
-# next one's. Only ever two boxes, one per column.
-TRACE = pygame.Rect(14, 72, 262, 166)
-NOW_COL = pygame.Rect(280, 72, 88, 166)
-NEXT_COL = pygame.Rect(372, 72, 88, 166)
+# next one's — then your hand. A placed bet visibly jumps left out of the AIM
+# lane, which is the only signal that says "you cannot crank this any more".
+TRACE = pygame.Rect(14, 72, 192, 166)
+NOW_COL = pygame.Rect(210, 72, 82, 166)
+NEXT_COL = pygame.Rect(296, 72, 82, 166)
+AIM_COL = pygame.Rect(382, 72, 82, 166)
 MID_Y = TRACE.centery
 HALF_PX = TRACE.height // 2 - 9
-# Boxes are drawn inside this vertical band, leaving the column header and a
-# floor strip for numbers, so a box can never land on top of a label.
-BAND_TOP = TRACE.top + 20
-BAND_BOTTOM = TRACE.bottom - 28
-TRACE_S = 30.0            # seconds of history across the trace
-VIEW_SIGMA = 7.0          # half the visible price band, in sigma
+# Boxes are drawn inside this band, which has to cover the whole price range a
+# box can legally reach — squeeze it and a box at full crank gets clipped and
+# flagged off-scale when it is really on screen. Labels draw over it instead.
+BAND_TOP = TRACE.top + 4
+BAND_BOTTOM = TRACE.bottom - 4
+TRACE_S = 24.0            # seconds of history across the trace
 OPEN_LINE = (74, 96, 103)
+DEAD = (17, 30, 41)       # the AIM lane once the bet is locked
 
 
 def build_wallet() -> Wallet:
@@ -190,10 +193,9 @@ class BoxGame:
         pin the latest point to the middle, which makes movement invisible.
         """
         m = self.model
-        span = VIEW_SIGMA * m.window_sigma()
-        if span <= 0:
+        if m.view_half <= 0:
             return MID_Y
-        return round(MID_Y - (price - m.window_open) / span * HALF_PX)
+        return round(MID_Y - (price - m.window_open) / m.view_half * HALF_PX)
 
     def draw(self, s: pygame.Surface) -> None:
         m = self.model
@@ -225,14 +227,17 @@ class BoxGame:
 
     def draw_chart(self, s: pygame.Surface) -> None:
         m = self.model
+        locked = m.locked
         for rect in (TRACE, NOW_COL, NEXT_COL):
             pygame.draw.rect(s, PANEL, rect)
-        label(s, 'NOW', NOW_COL.x + 5, 76, 14, MUTED)
-        label(s, 'NEXT', NEXT_COL.x + 5, 76, 14, MUTED)
-
-        # The line the price is measured against. It holds still all window.
+        pygame.draw.rect(s, DEAD if locked else PANEL, AIM_COL)
+        # A ruler in box-heights: the band is exactly two boxes either way, so
+        # "the price has moved one box" is something you can see at a glance.
+        for step in (-2, -1, 1, 2):
+            y = self.y_of(m.window_open + step * 2 * m.half)
+            pygame.draw.line(s, GRID, (TRACE.left, y), (TRACE.right, y), 1)
         open_y = self.y_of(m.window_open)
-        for x in range(TRACE.left, NEXT_COL.right, 10):
+        for x in range(TRACE.left, AIM_COL.right, 10):
             pygame.draw.line(s, OPEN_LINE, (x, open_y), (x + 5, open_y), 1)
 
         clip = s.get_clip()
@@ -240,16 +245,16 @@ class BoxGame:
         points = [(TRACE.right - round((self.clock - t) / TRACE_S * TRACE.width), self.y_of(p))
                   for t, p in m.history if self.clock - t <= TRACE_S]
         if len(points) > 1:
-            pygame.draw.lines(s, CREAM, False, points, 2)
+            pygame.draw.lines(s, CREAM, False, points, 3)
         s.set_clip(clip)
 
         # Where spot sits relative to the boxes, carried across the columns.
         spot_y = max(TRACE.top + 1, min(TRACE.bottom - 2, self.y_of(m.price)))
-        for x in range(TRACE.right - 10, NEXT_COL.right, 7):
+        for x in range(TRACE.right - 10, AIM_COL.right, 7):
             pygame.draw.line(s, CREAM, (x, spot_y), (x + 3, spot_y), 1)
         label(s, 'OPEN', TRACE.left + 3, open_y + 3, 12, MUTED)
         if not TRACE.top < self.y_of(m.price) < TRACE.bottom:
-            label(s, 'OFF SCALE', TRACE.left + 60, spot_y - 14, 13, YELLOW)
+            label(s, 'OFF SCALE', TRACE.left + 40, spot_y - 14, 13, YELLOW)
 
         flashing = self.clock < self.flash_until and m.last is not None
         if m.live is not None and m.live.stake:
@@ -257,15 +262,17 @@ class BoxGame:
                           stake=m.live.stake, multiple=m.live.multiple)
         elif flashing:
             self.draw_result(s)
-        # One box per column: the bought box replaces the cursor outright, so
-        # nothing shrinks and there is never a second thing to aim.
-        if m.pending is not None:
+        if locked:
             self.draw_box(s, NEXT_COL, m.pending.low, m.pending.high, CREAM,
                           stake=m.pending.stake, multiple=m.pending.multiple)
+            label(s, 'LOCKED', AIM_COL.x + 4, AIM_COL.bottom - 23, 14, MUTED)
         else:
-            dashed_rect(s, self.box_rect(NEXT_COL, m.aim - m.half, m.aim + m.half), YELLOW)
+            dashed_rect(s, self.box_rect(AIM_COL, m.aim - m.half, m.aim + m.half), YELLOW)
             label(s, f'{m.quote(m.aim, self.clock):.1f}x',
-                  NEXT_COL.x + 4, NEXT_COL.bottom - 24, 17, YELLOW)
+                  AIM_COL.x + 4, AIM_COL.bottom - 24, 17, YELLOW)
+        label(s, 'NOW', NOW_COL.x + 5, 76, 13, MUTED)
+        label(s, 'NEXT', NEXT_COL.x + 5, 76, 13, MUTED)
+        label(s, 'AIM', AIM_COL.x + 5, 76, 13, GRID if locked else MUTED)
 
     def box_rect(self, col: pygame.Rect, low: float, high: float) -> pygame.Rect:
         top = max(BAND_TOP, min(BAND_BOTTOM - 8, self.y_of(high)))
@@ -289,7 +296,7 @@ class BoxGame:
                                            (col.centerx + 7, BAND_BOTTOM + 3)])
         if stake:
             label(s, f'{format_usdc(stake, 0)} @ {multiple:.1f}x',
-                  col.x + 4, col.bottom - 23, 15, color)
+                  col.x + 4, col.bottom - 22, 14, color)
 
     def draw_result(self, s: pygame.Surface) -> None:
         """Flash the box that just settled, so you see where the price landed."""

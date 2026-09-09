@@ -4,6 +4,8 @@ Native pygame game for a **480×320 landscape** handheld. Runs on desktop for de
 
 **BOX RUN** is a box on the ETH price ladder and a clock that never stops. A 20-second window is always running; **cranking the dial moves your box** up and down, and **A buys the next 20 seconds** at wherever the box is sitting. At the bell, the window settles against the live price — inside the box and you're paid, outside and the stake is gone — and the next window starts in the same frame. There is no size step, no confirmation, and no early exit.
 
+The box is **always the same size** — $2.00 on $2,500 ETH — so there is nothing to learn about it and nothing that changes under you. How far you park it from spot is the only decision, and only the *payout* reacts to the market.
+
 ## Controls
 
 The rotary encoder is the game: GPIO21 CLK, GPIO20 DT, GPIO16 switch, 3.3 V logic.
@@ -16,6 +18,8 @@ The rotary encoder is the game: GPIO21 CLK, GPIO20 DT, GPIO16 switch, 3.3 V logi
 
 Press A again in the same window and the extra 10 goes onto **the same box** — the first press fixes that window's level. After that the dial is **locked out entirely**: the box does not move, does not shrink, and no second cursor appears. Only money can still be added, and only by pressing A. The dial frees up again when the bell rolls the window over.
 
+Placing a bet makes the box **jump left**, out of the `AIM` lane and into `NEXT`, and the `AIM` lane goes dark. That movement is the signal that the dial is no longer yours; the status line says `BOX LOCKED / A ADDS 10` if you turn it anyway.
+
 Spending money on a dial nudge would be worse than a dead dial, which is why adding stake stays on the button.
 
 Desktop and touch equivalents: Up/Down (or W/S) held down emulates a spun dial, Right/Enter/Space is the short click, Left/Z/Backspace the long one, `F` opens the loader, and **Escape quits the program immediately** from any screen. On a desktop the game opens in a plain 480×320 window; only the Pi gets the fullscreen panel. Tapping the upper/lower half of the chart cranks the box.
@@ -24,25 +28,30 @@ Desktop and touch equivalents: Up/Down (or W/S) held down emulates a spun dial, 
 
 ## Reading the screen
 
-Time runs left to right: the price trace covers the last 30 seconds, then the **NOW** column (this window's bell) and the **NEXT** one. There is never more than one box per column.
+Time runs left to right: the price trace, then **NOW** (this window's bell), **NEXT** (the bell after), and **AIM** — your hand.
 
 | On screen | Meaning |
 |---|---|
 | `MOVE +1.24` | How far the price has come since this window opened |
 | Dashed grey line, `OPEN` | The price this window opened at — the chart is anchored here |
-| Dotted white line | Where the price is now, carried across the columns so you can see it against your box |
+| Faint horizontal lines | A ruler one box-height apart, so "it moved half a box" is something you can see |
+| Dotted white line | Where the price is now, carried across the columns to read against your box |
 | Solid yellow box, NOW | Your live bet, settling at this bell |
 | Solid cream box, NEXT | Bought and locked for the next window |
-| Dashed box, NEXT | The cursor, with its live quote. Gone once a bet is placed |
+| Dashed box, AIM | The cursor, with its live quote |
+| Dark AIM lane, `LOCKED` | A bet is placed; the dial does nothing |
 | `20 @ 2.0x` | Stake on that box and the multiple it pays |
-| `BELL 07s` | Seconds until this window settles |
 | Small triangle | The box sits past the top or bottom of the visible band |
+
+The visible band is exactly **two box-heights either way** (±$4 on $2,500 ETH), which is what makes a dollar of drift a visible swing rather than a wobble. Widening it to fit every reachable box would flatten the price back out, so a box cranked to the far edge is clamped with a triangle instead.
 
 **The chart is anchored on the window's opening price, not on spot.** Anchoring on spot re-centres the view every tick and pins the newest point to the middle of the screen, which makes movement impossible to see — the price appears still while the world slides around it. Against a reference that holds still for the whole window, a move reads immediately, and the `MOVE` figure puts a number on it.
 
 ## Odds
 
-Distance is the whole risk decision, so the payout is priced from what the market is actually doing rather than a fixed table. Box height and crank step are set in standard deviations of a window's move — measured from the live tick stream — so the game plays the same whether ETH is flat or thrashing. Park the box on spot for roughly 2x; crank it a couple of sigma out for around 10x, capped at 25x.
+Distance is the whole risk decision, so the payout is priced from what the market is actually doing rather than a fixed table. Park the box on spot for roughly 2x; crank it to the edge of its reach for 10x or more, capped at 25x.
+
+Geometry is fixed in basis points of the window's opening price — an $2.00 box, 25c crank steps and $3.00 of reach on $2,500 ETH — so **volatility moves the odds and never the box**. Sizing the box in sigma instead (as this first did) means a bet already placed gets redrawn at a different size when the market picks up, which is both confusing and dishonest about what you bought. The cost of fixing it is that a violent market makes the same box genuinely hard to hit; the multiple rises to match, which is the honest response rather than quietly making the target bigger.
 
 The estimator is deliberately **median-based**: a mean of squared returns would let one flash spike or feed glitch inflate the box for several windows afterward. It is also cached per tick — the renderer asks for volatility once per plotted point, and rescanning the history hundreds of times a frame is not something the Pi can spare.
 
@@ -67,7 +76,7 @@ Balances are integer **micro-USDC** (6 decimals, the real USDC unit) so a sessio
 
 | `TICK_MARKET_SOURCE` | Feed |
 |---|---|
-| `sim` (default) | Seeded 20 Hz Gaussian walk. Tick spacing is counted in integer microseconds, so the same wall-clock time produces the same ticks at any frame rate |
+| `sim` (default) | Seeded 20 Hz Gaussian walk at roughly live ETH volatility — about 0.04% over 20 seconds. Tick spacing is counted in integer microseconds, so the same wall-clock time produces the same ticks at any frame rate |
 | `coinbase` | Public Coinbase REST ticker at 5 Hz on a worker thread, read-only |
 
 A 20-second window needs a trace rather than a staircase, which is why the live adapter polls at 5 Hz (well inside the public rate limit) instead of once a second. Payloads are validated before use — finite positive price, timezone-aware timestamp, no future stamp — and carry a sequence number and source age, so out-of-order or stale ticks cannot price or settle anything. A production adapter should use the venue's WebSocket trade stream.

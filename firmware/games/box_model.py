@@ -5,12 +5,17 @@ expires, whatever box you bought for it settles against the live price and the
 next window starts in the same frame. The dial is always live — cranking moves
 an aim cursor, and pressing A buys the next window at wherever the cursor sits.
 
-The box has one degree of freedom: how far from spot you park it. That distance
-is the whole risk decision, so the payout has to be priced honestly from what
-the market is actually doing — measured volatility of the live tick stream over
-the true remaining horizon, not a hardcoded table. There is no size step, no
-confirmation, and no early exit: once bought, the box rides to expiry, and the
-dial is locked out until the window rolls — only money can still be added.
+The box is always the same size — a fixed slice of the price, about $2 wide on
+$2,500 ETH — so there is nothing to learn about it and nothing that changes
+under you. Its one degree of freedom is how far from spot you park it, and that
+distance is the whole risk decision. Only the *payout* reacts to the market,
+priced from measured volatility of the live tick stream over the true remaining
+horizon rather than a hardcoded table: the same box pays more when the market is
+wild because it is genuinely harder to hit.
+
+There is no size step, no confirmation, and no early exit: once bought, the box
+rides to expiry, and the dial is locked out until the window rolls — only money
+can still be added.
 
 Each window records the price it opened at, so movement can be shown against a
 reference that holds still instead of against a spot that moves with it.
@@ -86,13 +91,16 @@ class Result:
 class BoxModel:
     WINDOW_S = 20.0
     STAKE = 10 * MICRO       # micro-USDC added per press of A
-    # Box height and crank step, in standard deviations of a window's move, so
-    # the game stays equally playable whether ETH is flat or thrashing.
-    HEIGHT_SIGMA = 1.6
-    STEP_SIGMA = 0.25
-    # How far from the window's opening price the cursor may be cranked. Tied
-    # to the open rather than to spot so the cursor cannot leave the view.
-    AIM_RANGE_SIGMA = 6.0
+    # Geometry in basis points of the window's opening price: constant, so the
+    # box never changes size on screen or in dollars, and never rescales under
+    # a bet that is already placed. At $2,500 ETH these are a $2.00 box, 25c
+    # crank steps and $3.00 of reach either way.
+    BOX_BPS = 8.0
+    STEP_BPS = 1.0
+    REACH_BPS = 12.0
+    # Half the visible price band. Exactly reach + half a box, so the cursor
+    # can never be cranked out of view.
+    VIEW_BPS = REACH_BPS + BOX_BPS / 2
     MAX_MULTIPLE = 25.0
     # A real venue must charge an edge and fund payouts from somewhere. This
     # demo quotes fair odds and says so rather than hiding a margin.
@@ -109,7 +117,10 @@ class BoxModel:
         self.history: deque[tuple[float, float]] = deque(maxlen=400)
         self.aim = 0.0            # cursor level; 0 until the first price
         self.window_open = 0.0    # price this window started at; the chart anchor
-        self.half = 0.0           # box half-height, tracks measured volatility
+        self.half = 0.0           # box half-height; constant within a window
+        self.step = 0.0           # one detent, in price
+        self.reach = 0.0          # how far the cursor may go from the anchor
+        self.view_half = 0.0      # half the visible band, in price
         self._variance = 0.0      # cached; recomputed once per tick, not per read
         self.live: Order | None = None     # settles at window_end
         self.pending: Order | None = None  # bought for the window after that
@@ -138,6 +149,19 @@ class BoxModel:
     def locked(self) -> bool:
         """True once the next window is bought: position fixed, money still open."""
         return self.pending is not None
+
+    def _set_geometry(self) -> None:
+        """Size the box and the view from the window's opening price.
+
+        Anchored to the open rather than to spot so nothing breathes tick by
+        tick, and taken from the price rather than from volatility so a placed
+        box is never redrawn at a different size than it was bought at.
+        """
+        base = self.window_open / 10_000
+        self.half = base * self.BOX_BPS / 2
+        self.step = base * self.STEP_BPS
+        self.reach = base * self.REACH_BPS
+        self.view_half = base * self.VIEW_BPS
 
     @property
     def move(self) -> float:
@@ -219,12 +243,12 @@ class BoxModel:
         """
         if not steps or not self.started or self.locked:
             return False
-        self.aim = self._in_reach(self.aim + steps * self.STEP_SIGMA * self.window_sigma())
+        self.aim = self._in_reach(self.aim + steps * self.step)
         return True
 
     def _in_reach(self, level: float) -> float:
-        reach = self.AIM_RANGE_SIGMA * self.window_sigma()
-        return max(self.window_open - reach, min(self.window_open + reach, level))
+        return max(self.window_open - self.reach,
+                   min(self.window_open + self.reach, level))
 
     def buy(self, now: float) -> bool:
         """Press A: put 10 USDC on the next window at the cursor.
@@ -259,13 +283,10 @@ class BoxModel:
         self.tick = tick
         self.history.append((tick.received_at, tick.price))
         self._variance = self._measure_variance()
-        # Height follows measured volatility, so the box stays the same shape in
-        # sigma terms whether ETH is flat or thrashing. A bought Order keeps its
-        # own half, so a live bet is never resized underneath it.
-        self.half = self.HEIGHT_SIGMA / 2 * self.window_sigma()
         if not self.started:
             self.started = True
             self.aim = self.window_open = tick.price
+            self._set_geometry()
             self.window_end = now + self.WINDOW_S
         self.update(now)
 
@@ -298,6 +319,7 @@ class BoxModel:
             # The new window opens here, and the cursor — free again — is
             # pulled back into reach of the new anchor.
             self.window_open = self.price
+            self._set_geometry()
             self.aim = self._in_reach(self.aim)
 
     def _settle(self, order: Order) -> None:

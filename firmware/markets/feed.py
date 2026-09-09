@@ -27,6 +27,10 @@ class SimulatedFeed:
     # Tick spacing, held in integer microseconds so the same wall-clock time
     # yields the same ticks at any frame rate (float seconds drift and drop one).
     INTERVAL_US = 50_000
+    # Volatility per square-root second, set to roughly live ETH: about 0.04%
+    # over 20 seconds, or a dollar on $2,500. Testing against a feed an order
+    # of magnitude wilder than the real one teaches the wrong thing.
+    SIGMA = 0.00009
 
     def __init__(self, seed: int | None = None):
         self.rng = random.Random(seed)
@@ -42,8 +46,7 @@ class SimulatedFeed:
         while self.accumulated_us >= self.INTERVAL_US:
             self.accumulated_us -= self.INTERVAL_US
             self.sequence += 1
-            # Demo volatility, NOT an estimate of real ETH market volatility.
-            self.price *= math.exp(self.rng.gauss(0, .0012 * math.sqrt(step)))
+            self.price *= math.exp(self.rng.gauss(0, self.SIGMA * math.sqrt(step)))
             result.append(PriceTick(self.price, self.sequence, now))
         return result
 

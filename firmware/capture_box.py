@@ -46,7 +46,7 @@ def settle(game: BoxGame, clock: Clock, inside: bool) -> None:
     """Hand the model a chosen expiry price so both outcomes can be captured."""
     m = game.model
     clock.t = m.window_end + .05
-    price = m.live.level if inside else m.live.high + 6 * m.half
+    price = m.live.level if inside else m.live.high + 1.5 * m.half
     m.on_tick(PriceTick(price, m.tick.sequence + 1, clock.t), clock.t)
     game.clock = clock.t
     game.flash_until = clock.t + 1.6
@@ -81,7 +81,7 @@ def main() -> None:
                 game = new_game(clock, seed=3 if state == 'hit' else 5)
                 run(game, clock, 12)
                 if state == 'miss':
-                    game.crank(4)
+                    game.crank(2)
                 to_live(game, clock)
                 settle(game, clock, inside=state == 'hit')
             elif state == 'wallet':
