@@ -64,13 +64,15 @@ def parse_coinbase(data: dict, now: float, wall_now: float) -> PriceTick:
 
 
 class CoinbaseFeed:
-    """Public REST snapshot at ~1 Hz on a worker thread; no trading endpoints.
+    """Public REST ticker on a worker thread; read-only, no trading endpoints.
 
-    Kept dependency-free for the Pi. A production low-latency execution adapter
-    should use the selected venue's WebSocket/book/fill streams instead.
+    Polled at 5 Hz: a 20-second window needs a trace, not a staircase, and this
+    stays well inside the public rate limit. Kept dependency-free for the Pi. A
+    production adapter should use the venue's WebSocket trade stream instead.
     """
     name = 'COINBASE LIVE'
     URL = 'https://api.exchange.coinbase.com/products/ETH-USD/ticker'
+    INTERVAL = 0.2
 
     def __init__(self):
         self.status = 'Connecting to Coinbase'
@@ -81,7 +83,7 @@ class CoinbaseFeed:
 
     def _run(self):
         last_sequence = -1
-        retry = 1.0
+        retry = self.INTERVAL
         while not self.stop.is_set():
             try:
                 request = urllib.request.Request(self.URL, headers={'User-Agent': 'TICK-Hackathon/0.1'})
@@ -96,11 +98,12 @@ class CoinbaseFeed:
                             pass
                     self.items.put_nowait(tick)
                     last_sequence = tick.sequence
-                self.status = 'Coinbase ETH/USD / 1 Hz'
-                retry = 1.0
+                self.status = 'Coinbase ETH/USD / 5 Hz'
+                retry = self.INTERVAL
             except (OSError, ValueError, KeyError, TypeError, queue.Full):
                 self.status = 'Feed unavailable / retrying'
-                retry = min(10, retry * 2)
+                # Back off on failure so a dead network is not hammered.
+                retry = min(10, max(1.0, retry * 2))
             self.stop.wait(retry)
 
     def poll(self, _dt: float, _now: float) -> list[PriceTick]:

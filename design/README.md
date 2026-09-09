@@ -21,6 +21,6 @@ All completed generated images available from the conversation are now copied in
 
 ## Actual software screenshots
 
-[RUSH gameplay contact sheet](rush-build/gameplay-sheet.png) and individual screens in `rush-build/` are rendered by the implemented pygame game, not imagegen. Recreate with `cd firmware && SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy .venv/bin/python capture_rush.py`.
+[BOX RUN gameplay contact sheet](box-run-live/gameplay-sheet.png) and individual screens in `box-run-live/` are rendered by the implemented pygame game, not imagegen. Recreate with `cd firmware && SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy .venv/bin/python capture_box.py`.
 
-The implemented game is RUSH: one continuous crank drives a leveraged paper ride on a read-only price feed, staked in demo USDC. The earlier BOX RUN screens in `box-run-build/` are kept as an archive — its aim/size/confirm flow was dropped because it broke the crank. See [firmware instructions](../firmware/README.md) for running and controls.
+The implemented game is BOX RUN: a box on the ETH price ladder with a 20-second window clock that never stops, priced from measured live volatility and staked in demo USDC. Two archives sit beside it — `box-run-build/` is the original aim/size/confirm version, whose sizing and confirmation steps were dropped, and `rush-build/` is a crank-a-flywheel detour (still runnable with `TICK_GAME=rush`). See [firmware instructions](../firmware/README.md) for running and controls.

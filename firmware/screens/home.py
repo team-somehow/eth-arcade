@@ -14,18 +14,22 @@ class LauncherItem:
     title: str
 
 
-ITEMS = [LauncherItem('rush', 'RUSH'), LauncherItem('wallet', 'Load USDC')]
+TITLES = {'box': ('BOX RUN', 'WHERE WILL ETH LAND?', 'CRANK THE BOX. A BUYS 20s.'),
+          'rush': ('RUSH', 'KEEP IT TURNING.', 'THE DIAL IS THE BET.')}
 
 
 class HomeScreen:
-    def __init__(self) -> None:
+    def __init__(self, game_id: str = 'box') -> None:
         self.focus = 0
+        self.game_id = game_id
 
     def row_rect(self, index: int) -> pygame.Rect:
         return pygame.Rect(16, 74, 448, 138) if index == 0 else pygame.Rect(16, 224, 448, 40)
 
     def focused_item(self) -> LauncherItem:
-        return ITEMS[self.focus]
+        if self.focus:
+            return LauncherItem('wallet', 'Load USDC')
+        return LauncherItem(self.game_id, TITLES[self.game_id][0])
 
     def handle_action(self, action: InputAction) -> str | None:
         if action in (InputAction.UP, InputAction.DOWN):
@@ -46,22 +50,33 @@ class HomeScreen:
         return None
 
     def draw(self, surface: pygame.Surface) -> None:
-        from games.rush import rider
+        title, line, hint = TITLES[self.game_id]
         surface.fill(NAVY)
         label(surface, 'TICK', 16, 8, 27, CREAM)
         label(surface, 'CRANK POWERED ARCADE', 223, 16, 16, MUTED)
-        label(surface, 'PAPER MARKET / DEMO USDC', 16, 47, 16, MINT)
+        label(surface, 'LIVE PRICES / PAPER BETS', 16, 47, 16, MINT)
         pygame.draw.rect(surface, PANEL, self.row_rect(0), border_radius=6)
         if self.focus == 0:
             pygame.draw.rect(surface, YELLOW, self.row_rect(0), 2, border_radius=6)
-        label(surface, 'RUSH', 34, 81, 40, YELLOW)
-        label(surface, 'KEEP IT TURNING.', 34, 136, 19, CREAM)
-        label(surface, 'THE DIAL IS THE BET.', 34, 175, 15, MUTED)
-        rider(surface, 376, 183, .8, 0)
+        label(surface, title, 34, 81, 40, YELLOW)
+        label(surface, line, 34, 136, 19, CREAM)
+        label(surface, hint, 34, 175, 15, MUTED)
+        self.draw_mark(surface)
         pygame.draw.rect(surface, YELLOW if self.focus else PANEL, self.row_rect(1), border_radius=4)
         label(surface, 'LOAD USDC', 34, 234, 18, NAVY if self.focus else MINT)
         label(surface, 'UP / DOWN', 348, 235, 15, NAVY if self.focus else MUTED)
         footer(surface, '< QUIT', 'LOAD >' if self.focus else 'PLAY >')
+
+    def draw_mark(self, surface: pygame.Surface) -> None:
+        """Little price trace with a box on it, the game in one glyph."""
+        if self.game_id == 'rush':
+            from games.rush import rider
+            rider(surface, 376, 183, .8, 0)
+            return
+        points = [(300, 190), (315, 178), (330, 186), (345, 166), (360, 174),
+                  (375, 158), (390, 164), (405, 150)]
+        pygame.draw.lines(surface, CREAM, False, points, 2)
+        pygame.draw.rect(surface, MINT, (408, 132, 40, 34), 3)
 
 
 def handle_home_events(home: HomeScreen, events: list, actions: list[InputAction]) -> str | None:

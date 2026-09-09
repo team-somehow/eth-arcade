@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import os
 import sys
 
 import pygame
 
 from encoder import EncoderInput
+from games.box import BoxGame, handle_box_events
 from games.rush import RushGame, handle_rush_events
 from input import InputAction, actions_from_event
 from screens.home import HomeScreen, handle_home_events
@@ -14,13 +16,17 @@ from theme import FPS, init_display
 
 
 class App:
-    def __init__(self) -> None:
+    def __init__(self, game_id: str | None = None) -> None:
         self.screen = init_display()
         self.clock = pygame.time.Clock()
         self.running = True
         self.current = "home"
-        self.home = HomeScreen()
-        self.game = RushGame()
+        self.game_id = game_id or os.environ.get("TICK_GAME", "box")
+        if self.game_id not in ("box", "rush"):
+            raise ValueError("TICK_GAME must be box or rush")
+        self.home = HomeScreen(self.game_id)
+        self.game = BoxGame() if self.game_id == "box" else RushGame()
+        self.handle = handle_box_events if self.game_id == "box" else handle_rush_events
         self.encoder = EncoderInput.try_open()
 
     def run(self) -> None:
@@ -34,10 +40,10 @@ class App:
                 for event in events:
                     actions.extend(actions_from_event(event))
                 if self.encoder is not None:
-                    # In a ride every detent counts, so read raw motion. Menus
+                    # In play every detent counts, so read raw motion. Menus
                     # (home, load) keep the rate-limited scrolling instead.
-                    riding = self.current == "game" and not self.game.wallet_open
-                    actions.extend(self.encoder.poll(continuous=riding))
+                    playing = self.current == "game" and not self.game.wallet_open
+                    actions.extend(self.encoder.poll(continuous=playing))
 
                 self._dispatch(events, actions)
                 self._draw()
@@ -65,7 +71,7 @@ class App:
             elif target == "quit":
                 self.running = False
         elif self.current == "game":
-            target = handle_rush_events(self.game, events, actions)
+            target = self.handle(self.game, events, actions)
             if target == "home":
                 self.current = "home"
             elif target == "quit":

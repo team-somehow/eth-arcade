@@ -40,12 +40,15 @@ def actions_from_event(event: pygame.event.Event) -> list[InputAction]:
         return []
 
     key = event.key
+    # Escape always leaves the program, from any screen or a live ride.
+    if key == pygame.K_ESCAPE:
+        return [InputAction.QUIT]
     if key in (pygame.K_UP, pygame.K_w):
         return [InputAction.UP]
     if key in (pygame.K_DOWN, pygame.K_s):
         return [InputAction.DOWN]
     if key in (pygame.K_RIGHT, pygame.K_RETURN, pygame.K_SPACE, pygame.K_x):
         return [InputAction.A]
-    if key in (pygame.K_LEFT, pygame.K_ESCAPE, pygame.K_z, pygame.K_BACKSPACE):
+    if key in (pygame.K_LEFT, pygame.K_z, pygame.K_BACKSPACE):
         return [InputAction.B]
     return []

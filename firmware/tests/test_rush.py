@@ -328,6 +328,22 @@ class RenderTests(unittest.TestCase):
         finally:
             app.game.close()
 
+    def test_escape_quits_from_a_live_ride(self):
+        import pygame
+        from app import App
+        from input import actions_from_event
+        escape = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE)
+        from input import InputAction
+        self.assertEqual(actions_from_event(escape), [InputAction.QUIT])
+        app = App()
+        try:
+            app._dispatch([], [InputAction.A])
+            self.assertEqual(app.current, 'game')
+            app._dispatch([escape], actions_from_event(escape))
+            self.assertFalse(app.running)
+        finally:
+            app.game.close()
+
     def test_touch_on_the_plot_cranks(self):
         game = self.game()
         try:
