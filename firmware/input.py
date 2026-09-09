@@ -19,6 +19,8 @@ class InputAction(Enum):
 
 def event_position(event: pygame.event.Event) -> tuple[int, int] | None:
     if event.type == pygame.MOUSEBUTTONDOWN:
+        if getattr(event, "touch", False) or event.button != 1:
+            return None
         return event.pos
     if event.type == pygame.FINGERDOWN:
         return int(event.x * WIDTH), int(event.y * HEIGHT)
@@ -42,8 +44,8 @@ def actions_from_event(event: pygame.event.Event) -> list[InputAction]:
         return [InputAction.UP]
     if key in (pygame.K_DOWN, pygame.K_s):
         return [InputAction.DOWN]
-    if key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_x):
+    if key in (pygame.K_RIGHT, pygame.K_RETURN, pygame.K_SPACE, pygame.K_x):
         return [InputAction.A]
-    if key in (pygame.K_ESCAPE, pygame.K_z, pygame.K_BACKSPACE):
+    if key in (pygame.K_LEFT, pygame.K_ESCAPE, pygame.K_z, pygame.K_BACKSPACE):
         return [InputAction.B]
     return []

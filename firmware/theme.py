@@ -24,7 +24,7 @@ def init_display() -> pygame.Surface:
         screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
     except Exception:
         screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Playdate-like")
+    pygame.display.set_caption("TICK / BOX RUN")
     pygame.mouse.set_visible(True)
     return screen
 

@@ -1,1 +1,1 @@
-"""Stub / placeholder games launched from the home screen."""
+"""Native handheld games and renderer-independent practice rules."""

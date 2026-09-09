@@ -1,4 +1,4 @@
-"""Entry point for the Playdate-like home launcher."""
+"""Entry point for the TICK handheld launcher and BOX RUN."""
 
 from display_setup import ensure_system_pygame
 
