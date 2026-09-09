@@ -148,7 +148,7 @@ class InputAndRenderTests(unittest.TestCase):
     def test_launcher_dispatch(self):
         from app import App
         from input import InputAction
-        app = App()
+        app = App(game_id='box_run')
         app._dispatch([], [InputAction.A])
         self.assertEqual(app.current, 'game')
         app._draw()

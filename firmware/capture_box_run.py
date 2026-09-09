@@ -16,7 +16,7 @@ def main():
     game = BoxRunGame(seed=4, sound=False)
     for i, state in enumerate(['home', 'aim', 'size', 'review', 'running', 'miss', 'hit', 'empty']):
         if state == 'home':
-            HomeScreen().draw(surface, {})
+            HomeScreen('box_run').draw(surface, {})
         else:
             if state in ('size', 'review'):
                 game.model.confirm()

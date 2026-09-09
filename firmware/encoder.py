@@ -69,14 +69,22 @@ class EncoderInput:
 
         return cls(encoder, button, invert=invert)
 
-    def poll(self) -> list[InputAction]:
+    def poll(self, *, continuous: bool = False) -> list[InputAction]:
         actions: list[InputAction] = []
         now = time.monotonic()
 
         steps = int(self._encoder.steps)
         delta = steps - self._last_steps
         self._last_steps = steps
-        if delta:
+        if continuous:
+            # Gameplay uses only this poll's motion. Never queue old turns:
+            # a stopped crank must stop pumping immediately.
+            self._pending = 0
+            if self._invert:
+                delta = -delta
+            action = InputAction.UP if delta > 0 else InputAction.DOWN
+            actions.extend([action] * min(16, abs(delta)))
+        elif delta:
             if self._invert:
                 delta = -delta
             self._pending += delta
