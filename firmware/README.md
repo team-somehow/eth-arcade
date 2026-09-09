@@ -10,11 +10,13 @@ The rotary encoder is the game: GPIO21 CLK, GPIO20 DT, GPIO16 switch, 3.3 V logi
 
 | Input | Action |
 |---|---|
-| Turn the dial | Move the box up/down the price ladder. Always live, even with a bet already down |
+| Turn the dial | Move the box up/down the price ladder — until a bet is placed |
 | Short click | Buy the next 20 seconds: +10 USDC on the box where the cursor is |
 | Long click (0.65 s) | Back to the launcher |
 
-Press A again in the same window and the extra 10 goes onto **the same box** — the first press fixes that window's level. Once bought, the box does not move: cranking then aims the box for the window *after*, drawn as a dashed cursor beside the bought one.
+Press A again in the same window and the extra 10 goes onto **the same box** — the first press fixes that window's level. After that the dial is **locked out entirely**: the box does not move, does not shrink, and no second cursor appears. Only money can still be added, and only by pressing A. The dial frees up again when the bell rolls the window over.
+
+Spending money on a dial nudge would be worse than a dead dial, which is why adding stake stays on the button.
 
 Desktop and touch equivalents: Up/Down (or W/S) held down emulates a spun dial, Right/Enter/Space is the short click, Left/Z/Backspace the long one, `F` opens the loader, and **Escape quits the program immediately** from any screen. On a desktop the game opens in a plain 480×320 window; only the Pi gets the fullscreen panel. Tapping the upper/lower half of the chart cranks the box.
 
@@ -22,15 +24,21 @@ Desktop and touch equivalents: Up/Down (or W/S) held down emulates a spun dial, 
 
 ## Reading the screen
 
-Time runs left to right: the price trace covers the last 30 seconds, then a column for **this** window's bell and one for the **next**.
+Time runs left to right: the price trace covers the last 30 seconds, then the **NOW** column (this window's bell) and the **NEXT** one. There is never more than one box per column.
 
 | On screen | Meaning |
 |---|---|
-| Solid yellow box, left column | Your live bet, settling at this bell. Shows stake and the multiple it pays |
-| Solid cream box, right column | Bought and waiting for the next window |
-| Dashed box | The cursor — where the dial is pointing now, with its live quote |
+| `MOVE +1.24` | How far the price has come since this window opened |
+| Dashed grey line, `OPEN` | The price this window opened at — the chart is anchored here |
+| Dotted white line | Where the price is now, carried across the columns so you can see it against your box |
+| Solid yellow box, NOW | Your live bet, settling at this bell |
+| Solid cream box, NEXT | Bought and locked for the next window |
+| Dashed box, NEXT | The cursor, with its live quote. Gone once a bet is placed |
+| `20 @ 2.0x` | Stake on that box and the multiple it pays |
 | `BELL 07s` | Seconds until this window settles |
-| `BOX 2.14 WIDE` | The box's current height in dollars |
+| Small triangle | The box sits past the top or bottom of the visible band |
+
+**The chart is anchored on the window's opening price, not on spot.** Anchoring on spot re-centres the view every tick and pins the newest point to the middle of the screen, which makes movement impossible to see — the price appears still while the world slides around it. Against a reference that holds still for the whole window, a move reads immediately, and the `MOVE` figure puts a number on it.
 
 ## Odds
 

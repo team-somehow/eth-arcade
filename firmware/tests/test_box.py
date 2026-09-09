@@ -36,7 +36,7 @@ class WindowClockTests(unittest.TestCase):
         self.assertFalse(m.started)
         feed(m, [2500.0])
         self.assertTrue(m.started)
-        self.assertEqual(m.aim, 2500.0)
+        self.assertEqual((m.aim, m.window_open), (2500.0, 2500.0))
         self.assertAlmostEqual(m.window_end, T0 + m.WINDOW_S)
         self.assertGreater(m.half, 0)
 
@@ -101,15 +101,25 @@ class BuyingTests(unittest.TestCase):
         self.assertLess(m.pending.multiple, first)
         self.assertGreater(m.pending.multiple, 1.0)
 
-    def test_cranking_never_moves_a_bought_box(self):
+    def test_the_dial_is_locked_out_once_the_box_is_bought(self):
         m = self.m
         m.buy(self.now)
-        level, half = m.pending.level, m.pending.half
+        level, half, aim = m.pending.level, m.pending.half, m.aim
+        self.assertTrue(m.locked)
         for _ in range(30):
-            m.crank(1)
+            self.assertFalse(m.crank(1))
         for _ in range(60):
-            m.crank(-1)
+            self.assertFalse(m.crank(-1))
+        # Nothing moves: not the bought box, and not a cursor either.
         self.assertEqual((m.pending.level, m.pending.half), (level, half))
+        self.assertEqual(m.aim, aim)
+
+    def test_money_can_still_be_added_while_the_dial_is_locked(self):
+        m = self.m
+        m.buy(self.now)
+        m.crank(10)
+        self.assertTrue(m.buy(self.now))
+        self.assertEqual(m.pending.stake, 2 * m.STAKE)
 
     def test_a_stale_price_cannot_place_a_bet(self):
         m = self.m
@@ -231,6 +241,14 @@ class SettlementTests(unittest.TestCase):
         self.assertIs(m.live, pending)
         self.assertIsNone(m.pending)
 
+    def test_payout_is_micro_usdc_like_the_stake(self):
+        m = self.m
+        m.buy(self.now)
+        order = m.pending
+        self.assertGreater(order.payout, order.stake)
+        self.assertAlmostEqual(order.payout / MICRO,
+                               (order.stake / MICRO) * order.multiple, places=6)
+
     def test_payouts_are_whole_micro_usdc(self):
         m = self.m
         now = self.now
@@ -304,23 +322,53 @@ class PricingTests(unittest.TestCase):
 class AimTests(unittest.TestCase):
     def test_the_cursor_steps_in_sigma_and_stays_in_reach(self):
         m = model()
-        now = warm(m)
+        warm(m)
         sigma = m.window_sigma()
         before = m.aim
         m.crank(1)
         self.assertAlmostEqual(m.aim - before, m.STEP_SIGMA * sigma, places=9)
+        # Reach is measured from the window's open, so the cursor can never be
+        # cranked outside the drawn price band.
         for _ in range(400):
             m.crank(1)
-        self.assertLessEqual(m.aim - m.price, m.AIM_RANGE_SIGMA * sigma + 1e-9)
+        self.assertLessEqual(m.aim - m.window_open, m.AIM_RANGE_SIGMA * sigma + 1e-9)
         for _ in range(800):
             m.crank(-1)
-        self.assertGreaterEqual(m.aim - m.price, -m.AIM_RANGE_SIGMA * sigma - 1e-9)
+        self.assertGreaterEqual(m.aim - m.window_open, -m.AIM_RANGE_SIGMA * sigma - 1e-9)
 
     def test_no_cranking_before_the_first_price(self):
         m = model()
         m.crank(5)
         self.assertEqual(m.aim, 0.0)
 
+
+class MovementTests(unittest.TestCase):
+    """Movement has to be readable, which means a reference that holds still."""
+
+    def test_each_window_records_the_price_it_opened_at(self):
+        m = model()
+        warm(m)
+        opened = m.window_open
+        expiry = m.window_end
+        feed(m, [2500.0 + i for i in range(1, 6)], expiry - 1, .1)
+        self.assertEqual(m.window_open, opened)
+        self.assertAlmostEqual(m.move, m.price - opened)
+        # The bell starts a new reference at the price it opened on.
+        m.on_tick(PriceTick(2530.0, len(m.history) + 1, expiry + .1), expiry + .1)
+        self.assertEqual(m.window_open, 2530.0)
+        self.assertEqual(m.move, 0.0)
+
+    def test_the_move_readout_tracks_the_price(self):
+        m = model()
+        warm(m)
+        base = m.window_open
+        feed(m, [base + 3], T0 + 9, .1)
+        self.assertAlmostEqual(m.move, 3.0, places=6)
+        feed(m, [base - 2], T0 + 9.5, .1)
+        self.assertAlmostEqual(m.move, -2.0, places=6)
+
+    def test_no_move_before_the_first_price(self):
+        self.assertEqual(model().move, 0.0)
 
 class GameTests(unittest.TestCase):
     """The loop as played: clock always running, dial always live."""
@@ -357,13 +405,32 @@ class GameTests(unittest.TestCase):
         self.assertEqual(m.rounds, 1)
         self.assertIsNotNone(m.last)
 
-    def test_the_dial_is_live_while_a_bought_box_waits(self):
+    def test_the_dial_does_nothing_while_a_bought_box_waits(self):
         m = self.game.model
         self.game.buy()
-        level = m.pending.level
+        aim, level = m.aim, m.pending.level
         self.game.crank(5)
-        self.assertNotEqual(m.aim, level)
+        self.assertEqual(m.aim, aim)
         self.assertEqual(m.pending.level, level)
+        self.assertIn('LOCKED', self.game.message)
+
+    def test_a_live_bet_quotes_the_money_it_will_pay(self):
+        m = self.game.model
+        self.game.buy()
+        self.frames(int(30 * m.WINDOW_S) + 15)
+        text, _ = self.game.status()
+        self.assertIn('10 IN / PAYS', text)
+        # The payout is real money, not a unit slip that renders as zero.
+        paid = float(text.split('PAYS')[1].strip().replace(',', ''))
+        self.assertGreater(paid, 10)
+        self.assertAlmostEqual(paid, m.live.payout / MICRO, places=2)
+
+    def test_the_dial_frees_up_again_when_the_window_rolls(self):
+        m = self.game.model
+        self.game.buy()
+        self.frames(int(30 * m.WINDOW_S) + 15)
+        self.assertFalse(m.locked)
+        self.assertTrue(m.crank(3))
 
     def test_pressing_a_with_no_money_opens_the_loader(self):
         from games.box import BoxGame

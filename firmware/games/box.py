@@ -12,17 +12,20 @@ from markets.feed import CoinbaseFeed, SimulatedFeed
 from ui import NAVY, PANEL, GRID, CREAM, MUTED, YELLOW, MINT, RED, Sounds, label, footer
 from wallet import LOAD_CHOICES, MICRO, DemoFunding, UsdcFunding, Wallet, format_usdc
 
-# Chart geometry. The trace ends where the two expiry columns begin, so time
-# reads left to right: history, this window's bell, the next one's.
-TRACE = pygame.Rect(14, 66, 274, 176)
-THIS_COL = pygame.Rect(292, 66, 80, 176)
-NEXT_COL = pygame.Rect(376, 66, 80, 176)
-# With a bet already down, NEXT splits: the bought box left, the cursor right.
-BET_COL = pygame.Rect(NEXT_COL.x, NEXT_COL.y, 40, NEXT_COL.height)
-AIM_COL = pygame.Rect(NEXT_COL.x + 42, NEXT_COL.y, 38, NEXT_COL.height)
+# Chart geometry. Time reads left to right: history, this window's bell, the
+# next one's. Only ever two boxes, one per column.
+TRACE = pygame.Rect(14, 72, 262, 166)
+NOW_COL = pygame.Rect(280, 72, 88, 166)
+NEXT_COL = pygame.Rect(372, 72, 88, 166)
 MID_Y = TRACE.centery
-HALF_PX = TRACE.height // 2 - 8
+HALF_PX = TRACE.height // 2 - 9
+# Boxes are drawn inside this vertical band, leaving the column header and a
+# floor strip for numbers, so a box can never land on top of a label.
+BAND_TOP = TRACE.top + 20
+BAND_BOTTOM = TRACE.bottom - 28
 TRACE_S = 30.0            # seconds of history across the trace
+VIEW_SIGMA = 7.0          # half the visible price band, in sigma
+OPEN_LINE = (74, 96, 103)
 
 
 def build_wallet() -> Wallet:
@@ -104,9 +107,11 @@ class BoxGame:
     # ---- input -----------------------------------------------------------
     def crank(self, steps: int) -> None:
         m = self.model
-        before = m.aim
-        m.crank(steps)
-        if m.aim != before and self.clock - self.last_sound_at > .05:
+        if m.locked:
+            # The bet is placed: the dial does nothing until the bell.
+            self.note('BOX LOCKED / A ADDS 10', 1.5)
+            return
+        if m.crank(steps) and self.clock - self.last_sound_at > .05:
             self.play('move')
             self.last_sound_at = self.clock
 
@@ -179,47 +184,56 @@ class BoxGame:
 
     # ---- drawing ---------------------------------------------------------
     def y_of(self, price: float) -> int:
+        """Price to screen, anchored on the window's opening price.
+
+        Anchoring on spot instead would re-centre the chart on every tick and
+        pin the latest point to the middle, which makes movement invisible.
+        """
         m = self.model
-        span = m.AIM_RANGE_SIGMA * m.window_sigma()
+        span = VIEW_SIGMA * m.window_sigma()
         if span <= 0:
             return MID_Y
-        return round(MID_Y - (price - m.price) / span * HALF_PX)
+        return round(MID_Y - (price - m.window_open) / span * HALF_PX)
 
     def draw(self, s: pygame.Surface) -> None:
         m = self.model
         s.fill(NAVY)
-        label(s, 'BOX RUN', 14, 6, 22, CREAM)
-        label(s, f'{format_usdc(m.wallet.balance)} {m.wallet.funding.name}', 268, 11, 16, MINT)
-        pygame.draw.line(s, GRID, (14, 34), (466, 34))
+        label(s, 'BOX RUN', 14, 5, 20, CREAM)
+        label(s, f'{format_usdc(m.wallet.balance)} {m.wallet.funding.name}', 336, 9, 16, MINT)
+        pygame.draw.line(s, GRID, (14, 32), (466, 32))
         if self.wallet_open:
             self.draw_wallet(s)
             return
         if not m.started:
-            label(s, f'{self.feed.name} / PAPER', 14, 40, 15, MUTED)
-            label(s, 'WAITING FOR THE FIRST PRICE...', 240, 150, 20, YELLOW, True)
+            label(s, f'{self.feed.name} / PAPER', 14, 40, 16, MUTED)
+            label(s, 'WAITING FOR THE', 240, 130, 22, YELLOW, True)
+            label(s, 'FIRST PRICE...', 240, 165, 22, YELLOW, True)
             footer(s, '< HOME', 'BUY 10 >')
             return
-        label(s, f'ETH ${m.price:,.2f}', 14, 40, 20, CREAM)
-        left = m.remaining(self.clock)
-        bell = RED if left <= 3 else YELLOW
+        label(s, f'${m.price:,.2f}', 14, 38, 22, CREAM)
+        label(s, 'MOVE', 172, 47, 13, MUTED)
+        label(s, f'{m.move:+,.2f}', 218, 38, 22, MINT if m.move >= 0 else RED)
         if m.settling:
-            label(s, 'SETTLING', 356, 42, 18, RED)
+            label(s, 'SETTLING', 348, 44, 18, RED)
         else:
-            label(s, f'{int(left):02d}s', 402, 38, 26, bell)
-            label(s, 'BELL', 356, 44, 14, MUTED)
+            left = m.remaining(self.clock)
+            label(s, 'BELL', 352, 47, 13, MUTED)
+            label(s, f'{int(left):02d}s', 402, 36, 26, RED if left <= 3 else YELLOW)
         self.draw_chart(s)
         self.draw_status(s)
         footer(s, '< HOME', 'BUY 10 >' if m.can_buy() else 'LOAD >')
 
     def draw_chart(self, s: pygame.Surface) -> None:
         m = self.model
-        for rect in (TRACE, THIS_COL, NEXT_COL):
+        for rect in (TRACE, NOW_COL, NEXT_COL):
             pygame.draw.rect(s, PANEL, rect)
-        label(s, 'THIS 20s', THIS_COL.x + 4, 68, 12, MUTED)
-        label(s, 'NEXT 20s', NEXT_COL.x + 4, 68, 12, MUTED)
-        # Spot line across everything: the box is judged against this level.
-        for x in range(TRACE.left, NEXT_COL.right, 8):
-            pygame.draw.line(s, GRID, (x, MID_Y), (x + 4, MID_Y), 1)
+        label(s, 'NOW', NOW_COL.x + 5, 76, 14, MUTED)
+        label(s, 'NEXT', NEXT_COL.x + 5, 76, 14, MUTED)
+
+        # The line the price is measured against. It holds still all window.
+        open_y = self.y_of(m.window_open)
+        for x in range(TRACE.left, NEXT_COL.right, 10):
+            pygame.draw.line(s, OPEN_LINE, (x, open_y), (x + 5, open_y), 1)
 
         clip = s.get_clip()
         s.set_clip(TRACE)
@@ -229,71 +243,93 @@ class BoxGame:
             pygame.draw.lines(s, CREAM, False, points, 2)
         s.set_clip(clip)
 
+        # Where spot sits relative to the boxes, carried across the columns.
+        spot_y = max(TRACE.top + 1, min(TRACE.bottom - 2, self.y_of(m.price)))
+        for x in range(TRACE.right - 10, NEXT_COL.right, 7):
+            pygame.draw.line(s, CREAM, (x, spot_y), (x + 3, spot_y), 1)
+        label(s, 'OPEN', TRACE.left + 3, open_y + 3, 12, MUTED)
+        if not TRACE.top < self.y_of(m.price) < TRACE.bottom:
+            label(s, 'OFF SCALE', TRACE.left + 60, spot_y - 14, 13, YELLOW)
+
         flashing = self.clock < self.flash_until and m.last is not None
         if m.live is not None and m.live.stake:
-            self.draw_box(s, THIS_COL, m.live.low, m.live.high, YELLOW,
+            self.draw_box(s, NOW_COL, m.live.low, m.live.high, YELLOW,
                           stake=m.live.stake, multiple=m.live.multiple)
         elif flashing:
             self.draw_result(s)
-        # The aim cursor is always live. With the next window already bought it
-        # takes half the column and aims at the window after that.
-        aim_col = NEXT_COL if m.pending is None else BET_COL
+        # One box per column: the bought box replaces the cursor outright, so
+        # nothing shrinks and there is never a second thing to aim.
         if m.pending is not None:
-            self.draw_box(s, BET_COL, m.pending.low, m.pending.high, CREAM,
+            self.draw_box(s, NEXT_COL, m.pending.low, m.pending.high, CREAM,
                           stake=m.pending.stake, multiple=m.pending.multiple)
-            aim_col = AIM_COL
-            label(s, 'AIM', AIM_COL.x + 2, 82, 12, MUTED)
-        aim = pygame.Rect(aim_col.x + 2, self.y_of(m.aim + m.half), aim_col.width - 4,
-                          max(6, self.y_of(m.aim - m.half) - self.y_of(m.aim + m.half)))
-        dashed_rect(s, aim, YELLOW if m.pending is None else MUTED)
-        # Multiples sit on the column floor, never on a box that may be anywhere.
-        quote = m.quote(m.aim, self.clock)
-        label(s, f'{quote:.1f}x', aim_col.x + 2, aim_col.bottom - 18, 14,
-              YELLOW if m.pending is None else MUTED)
+        else:
+            dashed_rect(s, self.box_rect(NEXT_COL, m.aim - m.half, m.aim + m.half), YELLOW)
+            label(s, f'{m.quote(m.aim, self.clock):.1f}x',
+                  NEXT_COL.x + 4, NEXT_COL.bottom - 24, 17, YELLOW)
+
+    def box_rect(self, col: pygame.Rect, low: float, high: float) -> pygame.Rect:
+        top = max(BAND_TOP, min(BAND_BOTTOM - 8, self.y_of(high)))
+        bottom = max(top + 8, min(BAND_BOTTOM, self.y_of(low)))
+        return pygame.Rect(col.x + 3, top, col.width - 6, bottom - top)
 
     def draw_box(self, s: pygame.Surface, col: pygame.Rect, low: float, high: float,
                  color: tuple, stake: int = 0, multiple: float = 0.0) -> None:
-        top = self.y_of(high)
-        rect = pygame.Rect(col.x + 2, top, col.width - 4, max(6, self.y_of(low) - top))
+        rect = self.box_rect(col, low, high)
         tint = tuple(int(c * .18 + PANEL[i] * .82) for i, c in enumerate(color))
         pygame.draw.rect(s, tint, rect)
         pygame.draw.rect(s, color, rect, 3)
+        # The box stays a clean shape; its numbers live on the column floor.
+        if self.y_of(high) < BAND_TOP:
+            pygame.draw.polygon(s, color, [(col.centerx, col.y + 6),
+                                           (col.centerx - 7, col.y + 15),
+                                           (col.centerx + 7, col.y + 15)])
+        if self.y_of(low) > BAND_BOTTOM:
+            pygame.draw.polygon(s, color, [(col.centerx, BAND_BOTTOM + 12),
+                                           (col.centerx - 7, BAND_BOTTOM + 3),
+                                           (col.centerx + 7, BAND_BOTTOM + 3)])
         if stake:
-            label(s, format_usdc(stake, 0), rect.x + 4, rect.centery - 8, 15, color)
-            label(s, f'{multiple:.1f}x', col.x + 2, col.bottom - 18, 14, color)
+            label(s, f'{format_usdc(stake, 0)} @ {multiple:.1f}x',
+                  col.x + 4, col.bottom - 23, 15, color)
 
     def draw_result(self, s: pygame.Surface) -> None:
         """Flash the box that just settled, so you see where the price landed."""
         result = self.model.last
         color = MUTED if result.voided else (MINT if result.hit else RED)
-        self.draw_box(s, THIS_COL, result.low, result.high, color)
+        self.draw_box(s, NOW_COL, result.low, result.high, color)
         word = 'VOID' if result.voided else ('HIT' if result.hit else 'MISS')
-        # A landed price sits inside the box, so put the word above it there and
-        # at the price itself when the box was missed.
-        y = self.y_of(result.high) - 22 if result.hit else self.y_of(result.price) - 9
-        label(s, word, THIS_COL.centerx, max(THIS_COL.y + 16, y), 19, color, True)
+        y = self.y_of(result.high) - 24 if result.hit else self.y_of(result.price) - 10
+        label(s, word, NOW_COL.centerx, max(NOW_COL.y + 18, min(NOW_COL.bottom - 26, y)),
+              21, color, True)
 
-    def draw_status(self, s: pygame.Surface) -> None:
+    def status(self) -> tuple[str, tuple]:
+        """The one line of words at the bottom, as text and colour.
+
+        Separate from drawing so the money it quotes can be asserted; the
+        payout is micro-USDC like every other balance in the game.
+        """
         m = self.model
         result = m.last
         if self.clock < self.message_until:
-            text, color = self.message, MINT
-        elif result is not None and self.clock < self.flash_until + 3:
+            return self.message, MINT
+        if result is not None and self.clock < self.flash_until + 3:
             if result.voided:
-                text, color = f'VOID / STAKE {format_usdc(result.stake, 0)} BACK', MUTED
-            else:
-                text = (f'HIT {format_usdc(result.payout)} @ {result.multiple:.1f}x'
-                        if result.hit else f'MISS -{format_usdc(result.stake, 0)}')
-                color = MINT if result.hit else RED
-        elif m.pending is None:
-            text, color = 'CRANK / A BUYS THE NEXT 20s', MUTED
-        else:
-            text, color = 'A ADDS 10 TO THE NEXT BOX', MUTED
-        label(s, text[:30], 14, 244, 14, color)
-        label(s, f'AT RISK {format_usdc(m.staked, 0)}', 14, 259, 13, CREAM)
+                return f'VOID / {format_usdc(result.stake, 0)} BACK', MUTED
+            if result.hit:
+                return f'HIT / PAID {format_usdc(result.payout)}', MINT
+            return f'MISS / -{format_usdc(result.stake, 0)}', RED
+        if m.live is not None and m.live.stake:
+            return (f'{format_usdc(m.live.stake, 0)} IN / PAYS '
+                    f'{format_usdc(int(m.live.payout))}'), YELLOW
+        if m.pending is not None:
+            return 'PLACED / A ADDS 10 MORE', CREAM
+        return 'CRANK / A BUYS NEXT 20s', MUTED
+
+    def draw_status(self, s: pygame.Surface) -> None:
+        m = self.model
+        text, color = self.status()
+        label(s, text[:27], 14, 244, 17, color)
         if m.rounds:
-            label(s, f'HITS {m.hits}/{m.rounds}', 170, 259, 13, MUTED)
-        label(s, f'BOX {2 * m.half:,.2f} WIDE', 300, 259, 13, MUTED)
+            label(s, f'HITS {m.hits}/{m.rounds}', 380, 246, 15, MUTED)
 
     def draw_wallet(self, s: pygame.Surface) -> None:
         wallet = self.model.wallet

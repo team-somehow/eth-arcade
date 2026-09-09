@@ -9,7 +9,11 @@ The box has one degree of freedom: how far from spot you park it. That distance
 is the whole risk decision, so the payout has to be priced honestly from what
 the market is actually doing — measured volatility of the live tick stream over
 the true remaining horizon, not a hardcoded table. There is no size step, no
-confirmation, and no early exit: once bought, the box rides to expiry.
+confirmation, and no early exit: once bought, the box rides to expiry, and the
+dial is locked out until the window rolls — only money can still be added.
+
+Each window records the price it opened at, so movement can be shown against a
+reference that holds still instead of against a spot that moves with it.
 
 Balances are integer micro-USDC (see wallet.py). Prices come from a feed; this
 file never invents one.
@@ -86,7 +90,9 @@ class BoxModel:
     # the game stays equally playable whether ETH is flat or thrashing.
     HEIGHT_SIGMA = 1.6
     STEP_SIGMA = 0.25
-    AIM_RANGE_SIGMA = 6.0    # how far from spot the cursor may be cranked
+    # How far from the window's opening price the cursor may be cranked. Tied
+    # to the open rather than to spot so the cursor cannot leave the view.
+    AIM_RANGE_SIGMA = 6.0
     MAX_MULTIPLE = 25.0
     # A real venue must charge an edge and fund payouts from somewhere. This
     # demo quotes fair odds and says so rather than hiding a margin.
@@ -102,6 +108,7 @@ class BoxModel:
         self.tick: PriceTick | None = None
         self.history: deque[tuple[float, float]] = deque(maxlen=400)
         self.aim = 0.0            # cursor level; 0 until the first price
+        self.window_open = 0.0    # price this window started at; the chart anchor
         self.half = 0.0           # box half-height, tracks measured volatility
         self._variance = 0.0      # cached; recomputed once per tick, not per read
         self.live: Order | None = None     # settles at window_end
@@ -126,6 +133,16 @@ class BoxModel:
 
     def can_buy(self) -> bool:
         return self.wallet.balance >= self.STAKE
+
+    @property
+    def locked(self) -> bool:
+        """True once the next window is bought: position fixed, money still open."""
+        return self.pending is not None
+
+    @property
+    def move(self) -> float:
+        """How far the price has come since this window opened."""
+        return self.price - self.window_open if self.started else 0.0
 
     @property
     def staked(self) -> int:
@@ -194,14 +211,20 @@ class BoxModel:
         return min(self.MAX_MULTIPLE, (1 - self.HOUSE_EDGE) / chance)
 
     # ---- input -----------------------------------------------------------
-    def crank(self, steps: int) -> None:
-        """Move the aim cursor. Never touches a box that is already bought."""
-        if not steps or not self.started:
-            return
-        sigma = self.window_sigma()
-        self.aim += steps * self.STEP_SIGMA * sigma
-        reach = self.AIM_RANGE_SIGMA * sigma
-        self.aim = max(self.price - reach, min(self.price + reach, self.aim))
+    def crank(self, steps: int) -> bool:
+        """Move the aim cursor. Returns False when there is nothing to move.
+
+        A bought box cannot be repositioned, so the dial does nothing at all
+        until the window rolls — no shrinking box, no second cursor.
+        """
+        if not steps or not self.started or self.locked:
+            return False
+        self.aim = self._in_reach(self.aim + steps * self.STEP_SIGMA * self.window_sigma())
+        return True
+
+    def _in_reach(self, level: float) -> float:
+        reach = self.AIM_RANGE_SIGMA * self.window_sigma()
+        return max(self.window_open - reach, min(self.window_open + reach, level))
 
     def buy(self, now: float) -> bool:
         """Press A: put 10 USDC on the next window at the cursor.
@@ -242,7 +265,7 @@ class BoxModel:
         self.half = self.HEIGHT_SIGMA / 2 * self.window_sigma()
         if not self.started:
             self.started = True
-            self.aim = tick.price
+            self.aim = self.window_open = tick.price
             self.window_end = now + self.WINDOW_S
         self.update(now)
 
@@ -272,6 +295,10 @@ class BoxModel:
             self.live = self.pending
             self.pending = None
             self.window_end += self.WINDOW_S
+            # The new window opens here, and the cursor — free again — is
+            # pulled back into reach of the new anchor.
+            self.window_open = self.price
+            self.aim = self._in_reach(self.aim)
 
     def _settle(self, order: Order) -> None:
         hit = order.contains(self.price)
