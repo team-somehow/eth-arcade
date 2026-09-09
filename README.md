@@ -1,12 +1,12 @@
 # ethonline-2026
 
-TICK: a landscape **480×320** pygame crypto arcade for a Raspberry Pi handheld. **BOX RUN** is playable now with arrow keys, touch or the existing encoder adapter. All betting uses clearly labeled simulated prices and practice credits.
+TICK: a landscape **480×320** pygame crypto arcade for a Raspberry Pi handheld. **RUSH** is playable now: turn the side dial and you are in a leveraged market ride — no aim step, no confirm screen, just keep cranking. Prices are read-only and every position is paper; the USDC balance is demo money with the real deposit path stubbed out.
 
 ## Layout
 
 | Path | What |
 |------|------|
-| [`firmware/`](firmware/) | Launcher + playable BOX RUN |
+| [`firmware/`](firmware/) | Launcher + playable RUSH |
 | [`design/`](design/) | Device renders, concept archive and actual game screenshots |
 
 ## Quick start
@@ -21,4 +21,4 @@ python main.py
 
 See [`firmware/README.md`](firmware/README.md) for controls and Pi/KMSDRM notes.
 
-**Arrows only:** Up/Down aim or resize; Right confirms; Left goes back. A round lasts 20 seconds after final confirmation. Enter/Escape also work. See the [actual gameplay sheet](design/box-run-build/gameplay-sheet.png).
+**On the device:** turning the dial forward opens and sustains a LONG, back a SHORT, and the flywheel it fills is your 1x–10x leverage. A short click opens the USDC loader; a long click bails out. On desktop, hold Up/Down to emulate a spun dial. See the [actual gameplay sheet](design/rush-build/gameplay-sheet.png).

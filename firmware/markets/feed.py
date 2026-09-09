@@ -24,22 +24,26 @@ class PriceTick:
 
 class SimulatedFeed:
     name = 'SIMULATED'
+    # Tick spacing, held in integer microseconds so the same wall-clock time
+    # yields the same ticks at any frame rate (float seconds drift and drop one).
+    INTERVAL_US = 50_000
 
     def __init__(self, seed: int | None = None):
         self.rng = random.Random(seed)
         self.price = 2500.0
         self.sequence = 0
-        self.accumulated = 0.0
+        self.accumulated_us = 0
         self.status = 'Simulated ETH/USD'
 
     def poll(self, dt: float, now: float) -> list[PriceTick]:
-        self.accumulated += max(0, dt)
+        self.accumulated_us += int(max(0, dt) * 1_000_000)
+        step = self.INTERVAL_US / 1_000_000
         result = []
-        while self.accumulated >= .05:
-            self.accumulated -= .05
+        while self.accumulated_us >= self.INTERVAL_US:
+            self.accumulated_us -= self.INTERVAL_US
             self.sequence += 1
             # Demo volatility, NOT an estimate of real ETH market volatility.
-            self.price *= math.exp(self.rng.gauss(0, .0012 * math.sqrt(.05)))
+            self.price *= math.exp(self.rng.gauss(0, .0012 * math.sqrt(step)))
             result.append(PriceTick(self.price, self.sequence, now))
         return result
 
