@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package tick.v1;
+
+// One message per block, emitted even when none of the watched pools traded,
+// so a consumer can tell a quiet market from a dead stream. Every message
+// carries the block time, so a price can be placed against a deadline rather
+// than against the moment it happened to arrive.
+message BlockPrices {
+  uint64 block_number = 1;
+  string block_hash = 2;
+  uint64 timestamp_ms = 3;
+  // Only the pools that traded in this block, sorted by address.
+  repeated PoolPrice prices = 4;
+}
+
+// Decodes any message while reading none of it. The module takes the raw
+// block as an input only so that it runs on every block (see src/lib.rs), and
+// has no use for anything inside it.
+message Ignored {}
+
+// A pool's state at the end of the block, after its last swap.
+message PoolPrice {
+  string pool = 1;           // 0x-prefixed lowercase address
+  double price = 2;          // decimal-adjusted, in the orientation the params asked for
+  string sqrt_price_x96 = 3; // the exact price, for anyone re-deriving it
+  string liquidity = 4;      // in-range liquidity after the swap; a depth weight
+  uint32 swaps = 5;          // swaps in this pool in this block
+  uint64 ordinal = 6;        // ordinal of the last swap; orders swaps inside the block
+  string tx_hash = 7;        // transaction of the last swap, for settlement receipts
+}

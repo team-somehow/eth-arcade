@@ -1,0 +1,20 @@
+[package]
+name = "tick-eth-price"
+version = "0.1.0"
+edition = "2021"
+description = "Live per-block Uniswap v3 pool prices with block time, built on Pinax uniswap_v3"
+
+[lib]
+name = "tick_eth_price"
+crate-type = ["cdylib"]
+
+[dependencies]
+substreams = "0.7.6"
+# Must match the prost that substreams itself is built against.
+prost = "0.13"
+prost-types = "0.13"
+
+[profile.release]
+lto = true
+opt-level = "s"
+strip = "debuginfo"
