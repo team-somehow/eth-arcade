@@ -431,6 +431,13 @@ class Ears:
 
     def __init__(self):
         self.played = []
+        self.modes = []          # bed changes, in order
+        self.mode = 'off'
+
+    def music(self, mode):
+        if mode != self.mode:
+            self.mode = mode
+            self.modes.append(mode)
 
     def detent(self, fraction):
         index = int(min(1.0, max(0.0, fraction)) * (self.DETENTS - 1) + .5)
@@ -587,7 +594,76 @@ class SoundTests(unittest.TestCase):
         self.time = m.window_end + .05
         self.quote(level)                           # land it
         self.assertTrue(m.last.hit)
-        self.assertIn('win_big', self.ears.played)
+        self.assertGreater(m.last.multiple, 5)
+        # Three tiers, loudest for a jackpot.
+        tier = 'jackpot' if m.last.multiple >= 15 else 'win_big'
+        self.assertIn(tier, self.ears.played)
+        self.assertNotIn('win_small', self.ears.played)
+
+    def test_a_box_on_spot_wins_the_modest_fanfare(self):
+        m = self.game.model
+        self.game.buy()                             # cursor is at spot
+        self.frames(int(30 * m.WINDOW_S) + 6)
+        level = m.live.level
+        self.assertLess(m.live.multiple, 5)
+        self.ears.played.clear()
+        self.time = m.window_end + .05
+        self.quote(level)
+        self.assertTrue(m.last.hit)
+        self.assertIn('win_small', self.ears.played)
+
+    def test_the_bed_follows_what_is_at_stake(self):
+        m = self.game.model
+        self.frames(3)
+        self.assertEqual(self.ears.mode, 'idle')       # nothing down
+        self.game.buy()
+        self.frames(3)
+        self.assertEqual(self.ears.mode, 'live')       # money on the next window
+        self.frames(int(30 * m.WINDOW_S) + 6)          # it goes live
+        self.assertEqual(self.ears.mode, 'live')
+        # Walk into the last seconds: the bed turns tense.
+        while m.remaining(self.time) > 2 and m.rounds == 0:
+            self.quote(m.price)
+        self.assertEqual(self.ears.mode, 'final')
+        # And falls back to calm once the window has settled.
+        while m.rounds == 0:
+            self.quote(m.price)
+        self.frames(3)
+        self.assertEqual(self.ears.mode, 'idle')
+        self.assertEqual(self.ears.modes[:3], ['idle', 'live', 'final'])
+
+    def test_the_loader_drops_the_music_back_to_calm(self):
+        self.game.buy()
+        self.frames(3)
+        self.assertEqual(self.ears.mode, 'live')
+        self.game.open_wallet()
+        self.frames(3)
+        self.assertEqual(self.ears.mode, 'idle')
+
+    def test_cranking_a_locked_box_warns_instead_of_clicking(self):
+        self.game.buy()
+        self.ears.played.clear()
+        self.turn(3)
+        self.assertIn('warn', self.ears.played)
+        self.assertFalse([n for n in self.ears.played if n.startswith('detent')])
+
+    def test_the_box_passing_over_spot_clicks(self):
+        m = self.game.model
+        # Start below spot, then crank up through it.
+        self.turn(6, steps=-1)
+        self.assertLess(m.aim, m.price)
+        self.ears.played.clear()
+        self.turn(12, steps=1)
+        self.assertIn('crossline', self.ears.played)
+
+    def test_losing_the_feed_is_audible(self):
+        m = self.game.model
+        self.frames(3)
+        self.ears.played.clear()
+        # Silence the feed and let the quote go stale.
+        self.game.feed.poll = lambda _dt, _now: []
+        self.frames(int(30 * (m.STALE_AFTER + .5)))
+        self.assertIn('stale', self.ears.played)
 
     def test_no_audio_device_is_not_a_crash(self):
         from games.box import BoxGame

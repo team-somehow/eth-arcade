@@ -67,18 +67,22 @@ class App:
                 self.game.enter()
                 if target == "wallet":
                     self.game.open_wallet()
+                self.game.play("enter")
                 self.current = "game"
             elif target == "quit":
                 self.running = False
         elif self.current == "game":
             target = self.handle(self.game, events, actions)
             if target == "home":
+                self.game.play("back")
                 self.current = "home"
             elif target == "quit":
                 self.running = False
 
     def _draw(self) -> None:
         if self.current == "home":
+            # The bed keeps running behind the launcher.
+            self.game.ambient()
             self.home.draw(self.screen)
         else:
             self.game.draw(self.screen)

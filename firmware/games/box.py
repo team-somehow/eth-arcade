@@ -79,17 +79,34 @@ class BoxGame:
         self.flash_until = 0.0
         self.last_bell: tuple | None = None
         self.was_inside: bool | None = None
+        self.was_fresh = True
 
     def enter(self) -> None:
         self.held.clear()
         self.wallet_open = False
 
     def close(self) -> None:
+        self.music('off')
         self.feed.close()
 
     def play(self, name: str) -> None:
         if self.sounds:
             self.sounds.play(name)
+
+    def music(self, mode: str) -> None:
+        if self.sounds:
+            self.sounds.music(mode)
+
+    def ambient(self) -> None:
+        """Bed for the launcher, so the machine hums before you play."""
+        self.music('idle')
+
+    def bed_for_now(self) -> str:
+        """Calm with nothing down, driving with money live, tense at the bell."""
+        m = self.model
+        if m.live is not None and m.live.stake:
+            return 'final' if m.remaining(self.clock) <= 3 else 'live'
+        return 'live' if m.pending is not None else 'idle'
 
     def note(self, text: str, seconds: float = 2.0) -> None:
         self.message, self.message_until = text, self.clock + seconds
@@ -104,7 +121,7 @@ class BoxGame:
         self.wallet_open = False
         if deposit.status == 'confirmed':
             self.note(f'+{amount} {self.model.wallet.funding.name} USDC IN')
-            self.play('select')
+            self.play('coin')
         else:
             self.note(f'DEPOSIT {deposit.status.upper()} / NOT CREDITED', 3)
 
@@ -113,9 +130,16 @@ class BoxGame:
         m = self.model
         if m.locked:
             # The bet is placed: the dial does nothing until the bell.
+            if self.clock - self.last_sound_at > .25:
+                self.play('warn')
+                self.last_sound_at = self.clock
             self.note('BOX LOCKED / A ADDS 10', 1.5)
             return
-        if m.crank(steps) and self.clock - self.last_sound_at > .04:
+        above = m.aim - m.price
+        moved = m.crank(steps)
+        if moved and above * (m.aim - m.price) < 0:
+            self.play('crossline')       # the box just passed over spot
+        if moved and self.clock - self.last_sound_at > .04:
             # Pitch rises as the box moves out to the risky end of its reach.
             if self.sounds is not None and m.reach:
                 self.play(self.sounds.detent(abs(m.aim - m.window_open) / m.reach))
@@ -143,6 +167,7 @@ class BoxGame:
             if action in (InputAction.UP, InputAction.DOWN):
                 step = 1 if action == InputAction.UP else -1
                 self.amount_index = (self.amount_index + step) % len(LOAD_CHOICES)
+                self.play('nav')
             elif action == InputAction.A:
                 self.load_selected()
             elif action == InputAction.B:
@@ -186,7 +211,8 @@ class BoxGame:
             if m.last.voided:
                 self.play('void')
             elif m.last.hit:
-                self.play('win_big' if m.last.multiple >= 5 else 'win_small')
+                self.play('jackpot' if m.last.multiple >= 15
+                          else ('win_big' if m.last.multiple >= 5 else 'win_small'))
             else:
                 self.play('miss')
             self.flash_until = self.clock + 1.6
@@ -208,6 +234,12 @@ class BoxGame:
         if inside is not None and 0 < left <= 3 and slot != self.last_bell:
             self.play('tick_in' if inside else 'tick_out')
         self.last_bell = slot
+
+        fresh = m.fresh(self.clock)
+        if self.was_fresh and not fresh:
+            self.play('stale')
+        self.was_fresh = fresh
+        self.music('idle' if self.wallet_open else self.bed_for_now())
 
     # ---- drawing ---------------------------------------------------------
     def y_of(self, price: float) -> int:

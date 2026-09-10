@@ -61,7 +61,23 @@ Two details that matter for fairness. Each press is priced at **that press's** o
 
 ## Sound
 
-Beeps are synthesized locally at startup — square waves with a carried phase, so a clip can glide in pitch instead of only beeping. No audio assets, no dependencies. Every cue answers a question you would otherwise have to read off the screen:
+Everything is synthesized at startup — square waves, no audio assets, no dependencies — and it builds in about 0.16s.
+
+### Music
+
+Three looping beds, and the game picks one every frame from what is actually at stake:
+
+| Bed | When | What it is |
+|---|---|---|
+| `idle` | Launcher, or nothing staked | Sparse A-minor bass and a slow arpeggio |
+| `live` | Money on the next or current window | Driving bass, fast arpeggio, offbeat hats |
+| `final` | Last three seconds of a live bet | Same bass, a tense descending lead, hats on every step |
+
+Each bed is layers of **monophonic** 2-second loops, one per reserved mixer channel, so the mixer does the polyphony and Python never mixes a sample — which matters, because `audioop` was removed in 3.13. Loops are assembled from a cached palette of note renders rather than computed per sample per bar, which is the difference between 0.16s and several seconds of work at boot on a Pi. Every layer in every mode is exactly the same length, so switching bed restarts the bar cleanly instead of drifting the parts apart.
+
+### Cues
+
+A clip is a list of (start_hz, end_hz, seconds) segments, with phase carried across segments so a clip can glide in pitch instead of only beeping. Every cue answers a question you would otherwise have to read off the screen:
 
 | Cue | When |
 |---|---|
@@ -73,10 +89,20 @@ Beeps are synthesized locally at startup — square waves with a carried phase, 
 | Two-tone bell | A window rolled with no money down — the game's heartbeat. A result speaks instead of the bell |
 | Fanfare | A win, longer and higher above 5x |
 | Falling thud | A miss, or a flat neutral one for a voided window |
+| Longer, higher fanfare | A jackpot at 15x or more |
+| Tiny high click | The box passing over spot as you crank through it |
+| Double low buzz | Cranking a box that is already locked |
+| Falling sweep | The price feed went stale |
+| Blip / rising chime / falling chime | Menu move, entering the game, backing out |
+| Two-note chime | USDC loaded |
 
 The two that matter most are the box-crossing swoops and the pitched countdown: together they tell you whether you are winning without looking, which is the whole point of a handheld you play with your thumb.
 
-**Audio needs hardware that a bare Pi 5 does not have.** It has no analog jack, so ALSA offers only the two HDMI outputs; with nothing plugged into HDMI, opening the mixer fails and the game runs silently (by design — `Sounds` catches it and every `play` becomes a no-op). For sound on the handheld you need either a USB audio dongle, or an I2S DAC such as a MAX98357A. **Note the conflict if you take the I2S route:** it wants GPIO18/19/21, and GPIO21 is currently the encoder's CLK pin, so the encoder would have to move.
+Levels are sized so three overlapping cues plus a bed peak at about 21k of 32767 — nothing clips, and the music sits at roughly half the level of the cues.
+
+**Audio output on the Pi.** A Pi 5 has no analog jack, so ALSA alone offers only the two HDMI outputs and opening one fails with nothing connected. Sound works through the **pipewire-pulse** server instead — on this device that reaches a paired Bluetooth speaker. Do not force `SDL_AUDIODRIVER=alsa`: it bypasses the sound server and finds only the dead HDMI sinks. If the mixer cannot open at all, the game runs silently by design (`Sounds` catches it and every `play` and `music` becomes a no-op, which is tested).
+
+Bluetooth adds 100-200ms of latency, so crank clicks trail the dial. A USB audio dongle is tighter; an I2S DAC such as a MAX98357A is tightest, but **it wants GPIO18/19/21 and GPIO21 is currently the encoder's CLK pin**, so the encoder would have to move first.
 
 ## Settlement
 
