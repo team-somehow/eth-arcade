@@ -424,6 +424,184 @@ class MovementTests(unittest.TestCase):
     def test_no_move_before_the_first_price(self):
         self.assertEqual(model().move, 0.0)
 
+class Ears:
+    """Stand-in for Sounds that records what the game asked to play."""
+
+    DETENTS = 8
+
+    def __init__(self):
+        self.played = []
+
+    def detent(self, fraction):
+        index = int(min(1.0, max(0.0, fraction)) * (self.DETENTS - 1) + .5)
+        return f'detent{index}'
+
+    def play(self, name):
+        self.played.append(name)
+
+
+class ScriptedFeed:
+    """A feed whose prices the test chooses, polled exactly as the real one is."""
+
+    name = 'SCRIPTED'
+
+    def __init__(self, price, start_sequence=10_000):
+        self.price = price
+        self.queue = []
+        self.sequence = start_sequence
+
+    def poll(self, _dt, now):
+        # Holds the last price and keeps ticking, like a live feed. A silent
+        # feed would just go stale and block every bet.
+        if self.queue:
+            self.price = self.queue.pop(0)
+        self.sequence += 1
+        return [PriceTick(self.price, self.sequence, now)]
+
+    def close(self):
+        pass
+
+
+class SoundTests(unittest.TestCase):
+    """The sounds carry the tension, so the cues have to land on the right beat."""
+
+    def setUp(self):
+        import pygame
+        pygame.init()
+        pygame.display.set_mode((480, 320))
+        self.surface = pygame.Surface((480, 320))
+        self.time = T0
+        from games.box import BoxGame
+        self.game = BoxGame(seed=3, sound=False, source='sim',
+                            wallet=Wallet(START, DemoFunding()),
+                            clock=lambda: self.time)
+        self.addCleanup(self.game.close)
+        self.ears = Ears()
+        self.frames(45)                     # warm the real sim feed
+        self.game.sounds = self.ears
+        self.feed = ScriptedFeed(self.game.model.price)
+        self.game.feed = self.feed          # from here the test sets the price
+
+    def frames(self, count):
+        for _ in range(count):
+            self.time += 1/30
+            self.game.update(1/30)
+
+    def quote(self, price):
+        """Put the price exactly where we want it, through the game's own loop."""
+        self.feed.queue.append(price)
+        self.time += 1/30
+        self.game.update(1/30)
+
+    def turn(self, count, steps=1):
+        for _ in range(count):
+            self.time += .06
+            self.game.update(1/30)          # a frame passes, as in play
+            self.game.crank(steps)
+
+    def test_cranking_out_to_the_risky_end_rises_in_pitch(self):
+        self.turn(2)
+        near = [n for n in self.ears.played if n.startswith('detent')]
+        self.turn(20)
+        far = [n for n in self.ears.played if n.startswith('detent')]
+        self.assertTrue(near)
+        # Further from spot is a higher detent index.
+        self.assertGreater(int(far[-1][-1]), int(near[-1][-1]))
+
+    def test_stacked_presses_answer_a_note_higher(self):
+        for _ in range(4):
+            self.game.buy()
+        buys = [n for n in self.ears.played if n.startswith('buy')]
+        self.assertEqual(buys[:3], ['buy1', 'buy2', 'buy3'])
+        # A fourth press stays at the top note rather than inventing 'buy4'.
+        self.assertEqual(buys[3], 'buy3')
+
+    def test_the_price_crossing_the_box_sounds_in_both_directions(self):
+        m = self.game.model
+        self.game.buy()
+        self.frames(int(30 * m.WINDOW_S) + 6)      # the bet goes live
+        self.assertIsNotNone(m.live)
+        self.quote(m.live.high + m.half)            # start from a known side
+        self.ears.played.clear()
+        self.quote(m.live.level)                    # in
+        self.quote(m.live.level + m.half * .5)      # still in: no repeat
+        self.assertEqual(self.ears.played, ['hot'])
+        self.quote(m.live.high + m.half)            # out
+        self.assertEqual(self.ears.played, ['hot', 'cold'])
+        self.quote(m.live.level)                    # back in
+        self.assertEqual(self.ears.played, ['hot', 'cold', 'hot'])
+
+    def test_the_final_ticks_say_whether_you_are_winning(self):
+        m = self.game.model
+        self.game.buy()
+        self.frames(int(30 * m.WINDOW_S) + 6)
+        # Park the price inside and run into the last seconds.
+        self.quote(m.live.level)
+        self.ears.played.clear()
+        self.time = m.window_end - 2.5
+        self.quote(m.live.level)
+        self.assertIn('tick_in', self.ears.played)
+        self.assertNotIn('tick_out', self.ears.played)
+        # Same moment, price outside: a lower, unhappier tick.
+        self.ears.played.clear()
+        self.time = m.window_end - 1.5
+        self.quote(m.live.high + m.half)
+        self.assertIn('tick_out', self.ears.played)
+
+    def test_the_ticks_double_in_rate_for_the_last_two_seconds(self):
+        m = self.game.model
+        self.game.buy()
+        self.frames(int(30 * m.WINDOW_S) + 6)
+        self.quote(m.live.level)
+        self.ears.played.clear()
+        # Walk the clock through the final three seconds a frame at a time.
+        while m.remaining(self.time) > .05 and m.rounds == 0:
+            self.quote(m.live.level)
+        ticks = [n for n in self.ears.played if n.startswith('tick')]
+        # One a second down to 2s, then one every half second: six in all.
+        self.assertGreaterEqual(len(ticks), 5)
+        self.assertLessEqual(len(ticks), 7)
+
+    def test_a_bell_rings_on_an_empty_window_and_a_result_speaks_instead(self):
+        m = self.game.model
+        self.ears.played.clear()
+        self.frames(int(30 * m.WINDOW_S) + 6)       # no money down
+        self.assertIn('bell', self.ears.played)
+        self.game.buy()
+        self.frames(int(30 * m.WINDOW_S) + 6)       # bet goes live
+        self.ears.played.clear()
+        self.frames(int(30 * m.WINDOW_S) + 6)       # and settles
+        self.assertEqual(m.rounds, 1)
+        outcome = {'win_big', 'win_small', 'miss', 'void'} & set(self.ears.played)
+        self.assertTrue(outcome, self.ears.played)
+        self.assertNotIn('bell', self.ears.played)
+
+    def test_a_big_multiple_wins_a_bigger_fanfare(self):
+        m = self.game.model
+        self.turn(10)                               # far out: a long-odds box
+        self.game.buy()
+        self.assertGreater(m.pending.multiple, 5)
+        self.frames(int(30 * m.WINDOW_S) + 6)
+        level = m.live.level
+        self.ears.played.clear()
+        self.time = m.window_end + .05
+        self.quote(level)                           # land it
+        self.assertTrue(m.last.hit)
+        self.assertIn('win_big', self.ears.played)
+
+    def test_no_audio_device_is_not_a_crash(self):
+        from games.box import BoxGame
+        game = BoxGame(seed=1, sound=False, source='sim',
+                       wallet=Wallet(START, DemoFunding()), clock=lambda: self.time)
+        self.addCleanup(game.close)
+        self.assertIsNone(game.sounds)
+        for _ in range(60):
+            self.time += 1/30
+            game.update(1/30)
+        game.crank(3)                               # detent pitch needs sounds
+        game.buy()
+        game.draw(self.surface)
+
 class GameTests(unittest.TestCase):
     """The loop as played: clock always running, dial always live."""
 

@@ -1,4 +1,4 @@
-"""BOX RUN: crank the box, buy the next 20 seconds. Renderer and input adapter."""
+"""BOX RUN: crank the box, buy the next window. Renderer, sound and input."""
 from __future__ import annotations
 import os
 import time
@@ -77,7 +77,8 @@ class BoxGame:
         self.message_until = 0.0
         self.last_sound_at = 0.0
         self.flash_until = 0.0
-        self.last_bell = 0
+        self.last_bell: tuple | None = None
+        self.was_inside: bool | None = None
 
     def enter(self) -> None:
         self.held.clear()
@@ -114,8 +115,10 @@ class BoxGame:
             # The bet is placed: the dial does nothing until the bell.
             self.note('BOX LOCKED / A ADDS 10', 1.5)
             return
-        if m.crank(steps) and self.clock - self.last_sound_at > .05:
-            self.play('move')
+        if m.crank(steps) and self.clock - self.last_sound_at > .04:
+            # Pitch rises as the box moves out to the risky end of its reach.
+            if self.sounds is not None and m.reach:
+                self.play(self.sounds.detent(abs(m.aim - m.window_open) / m.reach))
             self.last_sound_at = self.clock
 
     def buy(self) -> None:
@@ -124,7 +127,9 @@ class BoxGame:
             self.open_wallet()
             return
         if m.buy(self.clock):
-            self.play('lock')
+            # Each stacked press on the same box answers a note higher.
+            presses = min(3, max(1, round(m.pending.stake / m.STAKE)))
+            self.play(f'buy{presses}')
             self.message = ''
         elif not m.fresh(self.clock):
             self.note('NO LIVE PRICE / NOT PLACED')
@@ -173,17 +178,36 @@ class BoxGame:
                 self.crank(1 if key in (pygame.K_UP, pygame.K_w) else -1)
                 if key in self.held:
                     self.held[key] = .05
+        windows_before = m.windows
         for tick in self.feed.poll(dt, self.clock):
             m.on_tick(tick, self.clock)
         m.update(self.clock)
         if m.rounds != rounds_before and m.last is not None:
-            self.play('miss' if m.last.voided else ('hit' if m.last.hit else 'miss'))
+            if m.last.voided:
+                self.play('void')
+            elif m.last.hit:
+                self.play('win_big' if m.last.multiple >= 5 else 'win_small')
+            else:
+                self.play('miss')
             self.flash_until = self.clock + 1.6
-        # Count down the last seconds of a window that has money on it.
-        left = int(m.remaining(self.clock))
-        if m.live is not None and m.live.stake and 0 < left <= 3 and left != self.last_bell:
-            self.play('tick')
-        self.last_bell = left
+        elif m.windows != windows_before:
+            # The empty-window heartbeat; a result speaks for the bell instead.
+            self.play('bell')
+
+        # Crossing into or out of a live box is the whole tension of a window,
+        # so it gets a sound of its own in each direction.
+        inside = m.inside
+        if inside is not None and self.was_inside is not None and inside != self.was_inside:
+            self.play('hot' if inside else 'cold')
+        self.was_inside = inside
+
+        # Last seconds: ticks pitched by whether the money is currently winning,
+        # and doubling in rate inside the final two so the bell rushes at you.
+        left = m.remaining(self.clock)
+        slot = ('s', int(left)) if left > 2 else ('h', int(left * 2))
+        if inside is not None and 0 < left <= 3 and slot != self.last_bell:
+            self.play('tick_in' if inside else 'tick_out')
+        self.last_bell = slot
 
     # ---- drawing ---------------------------------------------------------
     def y_of(self, price: float) -> int:

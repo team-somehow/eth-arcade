@@ -134,6 +134,7 @@ class BoxModel:
         self.window_end = 0.0
         self.settling = False     # expired, waiting for a price to settle on
         self.started = False
+        self.windows = 0          # bells rung; the game's heartbeat
         self.rounds = 0
         self.hits = 0
         self.last: Result | None = None
@@ -169,6 +170,13 @@ class BoxModel:
         self.step = base * self.STEP_BPS
         self.reach = base * self.REACH_BPS
         self.view_half = base * self.VIEW_BPS
+
+    @property
+    def inside(self) -> bool | None:
+        """Is the price inside the live bet's box right now? None if no bet."""
+        if self.live is None or not self.live.stake:
+            return None
+        return self.live.contains(self.price)
 
     @property
     def move(self) -> float:
@@ -322,6 +330,7 @@ class BoxModel:
             self.settling = False
             self.live = self.pending
             self.pending = None
+            self.windows += 1
             self.window_end += self.WINDOW_S
             # The new window opens here, and the cursor — free again — is
             # pulled back into reach of the new anchor.

@@ -59,6 +59,25 @@ The estimator is deliberately **median-based**: a mean of squared returns would 
 
 Two details that matter for fairness. Each press is priced at **that press's** odds, so topping up a box after the price walks toward it costs what it's worth then, not what it was worth when the level was fixed. And the horizon runs to the bell being bought, so buying 15 seconds early prices 35 seconds of drift — a different bet, not a free one.
 
+## Sound
+
+Beeps are synthesized locally at startup — square waves with a carried phase, so a clip can glide in pitch instead of only beeping. No audio assets, no dependencies. Every cue answers a question you would otherwise have to read off the screen:
+
+| Cue | When |
+|---|---|
+| Rising detent clicks | Every crank step, pitched by how far out the box has moved — the risky end of the reach sounds higher |
+| `buy1` → `buy2` → `buy3` | Stacked presses on the same box, each a note higher |
+| Upward swoop | The price just crossed **into** your live box |
+| Downward swoop | It just crossed **out** |
+| Ticks in the last 3s | Pitched high if the money is currently winning, low if it is not, and doubling in rate inside the final two seconds |
+| Two-tone bell | A window rolled with no money down — the game's heartbeat. A result speaks instead of the bell |
+| Fanfare | A win, longer and higher above 5x |
+| Falling thud | A miss, or a flat neutral one for a voided window |
+
+The two that matter most are the box-crossing swoops and the pitched countdown: together they tell you whether you are winning without looking, which is the whole point of a handheld you play with your thumb.
+
+**Audio needs hardware that a bare Pi 5 does not have.** It has no analog jack, so ALSA offers only the two HDMI outputs; with nothing plugged into HDMI, opening the mixer fails and the game runs silently (by design — `Sounds` catches it and every `play` becomes a no-op). For sound on the handheld you need either a USB audio dongle, or an I2S DAC such as a MAX98357A. **Note the conflict if you take the I2S route:** it wants GPIO18/19/21, and GPIO21 is currently the encoder's CLK pin, so the encoder would have to move.
+
 ## Settlement
 
 Only the price **at the bell** counts; sailing through the box mid-window pays nothing, and the boundary counts as inside. A quote from before the bell cannot settle a window however fresh it looks, so the display holds on `SETTLING` until a price stamped after the bell arrives. If none arrives within 4 seconds, the window is **voided and the stake refunded** — settling a real bet against the wrong moment's price is worse than not settling it. A stale feed also blocks new bets.
