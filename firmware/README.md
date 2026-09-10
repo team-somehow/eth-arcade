@@ -126,6 +126,8 @@ Balances are integer **micro-USDC** (6 decimals, the real USDC unit) so a sessio
 | `sim` (default) | Seeded 20 Hz Gaussian walk at roughly live ETH volatility — about 0.03% over ten seconds. Tick spacing is counted in integer microseconds, so the same wall-clock time produces the same ticks at any frame rate |
 | `coinbase` | Public Coinbase REST ticker at 5 Hz on a worker thread, read-only |
 
+Settings like this one live in `firmware/.env` (copy `.env.example`), which `main.py` reads at startup. A value set in the shell overrides the file, so `TICK_MARKET_SOURCE=coinbase .venv/bin/python main.py` works for a one-off run.
+
 A 20-second window needs a trace rather than a staircase, which is why the live adapter polls at 5 Hz (well inside the public rate limit) instead of once a second. Payloads are validated before use — finite positive price, timezone-aware timestamp, no future stamp — and carry a sequence number and source age, so out-of-order or stale ticks cannot price or settle anything. A production adapter should use the venue's WebSocket trade stream.
 
 Trading is **paper** in every configuration: the feed is read-only and no order leaves the device.
