@@ -15,9 +15,18 @@ if [ ! -f .substreams.env ] && [ -z "${SUBSTREAMS_API_TOKEN:-}${SUBSTREAMS_API_K
   set -a; . ../firmware/.substreams.env; set +a
 fi
 
-# Stop every chain's stream together, however this script ends. Only this
-# script's own children: `kill 0` would also hit whatever launched it.
-trap 'trap - INT TERM EXIT; pkill -TERM -P $$ 2>/dev/null' INT TERM EXIT
+# Stop every chain's stream together, however this script ends. Each stream
+# runs in a subshell, so `substreams run` is a grandchild of this script and
+# killing the children alone would orphan it. Only this script's own tree is
+# touched: `kill 0` would also hit whatever launched it.
+stop_streams() {
+  trap - INT TERM EXIT
+  for child in $(pgrep -P $$); do
+    pkill -TERM -P "$child" 2>/dev/null || true
+    kill -TERM "$child" 2>/dev/null || true
+  done
+}
+trap stop_streams INT TERM EXIT
 
 IFS=',' read -ra chains <<< "${TICK_CHAINS:?set TICK_CHAINS in .env}"
 for chain in "${chains[@]}"; do

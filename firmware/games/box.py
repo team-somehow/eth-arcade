@@ -8,7 +8,7 @@ import pygame
 
 from games.box_model import BoxModel
 from input import InputAction, event_position
-from markets.feed import CoinbaseFeed, SimulatedFeed
+from markets.feed import open_feed
 from ui import NAVY, PANEL, GRID, CREAM, MUTED, YELLOW, MINT, RED, Sounds, label, footer
 from wallet import LOAD_CHOICES, MICRO, DemoFunding, UsdcFunding, Wallet, format_usdc
 
@@ -60,10 +60,7 @@ class BoxGame:
     def __init__(self, seed: int | None = None, sound: bool = True,
                  source: str | None = None, wallet: Wallet | None = None,
                  clock: Callable[[], float] | None = None) -> None:
-        source = source or os.environ.get('TICK_MARKET_SOURCE', 'sim')
-        if source not in ('sim', 'coinbase'):
-            raise ValueError('TICK_MARKET_SOURCE must be sim or coinbase')
-        self.feed = CoinbaseFeed() if source == 'coinbase' else SimulatedFeed(seed)
+        self.feed = open_feed(source or os.environ.get('TICK_MARKET_SOURCE', 'sim'), seed)
         self.model = BoxModel(wallet or build_wallet())
         self.sounds = Sounds() if sound else None
         # Wall-clock monotonic in play: live ticks are stamped on the same

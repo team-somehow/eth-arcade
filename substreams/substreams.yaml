@@ -1,14 +1,16 @@
 specVersion: v0.1.0
 package:
   name: tick_eth_price
-  version: v0.1.0
+  version: v0.2.0
   description: >-
-    Live per-block prices for chosen Uniswap v3 pools, stamped with block time
+    Live per-block prices for chosen Uniswap v3 and v4 pools (and Aerodrome
+    Slipstream pools, which emit the v3 Swap event), stamped with block time
     and emitted every block, including blocks where nothing traded. Composes
-    Pinax's uniswap_v3 package instead of decoding logs itself.
+    Pinax's uniswap_v3 and uniswap_v4 packages instead of decoding logs itself.
 
 imports:
   uniswap_v3: https://github.com/pinax-network/substreams-evm/releases/download/evm-dex-v0.6.0/uniswap-v3-v0.6.0.spkg
+  uniswap_v4: https://github.com/pinax-network/substreams-evm/releases/download/evm-dex-v0.6.0/uniswap-v4-v0.6.0.spkg
 
 protobuf:
   files:
@@ -30,17 +32,20 @@ modules:
       # Never empty, so the module runs on every block (see src/lib.rs).
       - source: sf.ethereum.type.v2.Block
       - map: uniswap_v3:map_events
+      - map: uniswap_v4:map_events
     output:
       type: proto:tick.v1.BlockPrices
 
-# Pools to watch: 0xpool:decimals0:decimals1[:invert], comma-separated.
-# The firmware passes its own list, discovered from the Messari subgraph;
-# these defaults are the WETH/stable pools seen trading on Arbitrum.
+# Pools to watch: 0xpool:decimals0:decimals1[:invert], comma-separated. A v3
+# pool is its address; a v4 pool is its 32-byte pool id. stream.sh passes its
+# own list from .env; these defaults are the WETH/stable pools on Arbitrum.
 params:
   map_pool_prices: >-
     0xc6962004f452be9203591991d15f6b388e09e8d0:18:6,
     0x6f38e884725a116c9c7fbf208e79fe8828a2595f:18:6,
     0x641c00a822e8b671738d32a431a4fb6074e5c79d:18:6,
-    0xc31e54c7a869b9fcbecc14363cf510d1c41fa443:18:6
+    0xc31e54c7a869b9fcbecc14363cf510d1c41fa443:18:6,
+    0x864abca0a6202dba5b8868772308da953ff125b0f95015adbf89aaf579e903a8:18:6,
+    0xe88bba0ec2fc9091d68344b32b504abcc59f0aa9e1ae2ef048b69bc7ec3f4df8:18:6
 
 network: arbitrum-one

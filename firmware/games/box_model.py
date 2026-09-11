@@ -204,17 +204,24 @@ class BoxModel:
         A mean of squared returns would let a single flash spike (or a feed
         glitch) inflate the box for the next several windows. The median of
         per-second absolute returns ignores an outlier tick entirely.
+
+        Only moves count, measured from the previous move. A feed that repeats
+        its price between trades — every block of an on-chain feed without a
+        swap — would otherwise fill the median with zeros and read as calm.
         """
         points = list(self.history)
         if len(points) < 20:
             return DEFAULT_VARIANCE
         rates = []
-        for (t0, p0), (t1, p1) in zip(points, points[1:]):
-            gap = t1 - t0
-            if gap <= 0 or p0 <= 0:
+        t0, p0 = points[0]
+        for t1, p1 in points[1:]:
+            if p1 == p0:
                 continue
-            rates.append(abs(p1 / p0 - 1) / math.sqrt(gap))
-        if not rates:
+            gap = t1 - t0
+            if gap > 0 and p0 > 0:
+                rates.append(abs(p1 / p0 - 1) / math.sqrt(gap))
+            t0, p0 = t1, p1
+        if len(rates) < 10:
             return DEFAULT_VARIANCE
         sigma = MEDIAN_TO_SIGMA * statistics.median(rates)
         # Floor it: a feed that prints one price repeatedly must not collapse

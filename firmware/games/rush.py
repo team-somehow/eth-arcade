@@ -9,7 +9,7 @@ import pygame
 
 from games.rush_model import RushModel
 from input import InputAction, event_position
-from markets.feed import CoinbaseFeed, SimulatedFeed
+from markets.feed import open_feed
 from ui import NAVY, PANEL, GRID, CREAM, MUTED, YELLOW, MINT, RED, Sounds, label, diamond, footer
 from wallet import LOAD_CHOICES, MICRO, DemoFunding, UsdcFunding, Wallet, format_usdc
 
@@ -54,9 +54,7 @@ class RushGame:
                  source: str | None = None, wallet: Wallet | None = None,
                  clock: Callable[[], float] | None = None) -> None:
         source = source or os.environ.get('TICK_MARKET_SOURCE', 'sim')
-        if source not in ('sim', 'coinbase'):
-            raise ValueError('TICK_MARKET_SOURCE must be sim or coinbase')
-        self.feed = CoinbaseFeed() if source == 'coinbase' else SimulatedFeed(seed)
+        self.feed = open_feed(source, seed)
         self.model = RushModel(wallet or build_wallet())
         self.sounds = Sounds() if sound else None
         self.source = source
