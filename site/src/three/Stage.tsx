@@ -35,29 +35,46 @@ export function Stage() {
   const light = useMemo(() => typeof matchMedia !== 'undefined' && matchMedia('(max-width: 900px)').matches, []);
   return (
     <Canvas
+      shadows
       dpr={[1, 1.75]}
-      gl={{ antialias: true, alpha: false, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
-      camera={{ fov: 30, near: 1, far: 3000, position: [-24, 26, 318] }}
+      gl={{ antialias: true, alpha: false, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.08 }}
+      camera={{ fov: 30, near: 1, far: 3000, position: [-34, 30, 300] }}
       style={{ position: 'absolute', inset: 0 }}
     >
-      <color attach="background" args={['#0C1924']} />
-      <fog attach="fog" args={['#0C1924', 480, 1000]} />
-      <hemisphereLight args={['#3d5c6c', '#0c1924', .6]} />
-      <directionalLight color="#ffe0a3" intensity={1.6} position={[200, 240, 260]} />
+      <color attach="background" args={['#070F17']} />
+      <fog attach="fog" args={['#070F17', 460, 1100]} />
+      {/* a dim room, one warm key, a cool rim down the right edge and a low fill */}
+      <hemisphereLight args={['#31505f', '#05090d', .45]} />
+      <directionalLight
+        color="#fff1cf"
+        intensity={2.1}
+        position={[-150, 250, 240]}
+        castShadow
+        shadow-mapSize={[1024, 1024]}
+        shadow-camera-near={80}
+        shadow-camera-far={700}
+        shadow-camera-left={-160}
+        shadow-camera-right={160}
+        shadow-camera-top={160}
+        shadow-camera-bottom={-160}
+        shadow-bias={-0.0009}
+      />
+      <directionalLight color="#cfe6ff" intensity={.55} position={[260, 60, -180]} />
+      <directionalLight color="#3d6a86" intensity={.5} position={[0, -180, 120]} />
       <Environment resolution={256} frames={1}>
-        <Lightformer form="rect" intensity={4} color="#ffe6b0" position={[6, 4, 5]} scale={[9, 6, 1]} rotation-y={-.6} />
-        <Lightformer form="rect" intensity={1.6} color="#8fe9c4" position={[-8, 1, 3]} scale={[3, 10, 1]} rotation-y={.7} />
-        <Lightformer form="rect" intensity={2.5} color="#ffffff" position={[0, 7, -5]} scale={[10, 2, 1]} rotation-x={.6} />
-        <Lightformer form="rect" intensity={1} color="#3d8fd0" position={[0, -6, 5]} scale={[10, 3, 1]} />
+        <Lightformer form="rect" intensity={5} color="#fff0cc" position={[-7, 5, 6]} scale={[10, 7, 1]} rotation-y={.5} />
+        <Lightformer form="rect" intensity={1.5} color="#dcefff" position={[9, 2, -3]} scale={[3, 12, 1]} rotation-y={-.8} />
+        <Lightformer form="rect" intensity={2.2} color="#ffffff" position={[0, 8, -4]} scale={[12, 2, 1]} rotation-x={.7} />
+        <Lightformer form="rect" intensity={.9} color="#3d8fd0" position={[0, -7, 5]} scale={[12, 3, 1]} />
       </Environment>
       <Device />
-      <ContactShadows position={[0, -86, 0]} opacity={.65} scale={360} blur={2.4} far={150} resolution={512} color="#000000" />
+      <ContactShadows position={[0, -62, 6]} opacity={.55} scale={300} blur={2.8} far={120} resolution={768} color="#000000" />
       <CameraRig />
       {!light && (
         <EffectComposer multisampling={4}>
-          <Bloom mipmapBlur luminanceThreshold={.82} luminanceSmoothing={.25} intensity={.55} />
-          <Noise premultiply opacity={.055} />
-          <Vignette offset={.22} darkness={.85} />
+          <Bloom mipmapBlur luminanceThreshold={.8} luminanceSmoothing={.22} intensity={.5} />
+          <Noise premultiply opacity={.045} />
+          <Vignette offset={.2} darkness={.8} />
         </EffectComposer>
       )}
     </Canvas>

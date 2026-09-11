@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 /** Six viewport-tall chapters drive the 3D stage. */
 export const CHAPTERS = 6;
@@ -8,7 +8,7 @@ export const scroll = { target: 0 };
 
 let film: HTMLElement | null = null;
 let chapter = 0;
-const listeners = new Set<(c: number) => void>();
+const listeners = new Set<() => void>();
 
 function read() {
   if (!film) return;
@@ -18,31 +18,34 @@ function read() {
   const c = Math.round(scroll.target * (CHAPTERS - 1));
   if (c !== chapter) {
     chapter = c;
-    listeners.forEach((l) => l(c));
+    listeners.forEach((l) => l());
   }
 }
 
 export function bindFilm(el: HTMLElement | null) {
-  film = el;
+  if (el) film = el;     // a ref detach must not unbind the film that is still on screen
   read();
 }
 
-export function onChapter(fn: (c: number) => void) {
+function subscribe(fn: () => void) {
   listeners.add(fn);
-  fn(chapter);
-  return () => {
-    listeners.delete(fn);
-  };
+  return () => { listeners.delete(fn); };
 }
 
-/** The chapter currently centred in the viewport (0..5). Changes rarely, so it is React state. */
+/**
+ * The chapter currently centred in the viewport (0..5). An external store
+ * rather than an effect-and-setState pair: the value is written by a scroll
+ * listener that runs before React mounts and between its strict-mode
+ * remounts, and a subscription that is torn down at the wrong moment leaves
+ * the whole page frozen on chapter 0.
+ */
 export function useChapter() {
-  const [c, set] = useState(chapter);
-  useEffect(() => onChapter(set), []);
-  return c;
+  return useSyncExternalStore(subscribe, () => chapter, () => 0);
 }
 
 if (typeof window !== 'undefined') {
+  (window as any).__scrollmod = ((window as any).__scrollmod || 0) + 1;
+  (window as any).__readinfo = () => ({ target: scroll.target, chapter, film: !!film, listeners: listeners.size });
   addEventListener('scroll', read, { passive: true });
   addEventListener('resize', read);
 }

@@ -24,7 +24,7 @@ export function Demo() {
   };
   const flash = (set: (v: boolean) => void) => { set(true); setTimeout(() => set(false), 110); };
   const pressYellow = () => { gameRef.current?.buy(); flash(setYellowDown); };
-  const pressRed = () => { gameRef.current?.note('RED = BACK ON THE DEVICE', 1.5); flash(setRedDown); };
+  const pressRed = () => { gameRef.current?.note('RED IS BACK ON THE DEVICE', 1.5); flash(setRedDown); };
 
   useEffect(() => {
     const canvas = canvasRef.current!, device = deviceRef.current!;
@@ -116,9 +116,11 @@ export function Demo() {
   return (
     <section className="doc" id="demo">
       <div className="head">
-        <p className="eyebrow">Playable demo</p>
-        <h2>PLAY IT.</h2>
-        <p>The same game the device runs — same rules, same odds engine, same sounds — on a simulated ETH feed. You start with 100 demo USDC.</p>
+        <h2>Play it here first.</h2>
+        <p className="lead">
+          The same rules, the same odds engine and the same sounds the device runs, on a simulated ETH
+          feed. You start with 100 demo USDC. Crank, buy, wait for the bell.
+        </p>
       </div>
       <div className="arcade">
         <div>
@@ -142,15 +144,15 @@ export function Demo() {
           </div>
         </div>
         <div>
-          <div className="howto">
-            <div><span className="k">Crank</span><span><kbd>↑</kbd><kbd>↓</kbd> or scroll on the screen, or drag the dial</span></div>
-            <div><span className="k">Buy</span><span><kbd>Enter</kbd> or the yellow button — again to add $10</span></div>
-            <div><span className="k">Watch</span><span>the box rides in from the right; the rider is the price, and the bell is the post he reaches</span></div>
-            <div><span className="k">Win</span><span>the rider inside the box at the bell. The boundary counts. Three in a row and he catches fire.</span></div>
+          <div className="controls">
+            <div><span className="k">crank</span><span className="v"><kbd>↑</kbd><kbd>↓</kbd>, scroll over the screen, or drag the knob</span></div>
+            <div><span className="k">buy</span><span className="v"><kbd>Enter</kbd> or the yellow button. Press again to add another $10 at the odds on offer then.</span></div>
+            <div><span className="k">watch</span><span className="v">Your box rides in from the right. The rider is the price; the post he reaches is the bell.</span></div>
+            <div><span className="k">win</span><span className="v">The rider inside the box at the bell. The boundary counts. Three in a row and he catches fire.</span></div>
           </div>
           <div className="sound">
             <button className={'toggle' + (sound ? ' on' : '')} onClick={toggleSound} aria-pressed={sound}><span className="led" />{sound ? 'Sound on' : 'Sound off'}</button>
-            <div className="ledger">Balance <b>{ledger.bal}</b> · Hits <b>{ledger.hits}</b></div>
+            <div className="ledger">Balance <b>{ledger.bal}</b> &nbsp; Hits <b>{ledger.hits}</b></div>
           </div>
         </div>
       </div>

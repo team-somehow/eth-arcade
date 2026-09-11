@@ -12,3 +12,7 @@ __pycache__/
 .env
 # The device's Arc key and its open sessions.
 .tick/
+
+.claude/
+
+PRODUCT.md

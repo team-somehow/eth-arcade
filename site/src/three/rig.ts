@@ -14,12 +14,14 @@ export const rig = {
   reduced: typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches,
 };
 
-/** Camera keyframes per chapter. Copy alternates left/right, so the device parks on the other side. */
+/** Camera keyframes per chapter. The stage is its own framed field, so the
+ * device stays centred in it and only the angle, the distance and the
+ * explode change. */
 export const KEYS: { pos: [number, number, number]; look: [number, number, number]; ex: number }[] = [
-  { pos: [-24, 26, 318], look: [-66, 4, 0], ex: 0 },      // hero: copy left, device right
-  { pos: [280, -30, 170], look: [90, -30, -6], ex: 0 },   // the dial: right face
-  { pos: [-16, 34, 178], look: [-48, 22, 20], ex: 0 },    // the game: close on the screen
-  { pos: [225, 105, 265], look: [70, -2, -20], ex: 1 },   // exploded
-  { pos: [-160, 44, 285], look: [-76, 0, 0], ex: 0 },     // sound: reassembled, from the left
-  { pos: [44, 12, 340], look: [70, 0, 0], ex: 0 },        // specs: slow orbit
+  { pos: [-40, 32, 322], look: [8, 2, 0], ex: 0 },       // hero: three-quarter, front lit
+  { pos: [212, -16, 168], look: [34, -30, 6], ex: 0 },   // the dial: down the right face at the knob
+  { pos: [-18, 44, 158], look: [0, 20, 8], ex: 0 },      // the game: close on the screen
+  { pos: [176, 104, 348], look: [2, 0, -8], ex: 1 },     // exploded
+  { pos: [-196, 26, 250], look: [-6, 0, 0], ex: 0 },     // sound: back together, from the left
+  { pos: [64, 20, 336], look: [6, 0, 0], ex: 0 },        // specs: a slow orbit back to front
 ];
