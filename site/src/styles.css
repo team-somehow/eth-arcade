@@ -185,6 +185,7 @@ section.doc > .head p { margin-top: 16px; }
 #reserve { background: var(--ink); border-top: 1px solid var(--hair); }
 
 /* the playable device */
+.arcade > div:first-child { padding-right: 8%; }   /* the knob stands outside the shell */
 .arcade { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: clamp(28px, 5vw, 72px); align-items: start; }
 @media (max-width: 900px) { .arcade { grid-template-columns: 1fr; } }
 .device {
@@ -197,26 +198,35 @@ section.doc > .head p { margin-top: 16px; }
 .device .bezel { position: absolute; left: 5.77%; top: 5.45%; width: 88.46%; height: 54.55%; background: #14171b; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07); }
 .device .screen { position: absolute; left: 12.02%; top: 10.45%; width: 75.96%; height: 44.55%; background: #000; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .6), 0 0 0 3px #14171b, 0 0 34px rgba(120, 180, 210, .12); }
 .device .screen canvas { width: 100%; height: 100%; display: block; }
+/* the buttons sit in 13 mm square openings, as they do in the shell */
 .pbtn {
-  position: absolute; top: 74%; width: 13.5%; aspect-ratio: 1; border-radius: 50%; border: none; transform: translate(-50%, -50%);
-  box-shadow: 0 5px 0 rgba(0, 0, 0, .35), inset 0 -4px 6px rgba(0, 0, 0, .25), inset 0 3px 4px rgba(255, 255, 255, .35);
-  transition: transform .05s;
+  position: absolute; top: 80%; width: 12.5%; aspect-ratio: 1; transform: translate(-50%, -50%);
+  display: grid; place-items: center; padding: 0; border: none; border-radius: 3px;
+  background: #15181c; box-shadow: inset 0 3px 6px rgba(0, 0, 0, .75), 0 1px 0 rgba(255, 255, 255, .3);
 }
-.pbtn:active, .pbtn.down { transform: translate(-50%, -50%) translateY(3px); box-shadow: 0 2px 0 rgba(0, 0, 0, .35), inset 0 -2px 4px rgba(0, 0, 0, .25); }
-.pbtn.red { left: 37.5%; background: radial-gradient(circle at 40% 35%, #f07a6f, #c9342a 70%); }
-.pbtn.yellow { left: 62.5%; background: radial-gradient(circle at 40% 35%, #ffe08a, #e0a916 70%); }
-.pbtn span { position: absolute; left: 50%; top: 118%; transform: translateX(-50%); font-family: var(--mono); font-size: 10px; color: rgba(0, 0, 0, .5); white-space: nowrap; }
+.pbtn i {
+  width: 84%; aspect-ratio: 1; border-radius: 50%; display: block;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .45), inset 0 -3px 5px rgba(0, 0, 0, .3), inset 0 3px 4px rgba(255, 255, 255, .45);
+  transition: transform .05s, box-shadow .05s;
+}
+.pbtn:active i, .pbtn.down i { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, .45), inset 0 -2px 4px rgba(0, 0, 0, .3); }
+.pbtn.red { left: 37.5%; }
+.pbtn.yellow { left: 62.5%; }
+.pbtn.red i { background: radial-gradient(circle at 40% 34%, #f47c70, #c2332a 72%); }
+.pbtn.yellow i { background: radial-gradient(circle at 40% 34%, #ffe08a, #dda614 72%); }
+.pbtn span { position: absolute; left: 50%; top: 112%; transform: translateX(-50%); font-family: var(--mono); font-size: 10px; color: rgba(0, 0, 0, .5); white-space: nowrap; }
+/* the knob comes out of the right wall, so only its cap is on the face */
 .dial {
-  position: absolute; right: -9.5%; top: 74%; transform: translateY(-50%); width: 19%; aspect-ratio: 1; border-radius: 50%; cursor: grab; touch-action: none;
-  background: radial-gradient(circle at 45% 40%, #b8bfc4, #5d666c 75%, #3d4449);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, .5), inset 0 2px 3px rgba(255, 255, 255, .4);
+  position: absolute; right: -7%; top: 80%; transform: translateY(-50%); width: 14.5%; aspect-ratio: 1; border-radius: 50%; cursor: grab; touch-action: none;
+  background: radial-gradient(circle at 42% 36%, #6a7076, #2e3338 76%, #1b1f23);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, .55), inset 0 2px 3px rgba(255, 255, 255, .22);
 }
 .dial:active { cursor: grabbing; }
-.dial i { position: absolute; left: 50%; top: 9%; width: 9%; height: 30%; margin-left: -4.5%; background: var(--yellow); border-radius: 2px; transform-origin: 50% 137%; }
+.dial i { position: absolute; left: 50%; top: 11%; width: 8%; height: 26%; margin-left: -4%; background: var(--yellow); border-radius: 2px; transform-origin: 50% 150%; }
 .dial .knurl {
   position: absolute; inset: 0; border-radius: 50%;
-  background: repeating-conic-gradient(from 0deg, rgba(0, 0, 0, .18) 0 4deg, transparent 4deg 12deg);
-  mask: radial-gradient(circle, transparent 58%, #000 60%); -webkit-mask: radial-gradient(circle, transparent 58%, #000 60%);
+  background: repeating-conic-gradient(from 0deg, rgba(0, 0, 0, .45) 0 3deg, rgba(255, 255, 255, .1) 3deg 9deg);
+  mask: radial-gradient(circle, transparent 62%, #000 64%); -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%);
 }
 .devtag { position: absolute; left: 6%; bottom: 3.5%; font-weight: 900; font-stretch: 125%; font-size: clamp(13px, 2.4vw, 18px); letter-spacing: .04em; color: rgba(0, 0, 0, .26); }
 
@@ -256,7 +266,7 @@ section.doc > .head p { margin-top: 16px; }
 .field input { font: 16px var(--display); color: var(--cream); background: var(--ink); border: 1px solid var(--edge); padding: 12px 13px; border-radius: 3px; width: 100%; }
 .field input::placeholder { color: rgba(140, 163, 171, .6); }
 .field input:focus { border-color: var(--yellow); outline: none; }
-.qty { display: inline-grid; grid-template-columns: 42px 54px 42px; border: 1px solid var(--edge); border-radius: 3px; overflow: hidden; }
+.qty { justify-self: start; display: inline-grid; grid-template-columns: 42px 54px 42px; border: 1px solid var(--edge); border-radius: 3px; overflow: hidden; }
 .qty button { background: var(--ink); color: var(--cream); border: none; font-size: 18px; line-height: 1; }
 .qty button:hover { background: #0d1c28; }
 .qty output { display: grid; place-items: center; font-family: var(--mono); font-weight: 700; background: var(--ink); border-left: 1px solid var(--edge); border-right: 1px solid var(--edge); font-variant-numeric: tabular-nums; }

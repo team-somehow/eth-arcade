@@ -5,7 +5,7 @@ import { Environment, Lightformer, ContactShadows } from '@react-three/drei';
 import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing';
 import { Device } from './Device';
 import { rig, KEYS } from './rig';
-import { scroll } from '../scroll';
+import { read, scroll } from '../scroll';
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const smooth = (t: number) => t * t * (3 - 2 * t);
@@ -14,9 +14,11 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 /** Damps scroll into progress, blends the chapter keyframes, drives camera and explode. */
 function CameraRig() {
   const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
   const look = useMemo(() => new THREE.Vector3(), []);
   useFrame((_, delta) => {
     const dt = Math.min(.1, delta);
+    read();
     rig.t += dt;
     rig.prog = rig.reduced ? scroll.target : lerp(rig.prog, scroll.target, 1 - Math.pow(.001, dt * 3.2));
     const f = rig.prog * (KEYS.length - 1);
@@ -26,6 +28,12 @@ function CameraRig() {
     rig.explode = lerp(a.ex, b.ex, u);
     camera.position.set(lerp(a.pos[0], b.pos[0], u), lerp(a.pos[1], b.pos[1], u), lerp(a.pos[2], b.pos[2], u));
     look.set(lerp(a.look[0], b.look[0], u), lerp(a.look[1], b.look[1], u), lerp(a.look[2], b.look[2], u));
+    // On a phone the stage is the whole width: stand further back and stop
+    // framing the machine off-centre, or the knob and the lid fall off the edge.
+    if (size.width < 760) {
+      camera.position.multiplyScalar(1.2);
+      look.x *= .25;
+    }
     camera.lookAt(look);
   });
   return null;

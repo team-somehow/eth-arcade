@@ -10,7 +10,10 @@ let film: HTMLElement | null = null;
 let chapter = 0;
 const listeners = new Set<() => void>();
 
-function read() {
+/** Re-read the film's position. Called every frame by the stage as well as on
+ * scroll: a scroll event can be missed (programmatic jumps, restored positions,
+ * embedded frames), and a missed one freezes the whole film on chapter zero. */
+export function read() {
   if (!film) return;
   const r = film.getBoundingClientRect();
   const total = Math.max(1, film.offsetHeight - window.innerHeight);
@@ -44,8 +47,6 @@ export function useChapter() {
 }
 
 if (typeof window !== 'undefined') {
-  (window as any).__scrollmod = ((window as any).__scrollmod || 0) + 1;
-  (window as any).__readinfo = () => ({ target: scroll.target, chapter, film: !!film, listeners: listeners.size });
   addEventListener('scroll', read, { passive: true });
   addEventListener('resize', read);
 }

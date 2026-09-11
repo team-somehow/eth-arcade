@@ -25,11 +25,11 @@ type V3 = [number, number, number];
 
 /* ---------------- where every part lives ---------------- */
 const HOME = {
-  lid: [0, 0, -16] as V3, lidEx: [0, 0, -58] as V3,
-  pi: [0, 24, -16.7] as V3, piEx: [0, 0, -30] as V3,
-  panel: [0, 19, 16] as V3, panelEx: [0, 0, 44] as V3,
-  enc: [46, -33, 0] as V3, encEx: [40, 0, 0] as V3,
-  btnY: -33, btnZ: 20, btnEx: [0, 0, 30] as V3,
+  lid: [0, 0, -16] as V3, lidEx: [0, 0, -104] as V3,
+  pi: [0, 24, -16.7] as V3, piEx: [0, -24, -54] as V3,
+  panel: [0, 19, 16] as V3, panelEx: [0, 14, 80] as V3,
+  enc: [46, -33, 0] as V3, encEx: [62, 0, 0] as V3,
+  btnY: -33, btnZ: 20, btnEx: [0, -6, 46] as V3,
 };
 
 /* ---------------- materials, shared ---------------- */
@@ -99,7 +99,7 @@ function Body() {
   return (
     <group>
       <mesh geometry={geo} material={M.shell} castShadow receiveShadow />
-      <Callout position={[-54, 46, 14]} show={[3]} title="Printed body" sub="every opening is in this part" />
+      <Callout position={[-54, -34, 6]} show={[3]} title="Printed body" sub="every opening is in this part" />
     </group>
   );
 }
@@ -282,7 +282,7 @@ function Panel() {
 /* ---------------- BUTTONS: 12 mm switches behind the 13 mm square openings ---------------- */
 function Button({ x, cap, callout }: { x: number; cap: THREE.Material; callout?: ReactNode }) {
   return (
-    <Part home={[x, HOME.btnY, HOME.btnZ]} explode={[x * .55, 0, HOME.btnEx[2]]}>
+    <Part home={[x, HOME.btnY, HOME.btnZ]} explode={[x * .5, HOME.btnEx[1], HOME.btnEx[2]]}>
       {/* the cap sits in the square opening and stands 2.5 mm proud */}
       <mesh position={[0, 0, .5]} material={cap} rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[5.75, 5.5, 4, 48]} /></mesh>
       <mesh position={[0, 0, 2.5]} material={cap} scale={[1, 1, .32]}><sphereGeometry args={[5.75, 32, 16]} /></mesh>
@@ -359,7 +359,7 @@ function endOf(to: string, explode: number) {
     return new THREE.Vector3(HOME.enc[0] - 9 + HOME.encEx[0] * explode, HOME.enc[1] - 8.5, HOME.enc[2] - 1);
   }
   const x = to === 'red' ? -13 : 13;
-  return new THREE.Vector3(x + x * .55 * explode, HOME.btnY, HOME.btnZ - 11 + HOME.btnEx[2] * explode);
+  return new THREE.Vector3(x + x * .5 * explode, HOME.btnY + HOME.btnEx[1] * explode, HOME.btnZ - 11 + HOME.btnEx[2] * explode);
 }
 
 function Wires() {

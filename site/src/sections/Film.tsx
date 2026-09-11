@@ -138,11 +138,11 @@ export function Film() {
           ['window', '10 seconds, rolling'],
           ['box height', '$1.41 at $2,500 ETH'],
           ['payout range', '1.05× to 25×'],
-          ['display', '3.5″ IPS, 480 × 320, capacitive'],
-          ['computer', 'Raspberry Pi 5, BCM2712, 4 GB'],
-          ['shell', '104 × 110 × 40 mm, two printed parts'],
-          ['money', 'demo USDC wallet, paper bets'],
-          ['feed', 'read-only ETH ticker at 5 Hz'],
+          ['display', '3.5″ IPS, 480 × 320'],
+          ['computer', 'Raspberry Pi 5, 4 GB'],
+          ['shell', '104 × 110 × 40 mm'],
+          ['money', 'demo USDC, paper bets'],
+          ['feed', 'read-only ETH, 5 Hz'],
         ]} />
       </Chapter>
     </div>

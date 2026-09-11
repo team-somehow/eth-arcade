@@ -135,8 +135,8 @@ export function Demo() {
           >
             <div className="bezel" />
             <div className="screen"><canvas ref={canvasRef} width={480} height={320} /></div>
-            <button className={'pbtn red' + (redDown ? ' down' : '')} onClick={pressRed} aria-label="Red button: back"><span>BACK</span></button>
-            <button className={'pbtn yellow' + (yellowDown ? ' down' : '')} onClick={pressYellow} aria-label="Yellow button: buy the next 10 seconds"><span>BUY 10</span></button>
+            <button className={'pbtn red' + (redDown ? ' down' : '')} onClick={pressRed} aria-label="Red button: back"><i /><span>BACK</span></button>
+            <button className={'pbtn yellow' + (yellowDown ? ' down' : '')} onClick={pressYellow} aria-label="Yellow button: buy the next 10 seconds"><i /><span>BUY 10</span></button>
             <div className="dial" ref={dialRef} role="slider" aria-label="Crank dial" aria-valuemin={-12} aria-valuemax={12} aria-valuenow={0} tabIndex={0}>
               <div className="knurl" /><i ref={needleRef} />
             </div>
