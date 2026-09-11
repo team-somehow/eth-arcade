@@ -1,1 +1,4 @@
 pygame>=2.5.0
+# Only for TICK_FUNDING=arc-testnet (real testnet USDC).
+eth-account>=0.13
+qrcode>=8

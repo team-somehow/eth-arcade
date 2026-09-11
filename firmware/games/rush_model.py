@@ -15,11 +15,10 @@ from collections import deque
 import math
 
 from markets.feed import PriceTick
-from wallet import MICRO, Wallet, to_micro
+from wallet import MICRO, Wallet, stake_micro, to_micro
 
 
 class RushModel:
-    STAKE = 10 * MICRO           # micro-USDC risked per ride
     MAX_LEVERAGE = 10.0
     # Detents needed to open a ride. Two keeps a brushed dial from staking,
     # and is still under a tenth of a second of real cranking.
@@ -30,8 +29,10 @@ class RushModel:
     COAST_S = 1.6                # silence this long closes the ride
     STALE_AFTER = 4.0            # a quote older than this cannot price anything
 
-    def __init__(self, wallet: Wallet | None = None) -> None:
+    def __init__(self, wallet: Wallet | None = None, stake: int | None = None) -> None:
         self.wallet = wallet or Wallet()
+        # Micro-USDC risked per ride: TICK_STAKE_USDC unless given.
+        self.STAKE = stake_micro() if stake is None else stake
         self.phase = 'ready'
         self.side = 1
         self.tick: PriceTick | None = None

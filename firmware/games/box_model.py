@@ -30,7 +30,7 @@ import math
 import statistics
 
 from markets.feed import PriceTick
-from wallet import MICRO, Wallet
+from wallet import Wallet, stake_micro
 
 # Fallback volatility until enough ticks have arrived to measure any: ~55%
 # annualized, expressed as variance per second of relative return.
@@ -96,7 +96,6 @@ class Result:
 
 class BoxModel:
     WINDOW_S = 10.0
-    STAKE = 10 * MICRO       # micro-USDC added per press of A
     # Geometry in basis points of the window's opening price: constant, so the
     # box never changes size on screen or in dollars, and never rescales under
     # a bet that is already placed.
@@ -149,8 +148,11 @@ class BoxModel:
     # feed that merely pauses at start-up is not called asleep.
     QUIET_AFTER = 15.0
 
-    def __init__(self, wallet: Wallet | None = None) -> None:
+    def __init__(self, wallet: Wallet | None = None, stake: int | None = None) -> None:
         self.wallet = wallet or Wallet()
+        # Micro-USDC added per press of A: TICK_STAKE_USDC unless given.
+        self.STAKE = stake_micro() if stake is None else stake
+        self.refused = ''         # why the last press was refused, when the game should say so
         self.tick: PriceTick | None = None
         # Enough for VOL_WINDOW_S of the fastest feed (the sim, at 20 Hz).
         self.history: deque[tuple[float, float]] = deque(maxlen=2400)
@@ -321,25 +323,55 @@ class BoxModel:
                    min(self.window_open + self.reach, level))
 
     def buy(self, now: float) -> bool:
-        """Press A: put 10 USDC on the next window at the cursor.
+        """Press A: put one stake (TICK_STAKE_USDC) on the next window at the cursor.
 
         The first press fixes that window's level; later presses add stake at
         the odds available when they are made, so a box cannot be topped up at
         a stale multiple after the price walks toward it.
         """
+        self.refused = ''
         if (not self.started or not self.fresh(now) or self.settling
                 or self.quiet(now) or not self.measured):
             return False
         level = self.aim if self.pending is None else self.pending.level
         half = self.half if self.pending is None else self.pending.half
         multiple = self.quote(level, now, half)
-        if multiple < self.MIN_MULTIPLE or not self.wallet.debit(self.STAKE):
+        if multiple < self.MIN_MULTIPLE:
+            return False
+        if self.over_cap(multiple):
+            self.refused = 'cap'
+            return False
+        if not self.wallet.debit(self.STAKE):
             return False
         if self.pending is None:
             self.pending = Order(level, half)
         self.pending.stake += self.STAKE
         self.pending.payout += self.STAKE * multiple
         return True
+
+    def over_cap(self, multiple: float) -> bool:
+        """Could one more press win the balance past what the escrow pays out?
+
+        The best case lands every box already down plus this one. Past the cap
+        the escrow would pay less than the screen shows, so the press is refused.
+        """
+        cap = self.wallet.cap
+        if cap is None:
+            return False
+        best = self.wallet.balance - self.STAKE + self.STAKE * multiple
+        for order in (self.live, self.pending):
+            if order is not None:
+                best += order.payout
+        return best > cap
+
+    def cancel_pending(self) -> int:
+        """Refund the box bought for the next window before it goes live; returns its stake."""
+        if self.pending is None:
+            return 0
+        stake = self.pending.stake
+        self.wallet.credit(stake)
+        self.pending = None
+        return stake
 
     # ---- time and prices -------------------------------------------------
     def on_tick(self, tick: PriceTick, now: float) -> None:

@@ -123,9 +123,15 @@ Balances are integer **micro-USDC** (6 decimals, the real USDC unit) so a sessio
 | `TICK_FUNDING` | Backend | Behavior |
 |---|---|---|
 | `demo` (default) | `DemoFunding` | Starts at 100 and mints local play money on +10/+25/+100 |
-| `usdc` | `UsdcFunding` | The real deposit shape — starts at 0 and **credits nothing** |
+| `arc-testnet` | `arc.ArcFunding` | Real Arc testnet USDC through the [`TickEscrow`](../contracts/) contract. BOX RUN only |
 
-`UsdcFunding` is deliberately inert. A working version needs a session key on the device, an ERC-20 `transfer`/`permit` of the amount to that key on a chosen chain, and confirmation polling before the balance moves; the wallet credits only a deposit whose status comes back `confirmed`. There is no wallet, key, transfer or settlement in this build, and the odds carry no house edge — a real venue must charge one and fund payouts from somewhere.
+`TICK_STAKE_USDC` sets the stake per press of A in BOX RUN and per ride in RUSH: 10 by default, as little as 0.000001. It is parsed as an exact decimal, and labels and balances show as many decimals as the stake has, so a 0.001 stake reads `0.001`, never `0.00`.
+
+**Real USDC.** With `TICK_FUNDING=arc-testnet` the money screen (ADD USDC on the launcher) shows the device's own Arc address as a QR code. Scan it in MetaMask and send any amount of USDC on Arc testnet. The device watches Arc for transfers to itself, keeps 0.01 of each for gas (USDC is Arc's gas token; set it with `TICK_GAS_FEE_USDC`), and locks the rest in `TickEscrow` with `openFor`, in the sender's name. That takes about 8 seconds. The launcher then shows `+0.49 USDC FROM 0x7ee8..CCac` and its money button turns into CASH OUT.
+
+Bets run on the device exactly as in demo play. CASH OUT refunds a box bought for the next window, lets the live one land, then closes the session with the final balance, and the escrow pays it straight back to the address the USDC came from. The escrow pays out at most 5x a deposit, so a press that could win past that is refused with `MAX WIN REACHED / CASH OUT`. A deposit the house cannot cover, or one over the 2.5 USDC maximum, is sent back.
+
+The device key is created on first run in `firmware/.tick/device.json`, and the open sessions, balance and last block read are saved in `.tick/arc-testnet.json`; the folder is gitignored. A restart resumes play and finishes an interrupted cash-out. Chain work runs on its own thread, so a slow RPC never stalls a frame. Real funds need `eth-account` and `qrcode` from `requirements.txt`; demo play does not. The odds still carry no house edge.
 
 ## Prices
 
@@ -143,7 +149,7 @@ Settings like this one live in `firmware/.env` (copy `.env.example`), which `mai
 
 A 20-second window needs a trace rather than a staircase, which is why the live adapter polls at 5 Hz (well inside the public rate limit) instead of once a second. Payloads are validated before use — finite positive price, timezone-aware timestamp, no future stamp — and carry a sequence number and source age, so out-of-order or stale ticks cannot price or settle anything. A production adapter should use the venue's WebSocket trade stream.
 
-Trading is **paper** in every configuration: the feed is read-only and no order leaves the device.
+The feed is read-only. With demo money every bet is paper; with `arc-testnet` the bets still run on the device, and only deposits and cash-outs touch the chain.
 
 ## Run, test, capture
 

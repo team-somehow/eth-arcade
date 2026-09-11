@@ -167,8 +167,9 @@ class HomeScreen:
         self.rider.draw(surface, RIDER_X, ground(scroll + RIDER_X), scroll / Rider.WHEEL)
         self.floaters.draw(surface)
         self.draw_top(surface)
+        self.draw_banner(surface)
         self.draw_menu(surface)
-        footer(surface, '< QUIT', 'LOAD >' if self.focus else 'PLAY >')
+        footer(surface, '< QUIT', self.wallet_label().replace(' USDC', '') + ' >' if self.focus else 'PLAY >')
 
     def glyph(self, ch: str, color: tuple) -> pygame.Surface:
         key = (ch, color)
@@ -270,6 +271,26 @@ class HomeScreen:
     def tag(s: pygame.Surface, rect: pygame.Rect, text: str, color: tuple) -> None:
         say(s, text, rect.centerx, rect.top - 16, 13, color, True)
 
+    def wallet_label(self) -> str:
+        """The money button: load paper USDC, or add and cash out real USDC."""
+        m = getattr(self.game, 'model', None)
+        funding = getattr(getattr(m, 'wallet', None), 'funding', None)
+        if getattr(funding, 'onchain', False):
+            return 'CASH OUT' if funding.in_session else 'ADD USDC'
+        return 'LOAD USDC'
+
+    def draw_banner(self, s: pygame.Surface) -> None:
+        """Money news, such as a deposit landing, over the attract loop."""
+        banner = getattr(self.game, 'banner', lambda: None)()
+        if not banner:
+            return
+        text, color = banner
+        width = font(16).size(text)[0] + 28
+        rect = pygame.Rect(240 - width // 2, 134, width, 28)
+        pygame.draw.rect(s, NAVY, rect, border_radius=5)
+        pygame.draw.rect(s, color, rect, 2, border_radius=5)
+        say(s, text, 240, rect.y + 6, 16, color, True)
+
     def draw_menu(self, s: pygame.Surface) -> None:
         """PLAY and LOAD sit on the street, where the game keeps its status line."""
         pulse = .5 + .5 * math.sin(self.t * 6)
@@ -284,7 +305,7 @@ class HomeScreen:
                 pygame.draw.rect(s, PANEL, rect, border_radius=5)
                 pygame.draw.rect(s, GRID, rect, 1, border_radius=5)
             ink = NAVY if on else (CREAM if index == 0 else MINT)
-            text = 'PLAY' if index == 0 else 'LOAD USDC'
+            text = 'PLAY' if index == 0 else self.wallet_label()
             tx = rect.x + 30
             s.blit(font(16).render(text, False, ink), (tx, rect.y + 3))
             if index == 0:

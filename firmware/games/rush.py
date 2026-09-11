@@ -11,7 +11,7 @@ from games.rush_model import RushModel
 from input import InputAction, event_position
 from markets.feed import open_feed
 from ui import NAVY, PANEL, GRID, CREAM, MUTED, YELLOW, MINT, RED, Sounds, label, diamond, footer
-from wallet import LOAD_CHOICES, MICRO, DemoFunding, UsdcFunding, Wallet, format_usdc
+from wallet import LOAD_CHOICES, MICRO, DemoFunding, Wallet, format_usdc, places_for
 
 
 def rider(s: pygame.Surface, x: int, y: int, boost: float, clock: float) -> None:
@@ -36,16 +36,10 @@ def rider(s: pygame.Surface, x: int, y: int, boost: float, clock: float) -> None
 
 
 def build_wallet() -> Wallet:
-    """TICK_FUNDING=usdc swaps in the real deposit shape (which credits nothing)."""
+    """RUSH plays with paper money only: a leveraged ride has no cap the escrow can hold."""
     kind = os.environ.get('TICK_FUNDING', 'demo')
-    if kind not in ('demo', 'usdc'):
-        raise ValueError('TICK_FUNDING must be demo or usdc')
-    if kind == 'usdc':
-        return Wallet(0, UsdcFunding(
-            chain=os.environ.get('TICK_CHAIN', 'base'),
-            token=os.environ.get('TICK_USDC_ADDRESS', ''),
-            account=os.environ.get('TICK_ACCOUNT', ''),
-        ))
+    if kind != 'demo':
+        raise ValueError('RUSH plays with demo money only; set TICK_FUNDING=demo or play BOX RUN')
     return Wallet(100 * MICRO, DemoFunding())
 
 
@@ -108,7 +102,7 @@ class RushGame:
             self.play('lock')
             self.message = ''
         elif m.phase == 'ready' and not m.can_ride():
-            self.note(f'LOAD USDC TO RIDE / NEED {format_usdc(m.STAKE, 0)}')
+            self.note(f'LOAD USDC TO RIDE / NEED {format_usdc(m.STAKE, places_for(m.STAKE))}')
         elif m.phase == 'ready' and m.arm and not m.fresh(self.clock):
             self.note('WAITING FOR A FRESH PRICE')
         if m.active and self.clock - self.last_sound_at > .09:
@@ -231,7 +225,7 @@ class RushGame:
                 text, color = 'FORWARD = LONG / BACK = SHORT', MUTED
             # Below the gauge: the meter itself says what the crank is doing.
             label(s, text[:32], 14, 243, 15, color)
-            label(s, f'{format_usdc(m.STAKE, 0)} USDC IN', 355, 244, 14, CREAM)
+            label(s, f'{format_usdc(m.STAKE, places_for(m.STAKE))} USDC IN', 355, 244, 14, CREAM)
             footer(s, '< HOME', 'LOAD >')
 
     def draw_world(self, s: pygame.Surface) -> None:

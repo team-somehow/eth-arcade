@@ -6,7 +6,15 @@ import unittest
 
 from games.rush_model import RushModel
 from markets.feed import PriceTick, SimulatedFeed, parse_coinbase
-from wallet import MICRO, DemoFunding, UsdcFunding, Wallet, format_usdc, to_micro
+from wallet import MICRO, DemoFunding, Deposit, Wallet, format_usdc, to_micro
+
+
+class RefusingFunding:
+    """A backend whose deposits never confirm."""
+    name, live = 'USDC', True
+
+    def load(self, amount):
+        return Deposit(amount, 'failed', 'test')
 
 START = 100 * MICRO
 
@@ -193,7 +201,7 @@ class WalletTests(unittest.TestCase):
         wallet = Wallet(0, DemoFunding())
         deposit = wallet.load(25)
         self.assertEqual((deposit.status, wallet.balance), ('confirmed', 25 * MICRO))
-        live = Wallet(0, UsdcFunding())
+        live = Wallet(0, RefusingFunding())
         pending = live.load(10)
         self.assertEqual((pending.status, live.balance), ('failed', 0))
         self.assertEqual(len(live.deposits), 1)

@@ -10,3 +10,5 @@ __pycache__/
 .DS_Store
 *.pyc
 .env
+# The device's Arc key and its open sessions.
+.tick/
