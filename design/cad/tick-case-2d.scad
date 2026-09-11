@@ -19,9 +19,15 @@ BTN_CY  = BEZEL_T + MOD_H + 22;  // button centre, measured from the top
 ENC     = 12;    // square encoder hole in the right side face
 ENC_CY  = 46;    // encoder centre from the top
 ENC_CZ  = D/2;   // encoder centre through the depth
-USB_W   = 14;    // USB-C opening on the top face (connector + cable boot)
-USB_D   = 9;
-USB_CX  = W - 26;                // from the left edge of the front face
+// USB-C now exits the BOTTOM face, deliberately oversized so the connector
+// cannot miss it whichever way the Pi ends up sitting.
+USB_W   = 40;
+USB_D   = 12;
+USB_CX  = W/2;                   // centred across the bottom face
+// Wide opening in the TOP face, at its right-hand corner.
+TOP_W   = 34;
+TOP_D   = 16;
+TOP_CX  = W - 6 - TOP_W/2;
 PI_W    = 85;    // Raspberry Pi 5 board
 PI_H    = 56;
 
@@ -117,28 +123,41 @@ module view_back() {
 // ---- TOP ------------------------------------------------------------------
 module view_top() {
     frame(W, D, 0.6);
+    translate([TOP_CX - TOP_W/2, (D - TOP_D)/2]) frame(TOP_W, TOP_D);
+    dim_h(0, W, -8, str(W));
+    dim_h(TOP_CX - TOP_W/2, W, D + 5, str(TOP_W + 6, " from right edge"));
+    dim_h(TOP_CX - TOP_W/2, TOP_CX + TOP_W/2, D + 13, str(TOP_W));
+    dim_v((D-TOP_D)/2, (D+TOP_D)/2, W + 8, str(TOP_D));
+    note([4, D + 22], "wide opening, TOP RIGHT corner - purpose/size to confirm", 3);
+    title([0, D + 30], "TOP");
+}
+
+// ---- BOTTOM ---------------------------------------------------------------
+module view_bottom() {
+    frame(W, D, 0.6);
     translate([USB_CX - USB_W/2, (D - USB_D)/2]) frame(USB_W, USB_D);
     dim_h(0, W, -8, str(W));
-    dim_h(0, USB_CX, D + 5, str(USB_CX, " to USB-C centre"));
-    dim_h(USB_CX - USB_W/2, USB_CX + USB_W/2, D + 13, str(USB_W));
-    dim_v(0, D, W + 8, str(D, " depth"));
-    note([4, D + 20], str("USB-C opening ", USB_W, " x ", USB_D, " (connector + cable boot)"), 3);
-    title([0, D + 28], "TOP");
+    dim_h(USB_CX - USB_W/2, USB_CX + USB_W/2, D + 5, str(USB_W, " wide USB-C slot"));
+    dim_v((D-USB_D)/2, (D+USB_D)/2, W + 8, str(USB_D));
+    note([4, D + 14], "oversized on purpose - cable boot clears, position forgiving", 3);
+    title([0, D + 22], "BOTTOM  (USB-C)");
 }
 
 // ---- sheet ----------------------------------------------------------------
-translate([0, 200])    view_front();
-translate([200, 200])  view_side();
-translate([0, 30])     view_top();
-translate([200, 30])   view_back();
+translate([0, 210])    view_front();
+translate([200, 210])  view_side();
+translate([0, 114])    view_top();
+translate([0, 50])     view_bottom();
+translate([200, 40])   view_back();
 
-translate([0, 370]) title([0, 0], "TICK handheld - dimensioned review drawing");
-translate([0, 358]) note([0, 0], "all dimensions in mm - review only, the 3D model comes after you approve", 4);
-translate([0, 348]) note([0, 0], str("overall ", W, " W x ", H, " H x ", D, " D   |   shell wall ", WALL), 4);
-translate([0, 12])  note([0, 0], "NOTES", 4.5);
-translate([0, 4])   note([0, 0], "1. Screen module 92 x 60 (bezel included) sits behind the front face; opening exposes the 79 x 49 visible image only.", 3.4);
-translate([0, -4])  note([0, 0], "2. Encoder hole 12 x 12 in the RIGHT side face. Height and depth position ASSUMED - confirm before the 3D model.", 3.4);
-translate([0, -12]) note([0, 0], "3. USB-C opening on the TOP face, offset right to match the cable in your photo. Confirm the Pi 5 orientation inside.", 3.4);
-translate([0, -20]) note([0, 0], "4. Speaker grille on the BACK face only. No speaker is fitted yet - the Pi 5 has no analog audio out.", 3.4);
-translate([0, -28]) note([0, 0], "5. Buttons are 13 x 13 square holes, 26 centre-to-centre, 22 below the screen.", 3.4);
-translate([0, -36]) note([0, 0], "6. Pi 5 board 85 x 56 shown dashed on the FRONT view for clearance only.", 3.4);
+translate([0, 380]) title([0, 0], "TICK handheld - dimensioned review drawing  rev B");
+translate([0, 368]) note([0, 0], "all dimensions in mm - review only, the 3D model comes after you approve", 4);
+translate([0, 358]) note([0, 0], str("overall ", W, " W x ", H, " H x ", D, " D   |   shell wall ", WALL), 4);
+translate([0, 22])  note([0, 0], "NOTES", 4.5);
+translate([0, 14])  note([0, 0], "1. Screen module 92 x 60 (bezel included) sits behind the front face; opening exposes the 79 x 49 visible image only.", 3.4);
+translate([0, 6])   note([0, 0], "2. Openings are on TOP (right corner), RIGHT (encoder) and BOTTOM (USB-C), per your note.", 3.4);
+translate([0, -2])  note([0, 0], "3. USB-C slot is 40 x 12 - far larger than the connector, so the Pi's exact position inside does not matter.", 3.4);
+translate([0, -10]) note([0, 0], "4. TOP RIGHT opening 34 x 16 is a placeholder - tell me what passes through it and I will size it properly.", 3.4);
+translate([0, -18]) note([0, 0], "5. Encoder hole 12 x 12 in the RIGHT side face. Height and depth position still ASSUMED.", 3.4);
+translate([0, -26]) note([0, 0], "6. Speaker grille on the BACK face only. No speaker fitted yet - the Pi 5 has no analog audio out.", 3.4);
+translate([0, -34]) note([0, 0], "7. Buttons are 13 x 13 square holes, 26 centre-to-centre, centres 88 from the top.", 3.4);
