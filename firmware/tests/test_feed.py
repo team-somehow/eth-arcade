@@ -139,6 +139,66 @@ class SubstreamsFeedTest(unittest.TestCase):
         self.assertIn('unavailable', feed.status)
 
 
+class CoinbaseFeedTest(unittest.TestCase):
+    """The real poller against a local stand-in for the Coinbase ticker."""
+
+    def serve(self, answers):
+        served = iter(answers)
+        last = [answers[-1]]
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                body = json.dumps(next(served, last[0])).encode()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *_):
+                pass
+
+        server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        server.daemon_threads = True
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.shutdown)
+        self.addCleanup(server.server_close)
+        return f'http://127.0.0.1:{server.server_address[1]}/ticker'
+
+    def test_a_quiet_book_is_not_a_dead_feed(self):
+        from datetime import datetime, timezone
+
+        def trade(trade_id, price, seconds_ago):
+            stamp = datetime.fromtimestamp(time.time() - seconds_ago, timezone.utc)
+            return {'trade_id': trade_id, 'price': str(price),
+                    'time': stamp.isoformat().replace('+00:00', 'Z')}
+
+        url = self.serve([
+            trade(10, 2500.0, 10),      # nobody has traded for ten seconds
+            trade(10, 2500.0, 10),      # still nobody: the same answer again
+            trade(9, 2490.0, 12),       # a lagging cache node, older still
+            trade(11, 2501.0, .1),      # a fresh trade
+        ])
+
+        class Local(CoinbaseFeed):
+            URL = url
+            INTERVAL = .02
+
+        feed = Local()
+        self.addCleanup(feed.close)
+        ticks = []
+        deadline = time.monotonic() + 3
+        while len(ticks) < 3 and time.monotonic() < deadline:
+            ticks += feed.poll(0, 0)
+            time.sleep(.01)
+        # The repeat is a tick (the price is confirmed, not dead); the older
+        # trade is not (it would walk the price backwards).
+        self.assertEqual([t.price for t in ticks[:3]], [2500.0, 2500.0, 2501.0])
+        self.assertEqual([t.sequence for t in ticks[:3]], [1, 2, 3])
+        # Aged by the answer, not by a trade from ten seconds ago.
+        for tick in ticks[:3]:
+            self.assertLessEqual(tick.source_age, CoinbaseFeed.CACHE_S)
+
+
 class OpenFeedTest(unittest.TestCase):
     def test_sources(self):
         self.assertIsInstance(open_feed('sim', 1), SimulatedFeed)

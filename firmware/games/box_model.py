@@ -36,13 +36,19 @@ from wallet import MICRO, Wallet
 # annualized, expressed as variance per second of relative return.
 SECONDS_PER_YEAR = 31_536_000
 DEFAULT_VARIANCE = (0.55 ** 2) / SECONDS_PER_YEAR
-# median(|X|) = 0.6745 sigma for a zero-mean normal, so this scales a median
-# absolute return back to a standard deviation.
-MEDIAN_TO_SIGMA = 1.4826
 
 
 def normal_cdf(x: float) -> float:
     return 0.5 * (1 + math.erf(x / math.sqrt(2)))
+
+
+def moved(before: float, after: float) -> bool:
+    """A real price change, not float noise from re-averaging pools.
+
+    A thousandth of a basis point: far below a one-cent Coinbase tick, far
+    above what re-weighting unchanged pool prices can produce.
+    """
+    return abs(after - before) > before * 1e-7
 
 
 @dataclass
@@ -109,6 +115,10 @@ class BoxModel:
     # can never be cranked out of view.
     VIEW_BPS = REACH_BPS + BOX_BPS / 2
     MAX_MULTIPLE = 25.0
+    # Nothing is sold below this. A box quoting about 1.0x is one the model
+    # thinks near-certain — on a line that has merely paused, it is — and a
+    # certain win is not a bet anyone should be paid for.
+    MIN_MULTIPLE = 1.05
     # A real venue must charge an edge and fund payouts from somewhere. This
     # demo quotes fair odds and says so rather than hiding a margin.
     HOUSE_EDGE = 0.0
@@ -117,11 +127,35 @@ class BoxModel:
     # refunds the stake. Settling a real bet on the wrong minute's price, or on
     # a quote from before expiry, would be worse than not settling at all.
     VOID_AFTER = 4.0
+    # Volatility is measured over this much wall time, not over a count of
+    # ticks: a feed that sits still is a calm market and is priced as one.
+    VOL_WINDOW_S = 60.0
+    # The feed has been read once it has moved, with this many moves or this
+    # much history behind it; before that nothing is sold. Short, because a
+    # slow feed (the Coinbase ticker changes every few seconds) must not hold
+    # the game up. It needs a move because a feed that has not moved yet
+    # cannot be told apart from a dead one.
+    MIN_MOVES = 10
+    READ_S = 3.0
+    # One move counts for at most this many median moves, so a flash spike or
+    # a feed glitch cannot inflate the odds for the next minute.
+    SPIKE_CAP = 4.0
+    # Every estimate is made as if the window began with this many seconds of
+    # ordinary ETH (DEFAULT_VARIANCE) ahead of what was actually seen.
+    PRIOR_S = 10.0
+    # No price change for this long and the market is asleep: a box on a line
+    # that never moves is a certain win at any multiple over 1x, so nothing is
+    # sold. Counted from the first tick while the price has never moved, so a
+    # feed that merely pauses at start-up is not called asleep.
+    QUIET_AFTER = 15.0
 
     def __init__(self, wallet: Wallet | None = None) -> None:
         self.wallet = wallet or Wallet()
         self.tick: PriceTick | None = None
-        self.history: deque[tuple[float, float]] = deque(maxlen=400)
+        # Enough for VOL_WINDOW_S of the fastest feed (the sim, at 20 Hz).
+        self.history: deque[tuple[float, float]] = deque(maxlen=2400)
+        self.measured = False     # seen enough of the feed to price from it
+        self.last_move_at = -math.inf  # when the price last actually changed
         self.aim = 0.0            # cursor level; 0 until the first price
         self.window_open = 0.0    # price this window started at; the chart anchor
         self.half = 0.0           # box half-height; constant within a window
@@ -146,6 +180,10 @@ class BoxModel:
 
     def fresh(self, now: float) -> bool:
         return self.tick is not None and self.tick.age(now) <= self.STALE_AFTER
+
+    def quiet(self, now: float) -> bool:
+        """True when the price has sat on one value for QUIET_AFTER seconds."""
+        return self.started and now - self.last_move_at >= self.QUIET_AFTER
 
     def remaining(self, now: float) -> float:
         return max(0.0, self.window_end - now)
@@ -199,34 +237,44 @@ class BoxModel:
         return self._variance or self._measure_variance()
 
     def _measure_variance(self) -> float:
-        """Median-based, so one bad print cannot resize the game.
+        """Realized variance over the last minute of wall time, stillness included.
 
-        A mean of squared returns would let a single flash spike (or a feed
-        glitch) inflate the box for the next several windows. The median of
-        per-second absolute returns ignores an outlier tick entirely.
+        Squared log returns, summed and divided by the time they span. Time
+        spent on one price counts as exactly that: a pool nobody swapped in,
+        or a ticker with no new trade, is a calm market — and the bell settles
+        on that same price, so pricing it as a typical one sells a near-certain
+        box at 2x. (This once skipped repeated prices and fell back to the
+        default when it saw too few moves, which is precisely what a flat feed
+        produces: parking a box on the line won 58 bets out of 58.)
 
-        Only moves count, measured from the previous move. A feed that repeats
-        its price between trades — every block of an on-chain feed without a
-        swap — would otherwise fill the median with zeros and read as calm.
+        Each move is capped at SPIKE_CAP median moves, which keeps what a
+        median estimator was for: one bad print cannot resize the odds.
         """
-        points = list(self.history)
-        if len(points) < 20:
+        points: list[tuple[float, float]] = []
+        end = self.history[-1][0] if self.history else 0.0
+        for t, p in reversed(self.history):
+            if end - t > self.VOL_WINDOW_S:
+                break
+            points.append((t, p))
+        points.reverse()
+        moves = [math.log(p1 / p0) for (_, p0), (_, p1) in zip(points, points[1:])
+                 if moved(p0, p1)]
+        span = points[-1][0] - points[0][0] if points else 0.0
+        if moves and (len(moves) >= self.MIN_MOVES or span >= self.READ_S):
+            self.measured = True      # and stays so: a later lull is calm, not unknown
+        if not self.measured:
             return DEFAULT_VARIANCE
-        rates = []
-        t0, p0 = points[0]
-        for t1, p1 in points[1:]:
-            if p1 == p0:
-                continue
-            gap = t1 - t0
-            if gap > 0 and p0 > 0:
-                rates.append(abs(p1 / p0 - 1) / math.sqrt(gap))
-            t0, p0 = t1, p1
-        if len(rates) < 10:
-            return DEFAULT_VARIANCE
-        sigma = MEDIAN_TO_SIGMA * statistics.median(rates)
+        total = 0.0
+        if moves:
+            cap = (self.SPIKE_CAP * statistics.median(abs(r) for r in moves)) ** 2
+            total = sum(min(r * r, cap) for r in moves)
+        # A few seconds of data, or a market just waking from a lull, is not
+        # priced as if nothing could move; a minute of real data outweighs the
+        # prior six to one.
+        variance = (total + DEFAULT_VARIANCE * self.PRIOR_S) / (span + self.PRIOR_S)
         # Floor it: a feed that prints one price repeatedly must not collapse
         # the box to zero height or quote an infinite multiple.
-        return max(sigma ** 2, DEFAULT_VARIANCE / 20)
+        return max(variance, DEFAULT_VARIANCE / 20)
 
     def sigma(self, horizon: float) -> float:
         """One standard deviation of price movement over `horizon` seconds."""
@@ -279,12 +327,13 @@ class BoxModel:
         the odds available when they are made, so a box cannot be topped up at
         a stale multiple after the price walks toward it.
         """
-        if not self.started or not self.fresh(now) or self.settling:
+        if (not self.started or not self.fresh(now) or self.settling
+                or self.quiet(now) or not self.measured):
             return False
         level = self.aim if self.pending is None else self.pending.level
         half = self.half if self.pending is None else self.pending.half
         multiple = self.quote(level, now, half)
-        if multiple <= 0 or not self.wallet.debit(self.STAKE):
+        if multiple < self.MIN_MULTIPLE or not self.wallet.debit(self.STAKE):
             return False
         if self.pending is None:
             self.pending = Order(level, half)
@@ -302,6 +351,8 @@ class BoxModel:
             return
         if tick.age(now) > self.STALE_AFTER:
             return
+        if self.tick is None or moved(self.tick.price, tick.price):
+            self.last_move_at = tick.received_at
         self.tick = tick
         self.history.append((tick.received_at, tick.price))
         self._variance = self._measure_variance()

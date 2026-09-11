@@ -204,6 +204,13 @@ class BoxGame:
             self.note('NO LIVE PRICE / NOT PLACED')
         elif m.settling:
             self.note('SETTLING LAST WINDOW')
+        elif m.quiet(self.clock):
+            self.note('MARKET QUIET / NO BETS')
+        elif not m.measured:
+            self.note('READING THE MARKET...')
+        elif m.quote(m.aim if m.pending is None else m.pending.level,
+                     self.clock) < m.MIN_MULTIPLE:
+            self.note(f'UNDER {m.MIN_MULTIPLE:.2f}x / NOT SOLD')
 
     def handle_action(self, action: InputAction) -> str | None:
         if action == InputAction.QUIT:
@@ -294,6 +301,18 @@ class BoxGame:
         self.was_fresh = fresh
         self.music('idle' if self.wallet_open else self.bed_for_now())
         self.animate(dt)
+
+    def watch(self, dt: float) -> None:
+        """Keep reading prices while the launcher is up, silently.
+
+        The feed opens at boot, so by the time you press play the market has
+        already been read and the window clock is already running — rather
+        than starting both from nothing the moment you walk in.
+        """
+        self.clock = self._now()
+        for tick in self.feed.poll(dt, self.clock):
+            self.model.on_tick(tick, self.clock)
+        self.model.update(self.clock)
 
     def on_result(self, result: Result, bell: float) -> None:
         """A box just reached the wheel: make it land."""
@@ -444,9 +463,17 @@ class BoxGame:
     def draw_trace(self, s: pygame.Surface) -> None:
         m = self.model
         ride_y = self.rider_y()
-        points = [(self.x_at(t), self.y_of(p)) for t, p in m.history]
-        # The wheel is eased; the last raw tick would put a jag under it.
-        points = [pt for pt in points if -4 <= pt[0] < RIDER_X - 3]
+        # History holds a minute of ticks for the volatility estimate; only the
+        # few seconds behind the rider are drawn, so walk back and stop there.
+        points = []
+        for t, p in reversed(m.history):
+            x = self.x_at(t)
+            # The wheel is eased; the last raw tick would put a jag under it.
+            if x < RIDER_X - 3:
+                points.append((x, self.y_of(p)))
+            if x < -4:
+                break
+        points.reverse()
         points.append((RIDER_X, ride_y))
         clip = s.get_clip()
         s.set_clip(PLAY)
@@ -527,7 +554,13 @@ class BoxGame:
             half = m.half
             rect = self.draw_box(s, next_x, self.aim_price - half, self.aim_price + half, YELLOW,
                                  alpha=18, dashed=True)
-            self.box_tag(s, rect, f'{m.quote(m.aim, now):.1f}x', YELLOW)
+            if m.quiet(now) or not m.measured:
+                # No quote on offer: a flat line is not a 2x bet.
+                self.box_tag(s, rect, 'QUIET' if m.quiet(now) else '...', MUTED)
+            else:
+                quote = m.quote(m.aim, now)
+                self.box_tag(s, rect, f'{quote:.1f}x',
+                             YELLOW if quote >= m.MIN_MULTIPLE else MUTED)
 
     def draw_settled(self, s: pygame.Surface) -> None:
         """Boxes that already rang stay in the world and scroll away behind him."""
@@ -563,6 +596,10 @@ class BoxGame:
                     f'{format_usdc(int(m.live.payout))}'), YELLOW
         if m.pending is not None:
             return 'PLACED / A ADDS 10 MORE', CREAM
+        if m.quiet(self.clock):
+            return 'MARKET QUIET / NO BETS', MUTED
+        if not m.measured:
+            return 'READING THE MARKET...', MUTED
         return f'CRANK / A BUYS NEXT {self.model.WINDOW_S:.0f}s', MUTED
 
     def draw_status(self, s: pygame.Surface) -> None:

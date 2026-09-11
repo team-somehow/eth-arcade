@@ -1,6 +1,6 @@
 """Market adapters. Default is simulated; live sources are explicitly opt-in."""
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 import json
 import math
@@ -73,10 +73,17 @@ class CoinbaseFeed:
     Polled at 5 Hz: a 20-second window needs a trace, not a staircase, and this
     stays well inside the public rate limit. Kept dependency-free for the Pi. A
     production adapter should use the venue's WebSocket trade stream instead.
+
+    Every answer is a tick, including one that repeats the last trade. ETH-USD
+    can go several seconds without a trade, and aging the price by its last
+    trade made a quiet book look like a dead feed: bets refused as stale while
+    the connection was fine. A successful poll confirms the price as of the
+    response, which the API caches for up to CACHE_S.
     """
     name = 'COINBASE LIVE'
     URL = 'https://api.exchange.coinbase.com/products/ETH-USD/ticker'
     INTERVAL = 0.2
+    CACHE_S = 1.0   # the ticker answers with cache-control max-age=1
 
     def __init__(self):
         self.status = 'Connecting to Coinbase'
@@ -86,7 +93,8 @@ class CoinbaseFeed:
         self.worker.start()
 
     def _run(self):
-        last_sequence = -1
+        last_trade = -1
+        sequence = 0
         retry = self.INTERVAL
         while not self.stop.is_set():
             try:
@@ -94,14 +102,20 @@ class CoinbaseFeed:
                 with urllib.request.urlopen(request, timeout=3) as response:
                     data = json.load(response)
                 tick = parse_coinbase(data, time.monotonic(), time.time())
-                if tick.sequence > last_sequence:
+                # An older trade than one already seen is a lagging cache node:
+                # skip it rather than walk the price backwards. The same trade
+                # again is still news — see the class docstring.
+                if tick.sequence >= last_trade:
+                    last_trade = tick.sequence
+                    sequence += 1
+                    tick = replace(tick, sequence=sequence,
+                                   source_age=min(tick.source_age, self.CACHE_S))
                     if self.items.full():
                         try:
                             self.items.get_nowait()
                         except queue.Empty:
                             pass
                     self.items.put_nowait(tick)
-                    last_sequence = tick.sequence
                 self.status = 'Coinbase ETH/USD / 5 Hz'
                 retry = self.INTERVAL
             except (OSError, ValueError, KeyError, TypeError, queue.Full):

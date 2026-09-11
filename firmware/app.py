@@ -24,8 +24,8 @@ class App:
         self.game_id = game_id or os.environ.get("TICK_GAME", "box")
         if self.game_id not in ("box", "rush"):
             raise ValueError("TICK_GAME must be box or rush")
-        self.home = HomeScreen(self.game_id)
         self.game = BoxGame() if self.game_id == "box" else RushGame()
+        self.home = HomeScreen(self.game_id, self.game)
         self.handle = handle_box_events if self.game_id == "box" else handle_rush_events
         self.encoder = EncoderInput.try_open()
 
@@ -35,6 +35,11 @@ class App:
                 dt = self.clock.tick(FPS) / 1000.0
                 if self.current == "game":
                     self.game.update(dt)
+                else:
+                    self.home.update(dt)
+                    if hasattr(self.game, "watch"):
+                        # Prices keep flowing behind the launcher (BOX RUN only).
+                        self.game.watch(dt)
                 events = list(pygame.event.get())
                 actions: list[InputAction] = []
                 for event in events:
@@ -62,7 +67,10 @@ class App:
         actions: list[InputAction],
     ) -> None:
         if self.current == "home":
+            focus = self.home.focus
             target = handle_home_events(self.home, events, actions)
+            if self.home.focus != focus:
+                self.game.play("nav")
             if target in ("game", "wallet"):
                 self.game.enter()
                 if target == "wallet":

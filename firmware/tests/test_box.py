@@ -24,9 +24,10 @@ def feed(m, prices, start=T0, step=.2):
     return now
 
 
-# Alternating this far each tick gives a 20-second sigma of about 0.04% —
-# roughly live ETH, and the scale the fixed box size is chosen against.
-WARM_SWING = .0000135
+# Alternating this far each 0.2s tick is realized volatility of about 0.04%
+# over 20 seconds — roughly live ETH, and the scale the fixed box size is
+# chosen against.
+WARM_SWING = .00002
 
 
 def warm(m, price=2500.0, count=40, start=T0, step=.2):
@@ -359,6 +360,73 @@ class PricingTests(unittest.TestCase):
         feed(m, [2500.0] * 60)
         self.assertGreater(m.half, 0)
         self.assertLessEqual(m.quote(m.price, T0), m.MAX_MULTIPLE)
+
+    def test_a_frozen_market_is_priced_as_calm(self):
+        m = self.m
+        moving = m.quote(m.price, self.now)
+        now = feed(m, [m.price] * 60, self.now + .5, .5)    # 30s without a move
+        self.assertLess(m.quote(m.price, now), moving)
+        now = feed(m, [m.price] * 80, now + .5, .5)         # past a full minute
+        self.assertLess(m.quote(m.price, now), 1.1)
+
+    def test_a_quiet_market_sells_nothing(self):
+        m = self.m
+        now = feed(m, [m.price] * 32, self.now + .5, .5)    # 16s on one price
+        self.assertTrue(m.quiet(now))
+        self.assertFalse(m.buy(now))
+        self.assertEqual((m.pending, m.wallet.balance), (None, START))
+        now = feed(m, [m.price + .3], now + .5)             # it moves again
+        self.assertFalse(m.quiet(now))
+        self.assertTrue(m.buy(now))
+
+    def test_parking_on_a_flat_line_is_not_free_money(self):
+        """The reported case: a spot box, bought every window, on a dead feed."""
+        m = model()
+        for i in range(1500):                               # five minutes, one price
+            now = T0 + i * .2
+            m.on_tick(PriceTick(2500.0, i + 1, now), now)
+            if m.pending is None:
+                m.aim = m.price
+                m.buy(now)
+        self.assertEqual(m.wallet.balance, START)
+        self.assertEqual(m.rounds, 0)
+
+    def test_nothing_is_sold_before_the_market_has_been_read(self):
+        m = model()
+        now = feed(m, [2500.0, 2500.2, 2500.1])
+        self.assertFalse(m.measured)
+        self.assertFalse(m.buy(now))
+        now = warm(m, start=now + .2)
+        self.assertTrue(m.measured)
+        self.assertTrue(m.buy(now))
+
+    def test_a_slow_feed_is_read_in_seconds(self):
+        """The Coinbase ticker changes about every three seconds."""
+        m = model()
+        now = feed(m, [2500.0, 2500.4, 2500.1], step=3.0)
+        self.assertTrue(m.measured)
+        self.assertFalse(m.quiet(now))
+        self.assertTrue(m.buy(now))
+
+    def test_a_feed_flat_from_its_first_tick_sells_nothing(self):
+        m = model()
+        now = feed(m, [2500.0] * 8, step=.5)            # 3.5s without a move
+        self.assertFalse(m.quiet(now))                  # a pause, not yet asleep
+        self.assertFalse(m.measured)                    # but not a market we can read
+        self.assertFalse(m.buy(now))
+        now = feed(m, [2500.0] * 24, now + .5, .5)
+        self.assertTrue(m.quiet(now))
+        self.assertFalse(m.buy(now))
+
+    def test_a_normal_market_is_never_too_safe_to_sell(self):
+        m = self.m
+        self.assertGreater(m.quote(m.price, m.window_end - .01), m.MIN_MULTIPLE)
+
+    def test_one_bad_print_cannot_blow_up_the_odds(self):
+        m = self.m
+        before = m.variance_per_second()
+        feed(m, [m.price * 1.01, m.price], self.now + .2)   # a 1% glitch, gone next tick
+        self.assertLess(m.variance_per_second(), before * 3)
 
     def test_normal_cdf_matches_known_values(self):
         self.assertAlmostEqual(normal_cdf(0), .5, places=9)
@@ -772,6 +840,18 @@ class GameTests(unittest.TestCase):
         m.tick = None
         m.started = False
         self.game.draw(self.surface)                 # waiting for first price
+
+    def test_prices_are_read_while_the_launcher_is_up(self):
+        from games.box import BoxGame
+        game = BoxGame(seed=7, sound=False, source='sim',
+                       wallet=Wallet(START, DemoFunding()), clock=lambda: self.time)
+        self.addCleanup(game.close)
+        for _ in range(90):                          # three seconds on the home screen
+            self.time += 1/30
+            game.watch(1/30)
+        self.assertTrue(game.model.measured)
+        game.buy()                                   # first press on entering
+        self.assertIsNotNone(game.model.pending)
 
     def test_escape_quits_from_the_game(self):
         import pygame
