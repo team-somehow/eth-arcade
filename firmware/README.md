@@ -8,7 +8,14 @@ The box is **always the same size** — $1.41 on $2,500 ETH — so there is noth
 
 ## Controls
 
-The rotary encoder is the game: GPIO21 CLK, GPIO20 DT, GPIO16 switch, 3.3 V logic.
+The rotary encoder is the game: GPIO21 CLK, GPIO20 DT, GPIO16 switch, 3.3 V logic. Two panel buttons sit beside it, each shorting its pin to ground against the internal pull-up — nothing else in hardware:
+
+| Button | BCM | Header pin | Does |
+|---|---|---|---|
+| Red | GPIO13 | 33 | Back / home (same as a long encoder click) |
+| Yellow | GPIO26 | 37 | Buy / confirm (same as an encoder click) |
+
+Ground for both is any GND pin; 34 and 39 are the nearest. **BCM numbering, not header position** — GPIO13 is pin 33, GPIO26 is pin 37, which is where this usually goes wrong. Presses are edge-triggered, so holding a button repeats nothing, and a button held while the game starts is ignored rather than firing on the first frame. If the pins are missing or already claimed, the pad simply does not open and the encoder carries on alone.
 
 | Input | Action |
 |---|---|

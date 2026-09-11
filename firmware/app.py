@@ -7,6 +7,7 @@ import sys
 
 import pygame
 
+from buttons import ButtonPad
 from encoder import EncoderInput
 from games.box import BoxGame, handle_box_events
 from games.rush import RushGame, handle_rush_events
@@ -28,6 +29,7 @@ class App:
         self.home = HomeScreen(self.game_id, self.game)
         self.handle = handle_box_events if self.game_id == "box" else handle_rush_events
         self.encoder = EncoderInput.try_open()
+        self.pad = ButtonPad.try_open()
 
     def run(self) -> None:
         try:
@@ -49,6 +51,9 @@ class App:
                     # (home, load) keep the rate-limited scrolling instead.
                     playing = self.current == "game" and not self.game.wallet_open
                     actions.extend(self.encoder.poll(continuous=playing))
+                if self.pad is not None:
+                    # Red and yellow panel buttons, if this device has them.
+                    actions.extend(self.pad.poll())
 
                 self._dispatch(events, actions)
                 self._draw()
@@ -57,6 +62,8 @@ class App:
             self.game.close()
             if self.encoder is not None:
                 self.encoder.close()
+            if self.pad is not None:
+                self.pad.close()
 
         pygame.quit()
         sys.exit(0)
