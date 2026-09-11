@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf-8">
+<title>probe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap">
+<style>body{background:#0C1924;margin:0;display:flex;flex-wrap:wrap;gap:12px;padding:12px}canvas{width:480px;height:320px;image-rendering:pixelated;outline:1px solid #333}</style>
+<script type="module">
+import { Game, Attract } from '/src/game/engine.ts';
+await document.fonts.ready;
+for (const secs of [6, 14, 23, 41]) {
+  const cv = document.createElement('canvas');
+  cv.width = 480; cv.height = 320;
+  document.body.appendChild(cv);
+  const g = new Game(cv, null, { seed: 11 });
+  const a = new Attract(g);
+  const dt = 1 / 30;
+  for (let t = 0; t < secs; t += dt) { g.step(dt, t); a.step(t); }
+  g.draw();
+}
+document.title = 'ready';
+</script>
