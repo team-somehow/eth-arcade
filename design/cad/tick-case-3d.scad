@@ -1,6 +1,7 @@
 // TICK handheld enclosure - 3D model (mm). Two printed parts:
 //   BODY - the deep front part: screen window, both buttons, the knob
-//          opening in the right wall, top opening and bottom USB slot
+//          opening in the right wall, and the cable opening in the top.
+//          The bottom face is solid.
 //   LID  - a shallow back dish with the speaker grille
 //
 // No screws. They press together on a tongue-and-socket lip that runs the
@@ -26,9 +27,16 @@ GRIP_H = H - BEZEL_T - MOD_H;           // 44
 
 BTN = 13; BTN_GAP = 26; BTN_CY = 88;    // square buttons, from the top
 ENC = 12; ENC_CY = 88; ENC_CZ = D/2;    // encoder square, right wall, on the button line
-USB_W = 60; USB_D = 14;                 // bottom slot: USB-C + both HDMI
-TOP_W = 44; TOP_D = 22; TOP_EDGE = 5;   // wide corner opening in the top
+// The bottom face is solid. The USB-C cable leaves through the top opening,
+// which means the Pi must sit with its USB-C edge facing the TOP of the case.
+
+// Cable opening. HOLE_FACE picks which face it lands on.
+HOLE_FACE = "top";                      // "top" | "side"
+TOP_W = 28; TOP_D = 14; TOP_EDGE = 5;   // smaller than before
 TOP_CX = W - TOP_EDGE - TOP_W/2;
+TOP_CZ = 15;                            // sits toward the BACK of the top face
+SIDE_CY = 20;                           // "side": centre this far down from the top
+SIDE_H  = 24;                           // its length along the height
 
 SPLIT = 8;       // where the box splits, measured from the back face
 LIP   = 5;       // how deep the two parts overlap
@@ -74,10 +82,12 @@ module body() {
         // knob, through the right wall
         translate([W-WALL-1, H-ENC_CY-ENC/2, ENC_CZ-ENC/2])
             rotate([0, 90, 0]) translate([-ENC, 0, 0]) cube([ENC+CLEAR, ENC+CLEAR, WALL+2]);
-        // wide opening in the top face, right corner
-        translate([TOP_CX-TOP_W/2, H-WALL-1, D/2-TOP_D/2]) cube([TOP_W, WALL+2, TOP_D]);
-        // USB-C + micro-HDMI slot in the bottom face
-        translate([W/2-USB_W/2, -1, D/2-USB_D/2]) cube([USB_W, WALL+2, USB_D]);
+        // cable opening, on whichever face is selected
+        if (HOLE_FACE == "top")
+            translate([TOP_CX-TOP_W/2, H-WALL-1, TOP_CZ-TOP_D/2]) cube([TOP_W, WALL+2, TOP_D]);
+        else
+            translate([W-WALL-1, H-SIDE_CY-SIDE_H/2, D/2-TOP_D/2])
+                cube([WALL+2, SIDE_H, TOP_D]);
     }
 }
 
@@ -101,6 +111,19 @@ module panel() {
             translate([0, 0, SPLIT-1]) linear_extrude(LIP+2) prof(WALL);
         }
     }
+}
+
+// ---- L BRACKET: a loose locator, printed separately ----------------------
+// Glue the flat base down wherever the board needs to stop, and the upstand
+// catches its edge. Nothing in the case assumes where these go.
+LB_LEN  = 25;   // length along the board edge
+LB_BASE = 10;   // base flange - the face that gets glued down
+LB_UP   = 10;   // upstand the board butts against
+LB_T    = 2;    // thickness - thin, as asked
+
+module bracket() {
+    cube([LB_LEN, LB_BASE, LB_T]);   // base, flat on the bed
+    cube([LB_LEN, LB_T, LB_UP]);     // upstand along one long edge
 }
 
 // ---- mock parts, so the pictures show what goes where --------------------
@@ -151,7 +174,20 @@ else if (VIEW == "section") difference() {
 else if (VIEW == "exploded") exploded();
 else if (VIEW == "body") color("#e9e6de") body();
 else if (VIEW == "panel") { color("#d9d5cc") panel(); }
+// ---- print orientations, one part per STL --------------------------------
+// BODY prints front-face-down: every wall is vertical and the lip socket ends
+// up at the top of the print, so no supports are needed.
+else if (VIEW == "print_body") translate([0, H, D]) rotate([180, 0, 0]) body();
+// LID prints back-face-down; the tongue points straight up.
+else if (VIEW == "print_lid") panel();
+else if (VIEW == "print_bracket") bracket();
+else if (VIEW == "print_brackets") for (i = [0:3]) translate([0, i*(LB_BASE+6), 0]) bracket();
+else if (VIEW == "print_both") {
+    color("#e9e6de") translate([0, H, D]) rotate([180, 0, 0]) body();
+    color("#d9d5cc") translate([W + 16, 0, 0]) panel();
+}
 else if (VIEW == "four") {
-    for (i = [0:3]) translate([i*150, 0, 0])
-        translate([W/2, H/2, D/2]) rotate([0, 0, i*90]) translate([-W/2, -H/2, -D/2]) assembly();
+    // front, right, back, left - turned about the vertical axis
+    for (i = [0:3]) translate([i*140, 0, 0])
+        translate([W/2, 0, D/2]) rotate([0, i*90, 0]) translate([-W/2, 0, -D/2]) assembly();
 }

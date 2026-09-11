@@ -27,12 +27,10 @@ ENC_CZ  = D/2;   // encoder centre through the depth
 // ---- openings ------------------------------------------------------------
 // Bottom slot is sized to clear the USB-C AND both micro-HDMI sockets, which
 // sit on the same edge of the Pi 5. Wide on purpose: position stops mattering.
-USB_W   = 60;
-USB_D   = 14;
-USB_CX  = W/2;
+
 // Wide opening in the top face, at its right-hand corner.
-TOP_W   = 44;
-TOP_D   = 22;
+TOP_W   = 28;
+TOP_D   = 14;
 TOP_EDGE = 5;                    // gap left to the right-hand edge
 TOP_CX  = W - TOP_EDGE - TOP_W/2;
 
@@ -159,11 +157,9 @@ module view_top() {
 // ---- 6 BOTTOM ------------------------------------------------------------
 module view_bottom() {
     frame(W, D, 0.6);
-    translate([USB_CX - USB_W/2, (D - USB_D)/2]) frame(USB_W, USB_D, 0.6);
     dim_h(0, W, -9, str(W));
-    dim_h(USB_CX - USB_W/2, USB_CX + USB_W/2, D + 5, str(USB_W, " wide slot"));
-    dim_v((D - USB_D)/2, (D + USB_D)/2, W + 9, str(USB_D));
-    note([2, D + 22], "USB-C + both micro-HDMI clear this slot", 3);
+    dim_v(0, D, W + 9, str(D, " depth"));
+    note([2, D + 22], "solid - no openings. The cable leaves through the TOP.", 3);
     title([0, D + 30], "6  BOTTOM");
 }
 
@@ -179,7 +175,7 @@ translate([0, 410]) title([0, 0], "TICK handheld enclosure - all six faces - rev
 translate([0, 398]) note([0, 0], str("overall ", W, " W x ", H, " H x ", D, " D   |   wall ", WALL, "   |   all dimensions mm   |   for approval before the 3D model"), 4);
 
 translate([0, 100]) note([0, 0], "DECIDED (was open, now fixed - say so if any of these are wrong)", 4.2);
-translate([0, 92]) note([0, 0], str("A. Bottom slot widened to ", USB_W, " x ", USB_D, ". The Pi 5 carries USB-C and both micro-HDMI on ONE edge, spanning ~60, so a narrow hole would block HDMI."), 3.4);
+translate([0, 92]) note([0, 0], "A. Bottom face is solid. The USB-C cable leaves via the top opening, so the Pi must sit with its USB-C edge facing the TOP.", 3.4);
 translate([0, 84]) note([0, 0], str("B. Top opening ", TOP_W, " x ", TOP_D, " in the right corner, ", TOP_EDGE, " from the edge - cable exit, and it vents the hot side of the Pi."), 3.4);
 translate([0, 76]) note([0, 0], str("C. Encoder centre ", ENC_CY, " down the right face, centred through the depth at ", ENC_CZ, "."), 3.4);
 translate([0, 68]) note([0, 0], "D. Left face solid, and both interiors are completely flat - no standoffs, no bosses, nothing to locate parts. Tape or foam at assembly.", 3.4);
