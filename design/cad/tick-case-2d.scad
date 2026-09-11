@@ -1,37 +1,50 @@
-// TICK handheld - dimensioned 2D review drawing (all values in mm)
-// Renders four orthographic views. Nothing here is the 3D model yet.
+// TICK handheld - dimensioned 2D review drawing, rev C (all values in mm)
+// Six orthographic views. This is the review sheet; the 3D model follows.
 
-// ---- agreed dimensions ----------------------------------------------------
+// ---- overall -------------------------------------------------------------
 W       = 104;   // overall width of the front face
 H       = 110;   // overall height of the front face
 D       = 40;    // overall depth
 WALL    = 2.5;   // shell wall thickness
-BEZEL_T = 6;     // bezel above the screen module
-BEZEL_S = 6;     // bezel each side
-MOD_W   = 92;    // screen module, bezel included
+
+// ---- screen --------------------------------------------------------------
+MOD_W   = 92;    // module including its black bezel
 MOD_H   = 60;
-VIS_W   = 79;    // visible image area (measured off the running panel)
+VIS_W   = 79;    // visible image, measured off the running panel
 VIS_H   = 49;
-GRIP_H  = H - BEZEL_T - MOD_H;   // 44mm of face below the screen
+BEZEL_T = 6;     // face above the module
+BEZEL_S = 6;     // face each side of the module
+GRIP_H  = H - BEZEL_T - MOD_H;   // 44 of face below the screen
+
+// ---- controls ------------------------------------------------------------
 BTN     = 13;    // square button holes
-BTN_GAP = 26;    // centre-to-centre spacing of the two buttons
-BTN_CY  = BEZEL_T + MOD_H + 22;  // button centre, measured from the top
-ENC     = 12;    // square encoder hole in the right side face
+BTN_GAP = 26;    // centre to centre
+BTN_CY  = 88;    // button centre, from the top of the face
+ENC     = 12;    // square encoder hole, right side face
 ENC_CY  = 46;    // encoder centre from the top
 ENC_CZ  = D/2;   // encoder centre through the depth
-// USB-C now exits the BOTTOM face, deliberately oversized so the connector
-// cannot miss it whichever way the Pi ends up sitting.
-USB_W   = 40;
-USB_D   = 12;
-USB_CX  = W/2;                   // centred across the bottom face
-// Wide opening in the TOP face, at its right-hand corner.
-TOP_W   = 34;
-TOP_D   = 16;
-TOP_CX  = W - 6 - TOP_W/2;
-PI_W    = 85;    // Raspberry Pi 5 board
-PI_H    = 56;
 
-// ---- drawing helpers ------------------------------------------------------
+// ---- openings ------------------------------------------------------------
+// Bottom slot is sized to clear the USB-C AND both micro-HDMI sockets, which
+// sit on the same edge of the Pi 5. Wide on purpose: position stops mattering.
+USB_W   = 60;
+USB_D   = 14;
+USB_CX  = W/2;
+// Wide opening in the top face, at its right-hand corner.
+TOP_W   = 44;
+TOP_D   = 22;
+TOP_EDGE = 5;                    // gap left to the right-hand edge
+TOP_CX  = W - TOP_EDGE - TOP_W/2;
+
+// ---- back panel ----------------------------------------------------------
+SCREW    = 3.2;  // M3 clearance
+SCREW_IN = 6;    // screw centres, in from each corner
+PI_W = 85; PI_H = 56;            // Raspberry Pi 5 board
+PI_HX = 58; PI_HY = 49;          // its mounting hole spacing
+PI_EDGE = 3.5;                   // holes in from the board edge
+GRILLE_COLS = 9; GRILLE_ROWS = 7; SLOT_W = 3; SLOT_H = 2.2; SLOT_GX = 7; SLOT_GY = 5;
+
+// ---- drawing helpers -----------------------------------------------------
 LW = 0.4;
 module line(p1, p2, t = LW) {
     d = p2 - p1; a = atan2(d[1], d[0]);
@@ -40,13 +53,13 @@ module line(p1, p2, t = LW) {
 module frame(w, h, t = LW) {
     difference() { square([w, h]); translate([t, t]) square([w-2*t, h-2*t]); }
 }
+module ring(r, t = LW) { difference() { circle(r); circle(r - t); } }
 module dashed(p1, p2, dash = 2) {
-    d = p2 - p1; n = floor(norm(d) / (dash*2));
-    for (i = [0:n]) {
-        a = p1 + d * (i*2*dash) / norm(d);
-        b = p1 + d * min(norm(d), (i*2+1)*dash) / norm(d);
-        line(a, b, 0.3);
-    }
+    d = p2 - p1; L = norm(d); n = floor(L / (dash*2));
+    for (i = [0:n]) line(p1 + d*(i*2*dash)/L, p1 + d*min(L, (i*2+1)*dash)/L, 0.3);
+}
+module dbox(w, h) {
+    dashed([0,0],[w,0]); dashed([w,0],[w,h]); dashed([w,h],[0,h]); dashed([0,h],[0,0]);
 }
 module tick(p, vertical = false) {
     translate(p) rotate(vertical ? 90 : 0) translate([-0.2, -1.6]) square([0.4, 3.2]);
@@ -62,102 +75,119 @@ module dim_v(y1, y2, x, label, size = 3.4) {
 module note(p, txt, size = 3.2) { translate(p) text(txt, size = size); }
 module title(p, txt) { translate(p) text(txt, size = 5.5); }
 
-// ---- FRONT ----------------------------------------------------------------
+// ---- 1 FRONT -------------------------------------------------------------
 module view_front() {
     frame(W, H, 0.6);
-    // screen module, then the visible image inside it
-    translate([BEZEL_S, GRIP_H]) frame(MOD_W, MOD_H);
-    translate([BEZEL_S + (MOD_W-VIS_W)/2, GRIP_H + (MOD_H-VIS_H)/2]) frame(VIS_W, VIS_H);
-    // buttons, measured from the top of the face
+    translate([BEZEL_S, GRIP_H]) frame(MOD_W, MOD_H);                       // module
+    translate([BEZEL_S + (MOD_W-VIS_W)/2, GRIP_H + (MOD_H-VIS_H)/2])        // window
+        frame(VIS_W, VIS_H, 0.6);
     for (dx = [-BTN_GAP/2, BTN_GAP/2])
-        translate([W/2 + dx - BTN/2, H - BTN_CY - BTN/2]) frame(BTN, BTN);
-    // the Pi board behind the face, for clearance
-    PY0 = 40;
-    translate([(W-PI_W)/2, PY0]) dashed([0,0],[PI_W,0]);
-    translate([(W-PI_W)/2, PY0]) dashed([0,0],[0,PI_H]);
-    translate([(W-PI_W)/2, PY0+PI_H]) dashed([0,0],[PI_W,0]);
-    translate([(W-PI_W)/2+PI_W, PY0]) dashed([0,0],[0,PI_H]);
-    note([(W-PI_W)/2 + 3, PY0 + 3], "Pi 5  85 x 56 (behind)", 2.8);
+        translate([W/2 + dx - BTN/2, H - BTN_CY - BTN/2]) frame(BTN, BTN, 0.6);
 
-    dim_h(0, W, -8, str(W, " overall width"));
-    dim_h(BEZEL_S, BEZEL_S+MOD_W, H+5, str(MOD_W, " screen module"));
-    dim_h(0, BEZEL_S, H+13, str(BEZEL_S));
-    dim_h(W-BEZEL_S, W, H+13, str(BEZEL_S));
-    dim_v(0, H, W+8, str(H, " overall height"));
-    dim_v(H-BEZEL_T, H, W+30, str(BEZEL_T, " bezel"));
-    dim_v(GRIP_H, GRIP_H+MOD_H, W+48, str(MOD_H, " screen"));
-    dim_v(0, GRIP_H, W+30, str(GRIP_H, " grip"));
-    dim_v(H-BTN_CY, H, -26, str(BTN_CY));
-    dim_h(W/2-BTN_GAP/2, W/2+BTN_GAP/2, H-BTN_CY-12, str(BTN_GAP, " ctc"));
-    note([W/2 - 26, H - BTN_CY - 24], str(BTN, " x ", BTN, " square buttons"), 3);
-    note([BEZEL_S + 9, GRIP_H + MOD_H - 9], str(VIS_W, " x ", VIS_H, " visible image"), 3);
-    title([0, H + 24], "FRONT");
+    dim_h(0, W, -9, str(W, "  overall width"));
+    dim_h(BEZEL_S, BEZEL_S + MOD_W, H + 5, str(MOD_W, "  screen module"));
+    dim_h(0, BEZEL_S, H + 13, str(BEZEL_S));
+    dim_h(W - BEZEL_S, W, H + 13, str(BEZEL_S));
+    dim_v(0, H, W + 9, str(H, "  overall height"));
+    dim_v(H - BEZEL_T, H, W + 33, str(BEZEL_T, " bezel"));
+    dim_v(GRIP_H, GRIP_H + MOD_H, W + 33, str(MOD_H, " screen"));
+    dim_v(0, GRIP_H, W + 33, str(GRIP_H, " grip"));
+    dim_v(H - BTN_CY, H, -20, str(BTN_CY, " to btn"));
+    dim_h(W/2 - BTN_GAP/2, W/2 + BTN_GAP/2, H - BTN_CY - 13, str(BTN_GAP, " ctc"));
+    note([W/2 - 27, H - BTN_CY - 25], str(BTN, " x ", BTN, " square buttons"), 3);
+    note([BEZEL_S + 3, GRIP_H + MOD_H - 8], str(VIS_W, " x ", VIS_H, " window"), 3);
+    title([0, H + 25], "1  FRONT");
 }
 
-// ---- RIGHT SIDE -----------------------------------------------------------
-module view_side() {
-    frame(D, H, 0.6);
-    translate([ENC_CZ - ENC/2, H - ENC_CY - ENC/2]) frame(ENC, ENC);
-    dim_h(0, D, -8, str(D, " depth"));
-    dim_v(H - ENC_CY - ENC/2, H, D + 8, str(ENC_CY, " to centre"));
-    dim_h(ENC_CZ - ENC/2, ENC_CZ + ENC/2, H - ENC_CY + 12, str(ENC));
-    note([D + 8, H - ENC_CY - 16], str(ENC, " x ", ENC, " square"), 3);
-    note([D + 8, H - ENC_CY - 22], "hole for rotary encoder", 3);
-    title([0, H + 24], "RIGHT SIDE");
-}
-
-// ---- BACK -----------------------------------------------------------------
-GRILLE_ROWS = 7; GRILLE_COLS = 9; SLOT_W = 3; SLOT_H = 12; SLOT_GX = 7; SLOT_GY = 5;
+// ---- 2 BACK --------------------------------------------------------------
 module view_back() {
     frame(W, H, 0.6);
-    gw = GRILLE_COLS * SLOT_GX; gh = GRILLE_ROWS * SLOT_GY;
-    translate([(W - gw)/2, (H - gh)/2 - 6]) {
-        for (c = [0:GRILLE_COLS-1]) for (r = [0:GRILLE_ROWS-1])
-            translate([c*SLOT_GX, r*SLOT_GY]) square([SLOT_W, 2.2]);
-        dim_h(0, gw, -8, str(round(gw), " grille"));
+    gw = (GRILLE_COLS-1)*SLOT_GX + SLOT_W; gh = (GRILLE_ROWS-1)*SLOT_GY + SLOT_H;
+    translate([(W - gw)/2, (H - gh)/2 + 4]) {
+        for (c = [0:GRILLE_COLS-1], r = [0:GRILLE_ROWS-1])
+            translate([c*SLOT_GX, r*SLOT_GY]) square([SLOT_W, SLOT_H]);
+        dim_h(0, gw, -10, str(gw, " x ", gh, " grille"));
     }
-    note([6, 8], "back panel, screwed on", 3);
-    title([0, H + 24], "BACK  (speaker grille)");
+    for (x = [SCREW_IN, W - SCREW_IN], y = [SCREW_IN, H - SCREW_IN])
+        translate([x, y]) ring(SCREW/2, 0.5);
+    // Pi 5 board and its four mounting holes, seen through the back
+    translate([(W - PI_W)/2, 14]) {
+        dbox(PI_W, PI_H);
+        for (hx = [PI_EDGE, PI_EDGE + PI_HX], hy = [PI_EDGE, PI_EDGE + PI_HY])
+            translate([hx, hy]) ring(1.3, 0.4);
+    }
+    dim_h(SCREW_IN, W - SCREW_IN, H + 5, str(W - 2*SCREW_IN, " screw ctc"));
+    dim_v(SCREW_IN, H - SCREW_IN, W + 9, str(H - 2*SCREW_IN, " screw ctc"));
+    note([(W-PI_W)/2, 8], str("Pi 5 ", PI_W, " x ", PI_H, " - M2.5 standoffs at ", PI_HX, " x ", PI_HY), 2.9);
+    note([SCREW_IN + 2, H - SCREW_IN - 7], str("4x M", 3, " (", SCREW, " clear)"), 2.9);
+    title([0, H + 25], "2  BACK");
 }
 
-// ---- TOP ------------------------------------------------------------------
+// ---- 3 LEFT --------------------------------------------------------------
+module view_left() {
+    frame(D, H, 0.6);
+    dim_h(0, D, -9, str(D, " depth"));
+    dim_v(0, H, D + 9, str(H));
+    note([D + 15, H/2 - 16], "no openings -", 3);
+    note([D + 15, H/2 - 22], "this face is solid", 3);
+    title([0, H + 25], "3  LEFT");
+}
+
+// ---- 4 RIGHT -------------------------------------------------------------
+module view_right() {
+    frame(D, H, 0.6);
+    translate([ENC_CZ - ENC/2, H - ENC_CY - ENC/2]) frame(ENC, ENC, 0.6);
+    dim_h(0, D, -9, str(D, " depth"));
+    dim_v(H - ENC_CY, H, D + 9, str(ENC_CY, " to centre"));
+    dim_h(ENC_CZ - ENC/2, ENC_CZ + ENC/2, H - ENC_CY + 11, str(ENC));
+    dim_h(0, ENC_CZ, -17, str(ENC_CZ, " to centre"));
+    note([D + 9, H - ENC_CY - 26], str(ENC, " x ", ENC, " square,"), 3);
+    note([D + 9, H - ENC_CY - 32], "rotary encoder shaft", 3);
+    title([0, H + 25], "4  RIGHT");
+}
+
+// ---- 5 TOP ---------------------------------------------------------------
 module view_top() {
     frame(W, D, 0.6);
-    translate([TOP_CX - TOP_W/2, (D - TOP_D)/2]) frame(TOP_W, TOP_D);
-    dim_h(0, W, -8, str(W));
-    dim_h(TOP_CX - TOP_W/2, W, D + 5, str(TOP_W + 6, " from right edge"));
-    dim_h(TOP_CX - TOP_W/2, TOP_CX + TOP_W/2, D + 13, str(TOP_W));
-    dim_v((D-TOP_D)/2, (D+TOP_D)/2, W + 8, str(TOP_D));
-    note([4, D + 22], "wide opening, TOP RIGHT corner - purpose/size to confirm", 3);
-    title([0, D + 30], "TOP");
+    translate([TOP_CX - TOP_W/2, (D - TOP_D)/2]) frame(TOP_W, TOP_D, 0.6);
+    dim_h(0, W, -9, str(W));
+    dim_h(TOP_CX - TOP_W/2, TOP_CX + TOP_W/2, D + 5, str(TOP_W, " wide"));
+    dim_h(TOP_CX + TOP_W/2, W, D + 13, str(TOP_EDGE));
+    dim_v((D - TOP_D)/2, (D + TOP_D)/2, W + 9, str(TOP_D));
+    note([2, D + 22], "wide corner opening - cable exit / venting", 3);
+    title([0, D + 30], "5  TOP");
 }
 
-// ---- BOTTOM ---------------------------------------------------------------
+// ---- 6 BOTTOM ------------------------------------------------------------
 module view_bottom() {
     frame(W, D, 0.6);
-    translate([USB_CX - USB_W/2, (D - USB_D)/2]) frame(USB_W, USB_D);
-    dim_h(0, W, -8, str(W));
-    dim_h(USB_CX - USB_W/2, USB_CX + USB_W/2, D + 5, str(USB_W, " wide USB-C slot"));
-    dim_v((D-USB_D)/2, (D+USB_D)/2, W + 8, str(USB_D));
-    note([4, D + 14], "oversized on purpose - cable boot clears, position forgiving", 3);
-    title([0, D + 22], "BOTTOM  (USB-C)");
+    translate([USB_CX - USB_W/2, (D - USB_D)/2]) frame(USB_W, USB_D, 0.6);
+    dim_h(0, W, -9, str(W));
+    dim_h(USB_CX - USB_W/2, USB_CX + USB_W/2, D + 5, str(USB_W, " wide slot"));
+    dim_v((D - USB_D)/2, (D + USB_D)/2, W + 9, str(USB_D));
+    note([2, D + 22], "USB-C + both micro-HDMI clear this slot", 3);
+    title([0, D + 30], "6  BOTTOM");
 }
 
-// ---- sheet ----------------------------------------------------------------
-translate([0, 210])    view_front();
-translate([200, 210])  view_side();
-translate([0, 114])    view_top();
-translate([0, 50])     view_bottom();
-translate([200, 40])   view_back();
+// ---- sheet ---------------------------------------------------------------
+translate([0,   250]) view_front();
+translate([200, 250]) view_back();
+translate([400, 250]) view_left();
+translate([520, 250]) view_right();
+translate([0,   140]) view_top();
+translate([200, 140]) view_bottom();
 
-translate([0, 380]) title([0, 0], "TICK handheld - dimensioned review drawing  rev B");
-translate([0, 368]) note([0, 0], "all dimensions in mm - review only, the 3D model comes after you approve", 4);
-translate([0, 358]) note([0, 0], str("overall ", W, " W x ", H, " H x ", D, " D   |   shell wall ", WALL), 4);
-translate([0, 22])  note([0, 0], "NOTES", 4.5);
-translate([0, 14])  note([0, 0], "1. Screen module 92 x 60 (bezel included) sits behind the front face; opening exposes the 79 x 49 visible image only.", 3.4);
-translate([0, 6])   note([0, 0], "2. Openings are on TOP (right corner), RIGHT (encoder) and BOTTOM (USB-C), per your note.", 3.4);
-translate([0, -2])  note([0, 0], "3. USB-C slot is 40 x 12 - far larger than the connector, so the Pi's exact position inside does not matter.", 3.4);
-translate([0, -10]) note([0, 0], "4. TOP RIGHT opening 34 x 16 is a placeholder - tell me what passes through it and I will size it properly.", 3.4);
-translate([0, -18]) note([0, 0], "5. Encoder hole 12 x 12 in the RIGHT side face. Height and depth position still ASSUMED.", 3.4);
-translate([0, -26]) note([0, 0], "6. Speaker grille on the BACK face only. No speaker fitted yet - the Pi 5 has no analog audio out.", 3.4);
-translate([0, -34]) note([0, 0], "7. Buttons are 13 x 13 square holes, 26 centre-to-centre, centres 88 from the top.", 3.4);
+translate([0, 410]) title([0, 0], "TICK handheld enclosure - all six faces - rev C");
+translate([0, 398]) note([0, 0], str("overall ", W, " W x ", H, " H x ", D, " D   |   wall ", WALL, "   |   all dimensions mm   |   for approval before the 3D model"), 4);
+
+translate([0, 100]) note([0, 0], "DECIDED (was open, now fixed - say so if any of these are wrong)", 4.2);
+translate([0, 92]) note([0, 0], str("A. Bottom slot widened to ", USB_W, " x ", USB_D, ". The Pi 5 carries USB-C and both micro-HDMI on ONE edge, spanning ~60, so a narrow hole would block HDMI."), 3.4);
+translate([0, 84]) note([0, 0], str("B. Top opening ", TOP_W, " x ", TOP_D, " in the right corner, ", TOP_EDGE, " from the edge - cable exit, and it vents the hot side of the Pi."), 3.4);
+translate([0, 76]) note([0, 0], str("C. Encoder centre ", ENC_CY, " down the right face, centred through the depth at ", ENC_CZ, "."), 3.4);
+translate([0, 68]) note([0, 0], "D. Left face solid. Back grille doubles as the ventilation path; add a fan cut later if the Pi throttles.", 3.4);
+translate([0, 60]) note([0, 0], "E. Two-part shell: front body plus a screwed-on back panel, 4x M3 at 92 x 98 centres.", 3.4);
+
+translate([0, 44]) note([0, 0], "STILL UNVERIFIED BY YOU", 4.2);
+translate([0, 36]) note([0, 0], str("1. Screen module ", MOD_W, " x ", MOD_H, " - everything keys off this. Worth one caliper check: 2mm out and the panel either rattles or will not drop in."), 3.4);
+translate([0, 28]) note([0, 0], "2. Window assumes the 79 x 49 image is centred in the module bezel. If yours is offset, the window sits crooked over the picture.", 3.4);
+translate([0, 20]) note([0, 0], "3. Pi 5 orientation: USB-C edge must face DOWN for note A to hold. That puts USB-A and Ethernet on a long edge - currently enclosed.", 3.4);
