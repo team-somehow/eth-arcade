@@ -1,8 +1,11 @@
 // TICK handheld enclosure - 3D model (mm). Two printed parts:
-//   BODY  - front shell, open at the back
-//   PANEL - flat back plate, screws into the body. Nothing is raised off it
-//           and nothing is raised inside the body except the four corner
-//           screw bosses, so the cavity is a plain flat box.
+//   BODY - the deep front part: screen window, both buttons, the knob
+//          opening in the right wall, top opening and bottom USB slot
+//   LID  - a shallow back dish with the speaker grille
+//
+// No screws. They press together on a tongue-and-socket lip that runs the
+// whole perimeter, so it closes like a box and its lid. The interior of both
+// parts is completely flat.
 //
 // Coordinates: x = 0 left .. 104 right (seen from the front)
 //              y = 0 bottom .. 110 top
@@ -27,8 +30,9 @@ USB_W = 60; USB_D = 14;                 // bottom slot: USB-C + both HDMI
 TOP_W = 44; TOP_D = 22; TOP_EDGE = 5;   // wide corner opening in the top
 TOP_CX = W - TOP_EDGE - TOP_W/2;
 
-SCREW_IN = 6; BOSS_R = 4.2; BOSS_H = 9; PILOT = 2.5;
-PANEL_T = 2.5;
+SPLIT = 8;       // where the box splits, measured from the back face
+LIP   = 5;       // how deep the two parts overlap
+LIP_T = 1.25;    // tongue thickness (half the wall)
 PI_W = 85; PI_H = 56; PI_HX = 58; PI_HY = 49; PI_EDGE = 3.5;
 CLEAR = 0.3;                            // print clearance added to every hole
 
@@ -40,51 +44,62 @@ module rounded_box(w, h, d, r) {
 // A square hole with print clearance, cut along +z from the given face
 module hole(w, h) { translate([-CLEAR/2, -CLEAR/2, 0]) cube([w+CLEAR, h+CLEAR, 60]); }
 
-// ---- BODY ----------------------------------------------------------------
+// ---- shared profile ------------------------------------------------------
+// 2D footprint inset from the outer wall, used for cavities and the lip
+module prof(inset) {
+    r = max(0.8, FILLET - inset);
+    translate([inset + r, inset + r])
+        offset(r = r) square([W - 2*(inset + r), H - 2*(inset + r)]);
+}
+
+// ---- BODY: the deep front part -------------------------------------------
 module body() {
     difference() {
         rounded_box(W, H, D, FILLET);
 
-        // cavity, open at the back (z = 0)
-        translate([WALL, WALL, -1]) cube([W-2*WALL, H-2*WALL, D-WALL+1]);
+        // everything behind the split belongs to the lid
+        translate([-10, -10, -60]) cube([W+20, H+20, 60 + SPLIT]);
 
-        // screen window through the front wall
+        // the cavity - a plain flat box, nothing raised in it
+        translate([0, 0, SPLIT]) linear_extrude(D - WALL - SPLIT) prof(WALL);
+        // socket: the wall thins over the overlap so the lid's tongue sits inside it
+        translate([0, 0, SPLIT]) linear_extrude(LIP) prof(WALL - LIP_T);
+
+        // screen window
         translate([BEZEL_S + (MOD_W-VIS_W)/2, GRIP_H + (MOD_H-VIS_H)/2, D-WALL-1])
             cube([VIS_W, VIS_H, WALL+2]);
         // buttons
         for (dx = [-BTN_GAP/2, BTN_GAP/2])
             translate([W/2+dx-BTN/2, H-BTN_CY-BTN/2, D-WALL-1]) hole(BTN, BTN);
-
-        // encoder, through the right wall
+        // knob, through the right wall
         translate([W-WALL-1, H-ENC_CY-ENC/2, ENC_CZ-ENC/2])
             rotate([0, 90, 0]) translate([-ENC, 0, 0]) cube([ENC+CLEAR, ENC+CLEAR, WALL+2]);
-
         // wide opening in the top face, right corner
         translate([TOP_CX-TOP_W/2, H-WALL-1, D/2-TOP_D/2]) cube([TOP_W, WALL+2, TOP_D]);
-
         // USB-C + micro-HDMI slot in the bottom face
         translate([W/2-USB_W/2, -1, D/2-USB_D/2]) cube([USB_W, WALL+2, USB_D]);
     }
-    // corner bosses for the back-panel screws
-    for (x = [SCREW_IN, W-SCREW_IN], y = [SCREW_IN, H-SCREW_IN])
-        translate([x, y, 0]) difference() {
-            cylinder(r = BOSS_R, h = BOSS_H);
-            translate([0, 0, 1.5]) cylinder(r = PILOT/2, h = BOSS_H);
-        }
 }
 
-// ---- BACK PANEL ----------------------------------------------------------
+// ---- LID: the shallow back dish ------------------------------------------
 module panel() {
-    difference() {
-        // flat plate, nothing raised off it
-        hull() for (x = [FILLET, W-FILLET], y = [FILLET, H-FILLET])
-            translate([x, y, 0]) cylinder(r = FILLET, h = PANEL_T);
-        // speaker grille
-        for (c = [0:8], r = [0:6])
-            translate([(W-59)/2 + c*7, (H-32)/2 + 4 + r*5, -1]) cube([3, 2.2, PANEL_T+2]);
-        // screw holes
-        for (x = [SCREW_IN, W-SCREW_IN], y = [SCREW_IN, H-SCREW_IN])
-            translate([x, y, -1]) cylinder(r = 1.7, h = PANEL_T+2);
+    union() {
+        difference() {
+            intersection() {
+                rounded_box(W, H, D, FILLET);
+                translate([-10, -10, -1]) cube([W+20, H+20, SPLIT+1]);
+            }
+            // flat inside
+            translate([0, 0, WALL]) linear_extrude(SPLIT) prof(WALL);
+            // speaker grille
+            for (c = [0:8], r = [0:6])
+                translate([(W-59)/2 + c*7, (H-32)/2 + 4 + r*5, -1]) cube([3, 2.2, WALL+2]);
+        }
+        // tongue that presses into the body's socket
+        difference() {
+            translate([0, 0, SPLIT]) linear_extrude(LIP - 0.5) prof(WALL - LIP_T + CLEAR/2);
+            translate([0, 0, SPLIT-1]) linear_extrude(LIP+2) prof(WALL);
+        }
     }
 }
 
@@ -106,8 +121,8 @@ module mock_encoder() {
     color("#9aa3a8") translate([W-WALL, H-ENC_CY, ENC_CZ]) rotate([0, 90, 0]) cylinder(r = 3, h = 14);
 }
 module mock_pi() {
-    color("#1b5e3a") translate([(W-PI_W)/2, 18, PANEL_T]) cube([PI_W, PI_H, 1.6]);
-    color("#6b7176") translate([(W-PI_W)/2+10, 18, PANEL_T+1.6]) cube([60, 14, 13]);
+    color("#1b5e3a") translate([(W-PI_W)/2, 18, WALL]) cube([PI_W, PI_H, 1.6]);
+    color("#6b7176") translate([(W-PI_W)/2+10, 18, WALL+1.6]) cube([60, 14, 13]);
 }
 
 // ---- views ---------------------------------------------------------------
@@ -128,6 +143,11 @@ module turned() { translate([W, 0, D]) rotate([0, 180, 0]) assembly(); }
 
 if (VIEW == "assembly") assembly();
 else if (VIEW == "back") turned();
+// quarter cut through the bottom-left corner, to show the lip engaging
+else if (VIEW == "section") difference() {
+    assembly();
+    translate([W/2, -5, -5]) cube([W, 45, D+10]);
+}
 else if (VIEW == "exploded") exploded();
 else if (VIEW == "body") color("#e9e6de") body();
 else if (VIEW == "panel") { color("#d9d5cc") panel(); }

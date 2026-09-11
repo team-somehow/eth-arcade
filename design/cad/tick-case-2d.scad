@@ -108,19 +108,17 @@ module view_back() {
             translate([c*SLOT_GX, r*SLOT_GY]) square([SLOT_W, SLOT_H]);
         dim_h(0, gw, -10, str(gw, " x ", gh, " grille"));
     }
-    for (x = [SCREW_IN, W - SCREW_IN], y = [SCREW_IN, H - SCREW_IN])
-        translate([x, y]) ring(SCREW/2, 0.5);
     // Pi 5 board and its four mounting holes, seen through the back
     translate([(W - PI_W)/2, 14]) {
         dbox(PI_W, PI_H);
         for (hx = [PI_EDGE, PI_EDGE + PI_HX], hy = [PI_EDGE, PI_EDGE + PI_HY])
             translate([hx, hy]) ring(1.3, 0.4);
     }
-    dim_h(SCREW_IN, W - SCREW_IN, H + 5, str(W - 2*SCREW_IN, " screw ctc"));
-    dim_v(SCREW_IN, H - SCREW_IN, W + 9, str(H - 2*SCREW_IN, " screw ctc"));
-    note([(W-PI_W)/2, 8], str("Pi 5 ", PI_W, " x ", PI_H, " - M2.5 standoffs at ", PI_HX, " x ", PI_HY), 2.9);
-    note([SCREW_IN + 2, H - SCREW_IN - 7], str("4x M", 3, " (", SCREW, " clear)"), 2.9);
-    title([0, H + 25], "2  BACK");
+    dim_h(0, W, H + 5, str(W));
+    dim_v(0, H, W + 9, str(H));
+    note([(W-PI_W)/2, 8], str("Pi 5 ", PI_W, " x ", PI_H, " sits loose on the flat lid"), 2.9);
+    note([6, H - 12], "lid - presses on, no screws", 2.9);
+    title([0, H + 25], "2  BACK  (lid)");
 }
 
 // ---- 3 LEFT --------------------------------------------------------------
@@ -184,8 +182,8 @@ translate([0, 100]) note([0, 0], "DECIDED (was open, now fixed - say so if any o
 translate([0, 92]) note([0, 0], str("A. Bottom slot widened to ", USB_W, " x ", USB_D, ". The Pi 5 carries USB-C and both micro-HDMI on ONE edge, spanning ~60, so a narrow hole would block HDMI."), 3.4);
 translate([0, 84]) note([0, 0], str("B. Top opening ", TOP_W, " x ", TOP_D, " in the right corner, ", TOP_EDGE, " from the edge - cable exit, and it vents the hot side of the Pi."), 3.4);
 translate([0, 76]) note([0, 0], str("C. Encoder centre ", ENC_CY, " down the right face, centred through the depth at ", ENC_CZ, "."), 3.4);
-translate([0, 68]) note([0, 0], "D. Left face solid. Back grille doubles as the ventilation path; add a fan cut later if the Pi throttles.", 3.4);
-translate([0, 60]) note([0, 0], "E. Two-part shell: front body plus a screwed-on back panel, 4x M3 at 92 x 98 centres.", 3.4);
+translate([0, 68]) note([0, 0], "D. Left face solid, and both interiors are completely flat - no standoffs, no bosses, nothing to locate parts. Tape or foam at assembly.", 3.4);
+translate([0, 60]) note([0, 0], "E. Two parts, no screws: a deep front body and a shallow back lid, pressed together on a 5mm tongue-and-socket lip (0.15 clearance per side).", 3.4);
 
 translate([0, 44]) note([0, 0], "STILL UNVERIFIED BY YOU", 4.2);
 translate([0, 36]) note([0, 0], str("1. Screen module ", MOD_W, " x ", MOD_H, " - everything keys off this. Worth one caliper check: 2mm out and the panel either rattles or will not drop in."), 3.4);
