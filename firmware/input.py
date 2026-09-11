@@ -6,7 +6,7 @@ from enum import Enum, auto
 
 import pygame
 
-from theme import HEIGHT, WIDTH
+from theme import display_to_canvas, to_canvas
 
 
 class InputAction(Enum):
@@ -21,9 +21,10 @@ def event_position(event: pygame.event.Event) -> tuple[int, int] | None:
     if event.type == pygame.MOUSEBUTTONDOWN:
         if getattr(event, "touch", False) or event.button != 1:
             return None
-        return event.pos
+        return display_to_canvas(event.pos)
     if event.type == pygame.FINGERDOWN:
-        return int(event.x * WIDTH), int(event.y * HEIGHT)
+        # Finger positions are fractions of the display, which may be turned.
+        return to_canvas(event.x, event.y)
     return None
 
 

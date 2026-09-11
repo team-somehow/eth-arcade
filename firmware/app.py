@@ -13,7 +13,7 @@ from games.box import BoxGame, handle_box_events
 from games.rush import RushGame, handle_rush_events
 from input import InputAction, actions_from_event
 from screens.home import HomeScreen, handle_home_events
-from theme import FPS, init_display
+from theme import FPS, init_display, present
 
 
 class App:
@@ -57,7 +57,7 @@ class App:
 
                 self._dispatch(events, actions)
                 self._draw()
-                pygame.display.flip()
+                present()
         finally:
             self.game.close()
             if self.encoder is not None:
