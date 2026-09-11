@@ -21,7 +21,7 @@ BTN     = 13;    // square button holes
 BTN_GAP = 26;    // centre to centre
 BTN_CY  = 88;    // button centre, from the top of the face
 ENC     = 12;    // square encoder hole, right side face
-ENC_CY  = 46;    // encoder centre from the top
+ENC_CY  = 88;    // encoder centre from the top - on the button line
 ENC_CZ  = D/2;   // encoder centre through the depth
 
 // ---- openings ------------------------------------------------------------

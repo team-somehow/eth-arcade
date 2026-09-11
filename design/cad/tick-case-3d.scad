@@ -1,6 +1,8 @@
 // TICK handheld enclosure - 3D model (mm). Two printed parts:
 //   BODY  - front shell, open at the back
-//   PANEL - back plate, carries the Pi on standoffs, screws into the body
+//   PANEL - flat back plate, screws into the body. Nothing is raised off it
+//           and nothing is raised inside the body except the four corner
+//           screw bosses, so the cavity is a plain flat box.
 //
 // Coordinates: x = 0 left .. 104 right (seen from the front)
 //              y = 0 bottom .. 110 top
@@ -20,7 +22,7 @@ BEZEL_S = 6; BEZEL_T = 6;
 GRIP_H = H - BEZEL_T - MOD_H;           // 44
 
 BTN = 13; BTN_GAP = 26; BTN_CY = 88;    // square buttons, from the top
-ENC = 12; ENC_CY = 46; ENC_CZ = D/2;    // encoder square, right wall
+ENC = 12; ENC_CY = 88; ENC_CZ = D/2;    // encoder square, right wall, on the button line
 USB_W = 60; USB_D = 14;                 // bottom slot: USB-C + both HDMI
 TOP_W = 44; TOP_D = 22; TOP_EDGE = 5;   // wide corner opening in the top
 TOP_CX = W - TOP_EDGE - TOP_W/2;
@@ -28,7 +30,6 @@ TOP_CX = W - TOP_EDGE - TOP_W/2;
 SCREW_IN = 6; BOSS_R = 4.2; BOSS_H = 9; PILOT = 2.5;
 PANEL_T = 2.5;
 PI_W = 85; PI_H = 56; PI_HX = 58; PI_HY = 49; PI_EDGE = 3.5;
-STAND_H = 5; STAND_R = 3;
 CLEAR = 0.3;                            // print clearance added to every hole
 
 // ---- helpers -------------------------------------------------------------
@@ -50,10 +51,6 @@ module body() {
         // screen window through the front wall
         translate([BEZEL_S + (MOD_W-VIS_W)/2, GRIP_H + (MOD_H-VIS_H)/2, D-WALL-1])
             cube([VIS_W, VIS_H, WALL+2]);
-        // seat for the module bezel, so the panel cannot shift sideways
-        translate([BEZEL_S-CLEAR, GRIP_H-CLEAR, D-WALL-MOD_T])
-            cube([MOD_W+2*CLEAR, MOD_H+2*CLEAR, MOD_T+0.1]);
-
         // buttons
         for (dx = [-BTN_GAP/2, BTN_GAP/2])
             translate([W/2+dx-BTN/2, H-BTN_CY-BTN/2, D-WALL-1]) hole(BTN, BTN);
@@ -79,24 +76,15 @@ module body() {
 // ---- BACK PANEL ----------------------------------------------------------
 module panel() {
     difference() {
-        union() {
-            hull() for (x = [FILLET, W-FILLET], y = [FILLET, H-FILLET])
-                translate([x, y, 0]) cylinder(r = FILLET, h = PANEL_T);
-            // standoffs that carry the Pi
-            translate([(W-PI_W)/2, 18, PANEL_T])
-                for (hx = [PI_EDGE, PI_EDGE+PI_HX], hy = [PI_EDGE, PI_EDGE+PI_HY])
-                    translate([hx, hy, 0]) cylinder(r = STAND_R, h = STAND_H);
-        }
+        // flat plate, nothing raised off it
+        hull() for (x = [FILLET, W-FILLET], y = [FILLET, H-FILLET])
+            translate([x, y, 0]) cylinder(r = FILLET, h = PANEL_T);
         // speaker grille
         for (c = [0:8], r = [0:6])
             translate([(W-59)/2 + c*7, (H-32)/2 + 4 + r*5, -1]) cube([3, 2.2, PANEL_T+2]);
         // screw holes
         for (x = [SCREW_IN, W-SCREW_IN], y = [SCREW_IN, H-SCREW_IN])
             translate([x, y, -1]) cylinder(r = 1.7, h = PANEL_T+2);
-        // pilot holes in the standoffs for M2.5 into the Pi
-        translate([(W-PI_W)/2, 18, 0])
-            for (hx = [PI_EDGE, PI_EDGE+PI_HX], hy = [PI_EDGE, PI_EDGE+PI_HY])
-                translate([hx, hy, -1]) cylinder(r = 1.05, h = PANEL_T+STAND_H+2);
     }
 }
 
@@ -118,8 +106,8 @@ module mock_encoder() {
     color("#9aa3a8") translate([W-WALL, H-ENC_CY, ENC_CZ]) rotate([0, 90, 0]) cylinder(r = 3, h = 14);
 }
 module mock_pi() {
-    color("#1b5e3a") translate([(W-PI_W)/2, 18, PANEL_T+STAND_H]) cube([PI_W, PI_H, 1.6]);
-    color("#6b7176") translate([(W-PI_W)/2+10, 18, PANEL_T+STAND_H+1.6]) cube([60, 14, 13]);
+    color("#1b5e3a") translate([(W-PI_W)/2, 18, PANEL_T]) cube([PI_W, PI_H, 1.6]);
+    color("#6b7176") translate([(W-PI_W)/2+10, 18, PANEL_T+1.6]) cube([60, 14, 13]);
 }
 
 // ---- views ---------------------------------------------------------------
