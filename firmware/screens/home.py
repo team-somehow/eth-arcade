@@ -42,6 +42,8 @@ MISS_OFF = 28
 MULTS = (2.1, 5.4, 2.6, 8.9)
 STAKE = 10
 LOGO_LOW = (196, 104, 28)
+# B quits only when pressed twice this close together; a stray press just asks.
+QUIT_CONFIRM_S = 3.0
 
 
 def noise(i: int) -> float:
@@ -83,6 +85,11 @@ class HomeScreen:
         self.floaters = Floaters()
         self.shade = pygame.Surface((RIDER_X + 8, HORIZON), pygame.SRCALPHA)
         self.glyphs: dict[tuple[str, tuple], pygame.Surface] = {}
+        self.quit_until = 0.0           # a second B before this quits
+
+    @property
+    def quitting(self) -> bool:
+        return self.t < self.quit_until
 
     def row_rect(self, index: int) -> pygame.Rect:
         return pygame.Rect(16, 246, 216, 24) if index == 0 else pygame.Rect(248, 246, 216, 24)
@@ -93,12 +100,18 @@ class HomeScreen:
         return LauncherItem(self.game_id, TITLES[self.game_id][0])
 
     def handle_action(self, action: InputAction) -> str | None:
+        if action == InputAction.QUIT:      # Escape or closing the window: at once
+            return 'quit'
+        if action == InputAction.B:
+            if self.quitting:
+                return 'quit'
+            self.quit_until = self.t + QUIT_CONFIRM_S
+            return None
+        self.quit_until = 0.0               # anything else backs out of quitting
         if action in (InputAction.UP, InputAction.DOWN):
             self.focus = 1 - self.focus
         elif action == InputAction.A:
             return self.focused_item().id if self.focus else 'game'
-        elif action in (InputAction.B, InputAction.QUIT):
-            return 'quit'
         return None
 
     def handle_touch(self, pos: tuple[int, int]) -> str | None:
@@ -280,8 +293,12 @@ class HomeScreen:
         return 'LOAD USDC'
 
     def draw_banner(self, s: pygame.Surface) -> None:
-        """Money news, such as a deposit landing, over the attract loop."""
-        banner = getattr(self.game, 'banner', lambda: None)()
+        """Money news, such as a deposit landing, over the attract loop; or the
+        quit question, which outranks it."""
+        if self.quitting:
+            banner = 'PRESS < AGAIN TO QUIT', RED
+        else:
+            banner = getattr(self.game, 'banner', lambda: None)()
         if not banner:
             return
         text, color = banner

@@ -127,6 +127,9 @@ class BoxGame:
         self.cashing = False       # cash-out asked for; waiting for the live box to land
         self.money_note: tuple[str, float] | None = None   # shown on the launcher too
         self.qr: tuple[str, pygame.Surface] | None = None
+        # A deposit landed on the QR screen: back to the launcher with PLAY up,
+        # rather than leave CASH OUT under the thumb that just paid in.
+        self.funded = False
 
     def enter(self) -> None:
         self.held.clear()
@@ -207,6 +210,9 @@ class BoxGame:
             if kind == 'opened':
                 self.announce(f'+{format_usdc(event[1])} USDC FROM {short_address(event[2])}', 6)
                 self.play('coin')
+                if self.wallet_open:
+                    self.wallet_open = False
+                    self.funded = True
             elif kind == 'cashed_out' and event[1]:
                 paid = sum(payout for payout, _, _ in event[1])
                 self.announce(f'SENT {format_usdc(paid)} TO {short_address(event[1][-1][1])}', 8)
@@ -775,6 +781,12 @@ class BoxGame:
 
 
 def handle_box_events(game: BoxGame, events: list, actions: list[InputAction]) -> str | None:
+    if game.funded:
+        # This frame's presses are dropped: one aimed at the QR screen's CASH
+        # OUT must not land on whatever comes next.
+        game.funded = False
+        game.held.clear()
+        return 'funded'
     for event in events:
         if event.type == pygame.WINDOWFOCUSLOST:
             game.held.clear()

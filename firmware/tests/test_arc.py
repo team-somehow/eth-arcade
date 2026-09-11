@@ -244,7 +244,30 @@ class ArcScreenTests(unittest.TestCase):
         self.game.sync_funding()
         self.assertEqual(self.game.model.wallet.balance, MICRO - FEE)
         self.assertIn('FROM 0x7ee8..CCac', self.game.banner()[0])
+        self.game.open_wallet()
         self.game.draw(pygame.Surface((480, 320)))       # balance, cash out
+
+    def test_a_deposit_on_the_qr_screen_goes_back_to_the_launcher(self):
+        from games.box import handle_box_events
+        self.game.open_wallet()
+        self.funding.step()
+        self.chain.arrive(PLAYER, MICRO)
+        self.funding.step()
+        self.game.sync_funding()
+        self.assertFalse(self.game.wallet_open)
+        # The A that was headed for CASH OUT in the same frame is dropped.
+        self.assertEqual(handle_box_events(self.game, [], [InputAction.A]), 'funded')
+        self.assertIsNone(self.funding.pending_cashout)
+        self.assertTrue(self.funding.in_session)
+        self.assertIsNone(handle_box_events(self.game, [], []))    # once only
+
+    def test_a_deposit_during_play_stays_in_play(self):
+        from games.box import handle_box_events
+        self.funding.step()
+        self.chain.arrive(PLAYER, MICRO)
+        self.funding.step()
+        self.game.sync_funding()
+        self.assertIsNone(handle_box_events(self.game, [], []))
 
     def test_a_in_the_wallet_cashes_out(self):
         self.funding.step()

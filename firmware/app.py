@@ -91,6 +91,10 @@ class App:
             if target == "home":
                 self.game.play("back")
                 self.current = "home"
+            elif target == "funded":
+                # Money in: the launcher shows it, with PLAY picked, not CASH OUT.
+                self.home.focus = 0
+                self.current = "home"
             elif target == "quit":
                 self.running = False
 
