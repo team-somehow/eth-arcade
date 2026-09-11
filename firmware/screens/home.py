@@ -16,6 +16,7 @@ from games.box_model import BoxModel
 from games.box_scene import Floaters, Rider, Skyline, Sparks, mix
 from input import InputAction, event_position
 from ui import NAVY, PANEL, GRID, CREAM, YELLOW, MINT, RED, MUTED, font, footer
+from markets.feed import current_asset
 from wallet import format_usdc
 
 
@@ -25,7 +26,7 @@ class LauncherItem:
     title: str
 
 
-TITLES = {'box': ('BOX RUN', 'WHERE WILL ETH LAND?',
+TITLES = {'box': ('BOX RUN', 'WHERE WILL {asset} LAND?',
                   f'CRANK THE BOX. A BUYS {BoxModel.WINDOW_S:.0f}s.'),
           'rush': ('RUSH', 'KEEP IT TURNING.', 'THE DIAL IS THE BET.')}
 
@@ -178,6 +179,7 @@ class HomeScreen:
     def draw_title(self, s: pygame.Surface) -> None:
         """Chunky arcade logo, each letter bobbing a beat behind the last."""
         title, line, hint = TITLES[self.game_id]
+        line = line.format(asset=current_asset().symbol)
         big = font(46)
         x0 = 240 - big.size(title)[0] // 2
         for i, ch in enumerate(title):
@@ -195,13 +197,15 @@ class HomeScreen:
         say(s, 'TICK', 10, 5, 20, CREAM)
         say(s, 'ARCADE', 64, 11, 12, MUTED)
         m = getattr(self.game, 'model', None)
+        asset = current_asset()
+        symbol = asset.symbol
         if not self.demo or m is None or not getattr(m, 'started', False):
-            say_right(s, 'READING ETH...' if self.demo else 'CRANK POWERED', 470, 10, 13, MUTED)
+            say_right(s, f'READING {symbol}...' if self.demo else 'CRANK POWERED', 470, 10, 13, MUTED)
             return
-        move = f'{m.move:+,.2f}'
+        move = asset.format(m.move, sign=True)
         say_right(s, move, 470, 11, 13, MINT if m.move >= 0 else RED)
         price_right = 470 - font(13).size(move)[0] - 8
-        price = f'ETH ${m.price:,.2f}'
+        price = f'{symbol} ${asset.format(m.price)}'
         say_right(s, price, price_right, 8, 16, CREAM)
         if int(self.t * 2) % 2 == 0:            # the feed is live
             pygame.draw.circle(s, RED, (price_right - font(16).size(price)[0] - 9, 17), 4)

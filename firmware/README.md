@@ -135,6 +135,8 @@ Balances are integer **micro-USDC** (6 decimals, the real USDC unit) so a sessio
 | `coinbase` | Public Coinbase REST ticker at 5 Hz on a worker thread, read-only |
 | `substreams` | ETH/stable pools on Arbitrum and Base (Uniswap v3 and v4, Aerodrome Slipstream), from The Graph's Substreams via `substreams/relay.py` on a laptop or server at `SUBSTREAMS_BASE_URL`. One tick per block, priced as the liquidity-weighted average of the pools, leaving out any pool more than 0.5% from the rest, and aged by block time |
 
+`TICK_ASSET` picks the coin: `eth` (default), `btc`, `sol` or `hbar`, each priced in USD, and HBAR shown to five decimals. `sim` starts each coin at a typical price and walks it at that coin's rough live volatility, and `coinbase` polls its `-USD` product. `substreams` watches ETH pools only, so it refuses any other coin. Box geometry is in basis points of price, so the game plays the same on any of them.
+
 The Substreams feed repeats the last price on blocks where nothing traded, because that is still each pool's price. Volatility therefore counts only moves, measured from the previous move, or those repeats would read as a calm market.
 
 Settings like this one live in `firmware/.env` (copy `.env.example`), which `main.py` reads at startup. A value set in the shell overrides the file, so `TICK_MARKET_SOURCE=coinbase .venv/bin/python main.py` works for a one-off run.

@@ -7,6 +7,7 @@ import math
 import os
 import queue
 import random
+import re
 import threading
 import time
 import urllib.request
@@ -23,22 +24,52 @@ class PriceTick:
         return max(0, now - self.received_at) + self.source_age
 
 
+@dataclass(frozen=True)
+class Asset:
+    symbol: str
+    coinbase: str    # Coinbase product id
+    start: float     # simulated feed's opening price
+    sigma: float     # simulated volatility per square-root second
+    places: int = 2  # decimals shown on screen; a sub-dollar coin needs more
+
+    def format(self, price: float, sign: bool = False) -> str:
+        return f'{price:{"+" if sign else ""},.{self.places}f}'
+
+
+# Volatility per square-root second, set to roughly each coin live: for ETH
+# about 0.04% over 20 seconds, or a dollar on $2,500. Testing against a feed an
+# order of magnitude wilder than the real one teaches the wrong thing.
+ASSETS = {
+    'eth': Asset('ETH', 'ETH-USD', 2500.0, 0.00009),
+    'btc': Asset('BTC', 'BTC-USD', 77_000.0, 0.00007),
+    'sol': Asset('SOL', 'SOL-USD', 100.0, 0.00013),
+    'hbar': Asset('HBAR', 'HBAR-USD', 0.075, 0.00015, places=5),
+}
+
+
+def current_asset() -> Asset:
+    """The coin named by TICK_ASSET, ETH by default."""
+    key = os.environ.get('TICK_ASSET', 'eth').strip().lower()
+    if key not in ASSETS:
+        raise ValueError(f"TICK_ASSET must be one of {', '.join(ASSETS)}")
+    return ASSETS[key]
+
+
 class SimulatedFeed:
     name = 'SIMULATED'
     # Tick spacing, held in integer microseconds so the same wall-clock time
     # yields the same ticks at any frame rate (float seconds drift and drop one).
     INTERVAL_US = 50_000
-    # Volatility per square-root second, set to roughly live ETH: about 0.04%
-    # over 20 seconds, or a dollar on $2,500. Testing against a feed an order
-    # of magnitude wilder than the real one teaches the wrong thing.
-    SIGMA = 0.00009
+    SIGMA = ASSETS['eth'].sigma
 
-    def __init__(self, seed: int | None = None):
+    def __init__(self, seed: int | None = None, asset: Asset = ASSETS['eth']):
         self.rng = random.Random(seed)
-        self.price = 2500.0
+        self.asset = asset
+        self.price = asset.start
+        self.sigma = asset.sigma
         self.sequence = 0
         self.accumulated_us = 0
-        self.status = 'Simulated ETH/USD'
+        self.status = f'Simulated {asset.symbol}/USD'
 
     def poll(self, dt: float, now: float) -> list[PriceTick]:
         self.accumulated_us += int(max(0, dt) * 1_000_000)
@@ -47,7 +78,7 @@ class SimulatedFeed:
         while self.accumulated_us >= self.INTERVAL_US:
             self.accumulated_us -= self.INTERVAL_US
             self.sequence += 1
-            self.price *= math.exp(self.rng.gauss(0, self.SIGMA * math.sqrt(step)))
+            self.price *= math.exp(self.rng.gauss(0, self.sigma * math.sqrt(step)))
             result.append(PriceTick(self.price, self.sequence, now))
         return result
 
@@ -58,7 +89,9 @@ class SimulatedFeed:
 def parse_coinbase(data: dict, now: float, wall_now: float) -> PriceTick:
     price = float(data['price'])
     sequence = int(data['trade_id'])
-    timestamp = datetime.fromisoformat(data['time'].replace('Z', '+00:00'))
+    # Coinbase stamps nanoseconds; Python before 3.11 takes at most six digits.
+    stamp = re.sub(r'(\.\d{6})\d+', r'\1', data['time']).replace('Z', '+00:00')
+    timestamp = datetime.fromisoformat(stamp)
     if timestamp.tzinfo is None:
         raise ValueError('Missing timestamp timezone')
     source_time = timestamp.timestamp()
@@ -81,11 +114,13 @@ class CoinbaseFeed:
     response, which the API caches for up to CACHE_S.
     """
     name = 'COINBASE LIVE'
-    URL = 'https://api.exchange.coinbase.com/products/ETH-USD/ticker'
+    URL = 'https://api.exchange.coinbase.com/products/{product}/ticker'
     INTERVAL = 0.2
     CACHE_S = 1.0   # the ticker answers with cache-control max-age=1
 
-    def __init__(self):
+    def __init__(self, asset: Asset = ASSETS['eth']):
+        self.asset = asset
+        self.url = self.URL.format(product=asset.coinbase)
         self.status = 'Connecting to Coinbase'
         self.items: queue.Queue[PriceTick] = queue.Queue(maxsize=32)
         self.stop = threading.Event()
@@ -98,7 +133,7 @@ class CoinbaseFeed:
         retry = self.INTERVAL
         while not self.stop.is_set():
             try:
-                request = urllib.request.Request(self.URL, headers={'User-Agent': 'TICK-Hackathon/0.1'})
+                request = urllib.request.Request(self.url, headers={'User-Agent': 'TICK-Hackathon/0.1'})
                 with urllib.request.urlopen(request, timeout=3) as response:
                     data = json.load(response)
                 tick = parse_coinbase(data, time.monotonic(), time.time())
@@ -116,7 +151,7 @@ class CoinbaseFeed:
                         except queue.Empty:
                             pass
                     self.items.put_nowait(tick)
-                self.status = 'Coinbase ETH/USD / 5 Hz'
+                self.status = f'Coinbase {self.asset.symbol}/USD / 5 Hz'
                 retry = self.INTERVAL
             except (OSError, ValueError, KeyError, TypeError, queue.Full):
                 self.status = 'Feed unavailable / retrying'
@@ -226,6 +261,7 @@ class SubstreamsFeed:
     READ_TIMEOUT = 5.0
 
     def __init__(self, base_url: str):
+        self.asset = ASSETS['eth']   # the Substreams module watches ETH pools only
         self.url = base_url.rstrip('/') + '/stream'
         self.status = 'Connecting to Substreams relay'
         self.items: queue.Queue[PriceTick] = queue.Queue(maxsize=32)
@@ -283,12 +319,15 @@ class SubstreamsFeed:
 SOURCES = ('sim', 'coinbase', 'substreams')
 
 
-def open_feed(source: str, seed: int | None = None):
-    """The feed named by TICK_MARKET_SOURCE."""
+def open_feed(source: str, seed: int | None = None, asset: Asset | None = None):
+    """The feed named by TICK_MARKET_SOURCE, for the coin named by TICK_ASSET."""
+    asset = asset or current_asset()
     if source == 'coinbase':
-        return CoinbaseFeed()
+        return CoinbaseFeed(asset)
     if source == 'substreams':
+        if asset != ASSETS['eth']:
+            raise ValueError('TICK_MARKET_SOURCE=substreams only prices ETH; use sim or coinbase')
         return SubstreamsFeed(os.environ.get('SUBSTREAMS_BASE_URL', 'http://localhost:8787'))
     if source == 'sim':
-        return SimulatedFeed(seed)
+        return SimulatedFeed(seed, asset)
     raise ValueError(f"TICK_MARKET_SOURCE must be one of {', '.join(SOURCES)}")

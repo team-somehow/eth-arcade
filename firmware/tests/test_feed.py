@@ -1,11 +1,13 @@
 import http.server
 import json
+import os
 import threading
 import time
 import unittest
+from unittest import mock
 
-from markets.feed import (CoinbaseFeed, PoolBook, SimulatedFeed, SubstreamsFeed,
-                          open_feed, weighted_median)
+from markets.feed import (ASSETS, CoinbaseFeed, PoolBook, SimulatedFeed, SubstreamsFeed,
+                          current_asset, open_feed, parse_coinbase, weighted_median)
 
 NOW = 1_800_000_000.0
 
@@ -198,6 +200,13 @@ class CoinbaseFeedTest(unittest.TestCase):
         for tick in ticks[:3]:
             self.assertLessEqual(tick.source_age, CoinbaseFeed.CACHE_S)
 
+    def test_nanosecond_timestamps_parse(self):
+        # Coinbase's real format, which Python 3.9's fromisoformat rejects.
+        data = {'trade_id': 1, 'price': '99.69', 'time': '2027-01-15T07:59:59.123456789Z'}
+        tick = parse_coinbase(data, 0.0, NOW)
+        self.assertEqual(tick.price, 99.69)
+        self.assertAlmostEqual(tick.source_age, 0.876544, places=5)
+
 
 class OpenFeedTest(unittest.TestCase):
     def test_sources(self):
@@ -208,6 +217,41 @@ class OpenFeedTest(unittest.TestCase):
             self.assertIsInstance(feed, kind)
         with self.assertRaises(ValueError):
             open_feed('subgraph')
+
+
+class AssetTest(unittest.TestCase):
+    def test_eth_is_the_default(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(current_asset().symbol, 'ETH')
+
+    def test_tick_asset_picks_the_coin(self):
+        for key, symbol in (('btc', 'BTC'), ('SOL', 'SOL'), (' eth ', 'ETH'), ('hbar', 'HBAR')):
+            with mock.patch.dict(os.environ, {'TICK_ASSET': key}):
+                self.assertEqual(current_asset().symbol, symbol)
+        with mock.patch.dict(os.environ, {'TICK_ASSET': 'doge'}):
+            with self.assertRaises(ValueError):
+                current_asset()
+
+    def test_sim_starts_at_the_coins_price(self):
+        for key in ('btc', 'sol', 'hbar'):
+            feed = open_feed('sim', 1, ASSETS[key])
+            self.assertEqual(feed.price, ASSETS[key].start)
+            self.assertIn(ASSETS[key].symbol, feed.status)
+            self.assertTrue(feed.poll(1.0, 0))
+
+    def test_coinbase_polls_the_coins_product(self):
+        feed = open_feed('coinbase', asset=ASSETS['sol'])
+        self.addCleanup(feed.close)
+        self.assertIn('/products/SOL-USD/', feed.url)
+
+    def test_a_sub_dollar_coin_shows_enough_decimals(self):
+        self.assertEqual(ASSETS['hbar'].format(0.073551), '0.07355')
+        self.assertEqual(ASSETS['hbar'].format(0.00012, sign=True), '+0.00012')
+        self.assertEqual(ASSETS['eth'].format(2473.334), '2,473.33')
+
+    def test_substreams_only_prices_eth(self):
+        with self.assertRaises(ValueError):
+            open_feed('substreams', asset=ASSETS['btc'])
 
 
 if __name__ == '__main__':

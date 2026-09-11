@@ -187,7 +187,8 @@ class RushGame:
             return
         label(s, f'{self.feed.name} / PAPER', 14, 43, 15, MUTED)
         if m.tick:
-            label(s, f'ETH ${m.tick.price:,.2f}', 242, 43, 17, CREAM)
+            asset = self.feed.asset
+            label(s, f'{asset.symbol} ${asset.format(m.tick.price)}', 242, 43, 17, CREAM)
         else:
             label(s, 'CONNECTING...', 258, 43, 16, YELLOW)
         if m.active:

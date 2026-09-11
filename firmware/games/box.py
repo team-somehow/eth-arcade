@@ -424,9 +424,10 @@ class BoxGame:
 
     def draw_hud(self, s: pygame.Surface) -> None:
         m = self.model
-        price = f'${m.price:,.2f}'
+        asset = self.feed.asset
+        price = f'${asset.format(m.price)}'
         say(s, price, 10, 6, 20, CREAM)
-        say(s, f'{m.move:+,.2f}', 22 + font(20).size(price)[0], 10, 16, MINT if m.move >= 0 else RED)
+        say(s, asset.format(m.move, sign=True), 22 + font(20).size(price)[0], 10, 16, MINT if m.move >= 0 else RED)
         say_right(s, f'{format_usdc(m.wallet.balance)} {m.wallet.funding.name}', 470, 10, 15, MINT)
 
     def draw_world(self, s: pygame.Surface) -> None:
