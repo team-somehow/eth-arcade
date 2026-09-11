@@ -9,6 +9,7 @@ A bet settles on one number, so that number has to move often, be hard to push, 
 - **It updates often.** Any one pool can go several seconds without a trade. Over one minute with all twelve pools, the combined price changed 41 times and never stood still for more than 2 seconds, one Base block.
 - **It is hard to push.** A price taken from one pool can be moved by one large trade at the bell. Moving the median of many pools on two chains at the same moment costs far more.
 - **It is a fairer price.** Pools disagree. At one moment on Base they were $3.47 apart, more than twice the height of a box in the game.
+- **It gives the odds real moves to measure.** BOX RUN prices every box from the volatility it measures in the last minute of prices. A stretch where no watched pool trades reads as a calm market, and after 15 seconds of it the game stops selling. Every pool added is one more venue whose trades move the price.
 
 The price is only a reference; bets never trade in these pools. They can settle in USDC on any chain, and the price is read where ETH has the deepest liquidity.
 
@@ -31,22 +32,35 @@ The module reports each pool's price and in-range liquidity. Combining them is l
 
 ## Where the pool list comes from
 
-The Uniswap v3 pools come from Messari's standardized Uniswap v3 subgraphs on The Graph, which give each pool's address, token order and decimals. The schema is the same on every chain, so one query finds the WETH/stable pools on Arbitrum and on Base:
+Every pool needs its token order and decimals, or its `sqrtPriceX96` turns into the wrong number. Messari's standardized DEX subgraphs on The Graph hold both for every pool, in one schema that is the same for every protocol and every chain. `pools.py` relies on that: it sends one query, unchanged, to every subgraph listed in `.env`, and adds the ETH/USDC pools it finds to the pool list.
 
 ```graphql
 {
-  liquidityPools(where: { inputTokens_contains: ["<WETH>", "<USDC>"] }) {
+  protocols(first: 1) { name network }
+  p0: liquidityPools(first: 20, where: { inputTokens: ["<WETH>", "<USDC>"] }) {
     id
     name
-    inputTokens { symbol decimals }
+    inputTokens { id symbol decimals }
     inputTokenBalances
+    fees { feeType feePercentage }
   }
 }
 ```
 
-The Slipstream and v4 pools were picked by trading volume, and their token order and decimals read from the pool contracts. Pools with a 0.3% fee are left out: nobody corrects their price until it is about 0.3% off, roughly $7, which is more than a box.
+The subgraphs are Uniswap V3 on Arbitrum and Base, and Sushiswap V3 on Arbitrum. Sushiswap V3 pools emit the same swap event as Uniswap v3, so Pinax's `uniswap_v3` package decodes them and this module prices them with no change. A new protocol costs one subgraph id in `.env`, and nothing else.
 
-Each output price includes the hash of the transaction behind it, so a settled window can be checked against the same subgraph afterwards.
+```sh
+python3 pools.py             # add what it finds to .env
+python3 pools.py --dry-run   # show it and change nothing
+```
+
+It keeps pools with a trading fee of 0.05% or less that hold at least 25,000 USDC. Pools with higher fees are left out: nobody corrects their price until it is a fee off, about $7 at 0.3%, which is more than a box. Size is read from the USDC the pool holds rather than from the subgraphs' USD figures, which put some of the biggest pools at $0.
+
+It only ever adds. A pool already listed stays exactly as written, and a chain whose subgraphs cannot be reached keeps its list, so a bad run never costs the ETH/USDC price a pool. Restart `relay.py` afterwards to stream the new pools. It needs `GRAPH_API_KEY` in `.env`, an API key from [Subgraph Studio](https://thegraph.com/studio).
+
+The Slipstream and v4 pools have no Messari subgraph, so they are listed by hand: picked by trading volume, with their token order and decimals read from the pool contracts.
+
+Each output price includes the hash of the transaction behind it, so a settled window can be checked afterwards against the swap the subgraph recorded for that pool.
 
 ## Output
 
@@ -94,7 +108,7 @@ TICK_CHAINS=base            # one chain
 TICK_CHAINS=arbitrum,base   # both
 ```
 
-To add a chain, set its endpoint and pools as `TICK_ENDPOINT_<CHAIN>` and `TICK_POOLS_<CHAIN>`.
+To add a chain, set its endpoint and pools as `TICK_ENDPOINT_<CHAIN>` and `TICK_POOLS_<CHAIN>`. For `pools.py` to find its pools too, add its subgraphs, WETH and USDC as `TICK_SUBGRAPHS_<CHAIN>`, `TICK_ETH_<CHAIN>` and `TICK_USDC_<CHAIN>`.
 
 ## Serving it to the device
 

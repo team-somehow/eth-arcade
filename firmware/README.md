@@ -25,7 +25,7 @@ Ground for both is any GND pin; 34 and 39 are the nearest. **BCM numbering, not 
 
 Press A again in the same window and the extra 10 goes onto **the same box** — the first press fixes that window's level. After that the dial is **locked out entirely**: the box does not move, does not shrink, and no second cursor appears. Only money can still be added, and only by pressing A. The dial frees up again when the bell rolls the window over.
 
-Placing a bet turns the dashed box **solid where it stands**, with a pop. That is the signal that the dial is no longer yours: turn it anyway and the box shakes and the status line says `BOX LOCKED / A ADDS 10`.
+Placing a bet turns the dashed box **solid where it stands**, with a pop. That is the signal that the dial is no longer yours: turn it anyway and the box shakes and the status line says `LOCKED / YELLOW ADDS 10`.
 
 Spending money on a dial nudge would be worse than a dead dial, which is why adding stake stays on the button.
 

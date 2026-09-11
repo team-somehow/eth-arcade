@@ -41,6 +41,25 @@ class QuitTests(unittest.TestCase):
     def test_escape_quits_at_once(self):
         self.assertEqual(self.home.handle_action(InputAction.QUIT), 'quit')
 
+    def test_the_menu_turns_through_play_money_and_leaders(self):
+        seen = []
+        for _ in range(3):
+            self.home.handle_action(InputAction.DOWN)
+            seen.append(self.home.focused_item().id)
+        self.assertEqual(seen, ['wallet', 'board', 'box'])
+        self.home.handle_action(InputAction.UP)
+        self.assertEqual(self.home.handle_action(InputAction.A), 'board')
+
+    def test_the_three_buttons_share_the_street(self):
+        rects = [self.home.row_rect(i) for i in range(3)]
+        self.assertTrue(all(r.top == 246 and r.height == 24 for r in rects))
+        self.assertEqual((rects[0].left, rects[-1].right), (16, 464))
+        self.assertTrue(rects[0].right < rects[1].left and rects[1].right < rects[2].left)
+
+    def test_touching_leaders_opens_the_board(self):
+        self.assertEqual(self.home.handle_touch(self.home.row_rect(2).center), 'board')
+        self.assertEqual(self.home.handle_touch(self.home.row_rect(1).center), 'wallet')
+
     def test_the_question_draws(self):
         self.home.handle_action(InputAction.B)
         self.home.draw(pygame.Surface((480, 320)))

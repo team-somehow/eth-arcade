@@ -208,14 +208,16 @@ class BoxGame:
         for event in funding.sync(m.wallet):
             kind = event[0]
             if kind == 'opened':
-                self.announce(f'+{format_usdc(event[1])} USDC FROM {short_address(event[2])}', 6)
+                self.announce(f'+{format_usdc(event[1])} USDC FROM {self.who(event[2])}', 6)
                 self.play('coin')
                 if self.wallet_open:
                     self.wallet_open = False
                     self.funded = True
+            elif kind == 'named':
+                self.announce(f'WELCOME {event[2]}', 6)
             elif kind == 'cashed_out' and event[1]:
                 paid = sum(payout for payout, _, _ in event[1])
-                self.announce(f'SENT {format_usdc(paid)} TO {short_address(event[1][-1][1])}', 8)
+                self.announce(f'SENT {format_usdc(paid)} TO {self.who(event[1][-1][1])}', 8)
                 self.play('coin')
             elif kind == 'refunded':
                 self.announce(f'SENT BACK {format_usdc(event[1])} / {event[3]}', 6)
@@ -224,6 +226,11 @@ class BoxGame:
         if self.cashing and (m.live is None or not m.live.stake):
             self.cashing = False
             funding.cash_out(m.wallet)
+
+    def who(self, address: str) -> str:
+        """The player's tick.eth name once ENS has one, else the short address."""
+        names = getattr(self.model.wallet.funding, 'names', {})
+        return names.get(address) or short_address(address)
 
     def open_wallet(self) -> None:
         self.wallet_open = True
@@ -248,7 +255,7 @@ class BoxGame:
                 self.play('warn')
                 self.last_sound_at = self.clock
             self.shake_at = self.clock
-            self.note(f'BOX LOCKED / A ADDS {self.stake_text()}', 1.5)
+            self.note(f'LOCKED / YELLOW ADDS {self.stake_text()}', 1.5)
             return
         above = m.aim - m.price
         moved = m.crank(steps)
@@ -683,16 +690,18 @@ class BoxGame:
             return (f'{self.stake_text(m.live.stake)} IN / PAYS '
                     f'{format_usdc(int(m.live.payout))}'), YELLOW
         if m.pending is not None:
-            return f'PLACED / A ADDS {self.stake_text()} MORE', CREAM
+            return f'PLACED / YELLOW ADDS {self.stake_text()}', CREAM
         if m.quiet(self.clock):
             return 'MARKET QUIET / NO BETS', MUTED
         if not m.measured:
             return 'READING THE MARKET...', MUTED
-        return f'CRANK / A BUYS NEXT {self.model.WINDOW_S:.0f}s', MUTED
+        return f'CRANK / YELLOW BUYS {self.model.WINDOW_S:.0f}s', MUTED
 
     def draw_status(self, s: pygame.Surface) -> None:
         m = self.model
         text, color = self.status()
+        if len(text) > 27:    # a tick.eth name is too long for the status line; its handle fits
+            text = text.replace('.tick.eth', '')
         say(s, text[:27], 10, PLAY.bottom + 6, 16, color)
         if self.streak >= 2:
             say_right(s, f'STREAK {self.streak}', 470, PLAY.bottom + 7, 15,
@@ -733,10 +742,10 @@ class BoxGame:
             label(s, funding.error[:36], x, 176, 11, RED)
         if funding.in_session:
             label(s, f'BALANCE {format_usdc(m.wallet.balance)} USDC', 14, 212, 17, MINT)
-            label(s, f'A: CASH OUT TO {short_address(funding.player)}', 14, 238, 15, CREAM)
+            label(s, f'CASH OUT GOES TO {self.who(funding.player)}', 14, 238, 15, CREAM)
         elif funding.last_cashout is not None:
             paid, player, tx = funding.last_cashout
-            label(s, f'SENT {format_usdc(paid)} TO {short_address(player)}', 14, 212, 17, MINT)
+            label(s, f'SENT {format_usdc(paid)} TO {self.who(player)}', 14, 212, 17, MINT)
             label(s, f'TX {tx[:12]}..{tx[-6:]}', 14, 238, 13, MUTED)
         else:
             label(s, 'SCAN IN METAMASK AND SEND ANY AMOUNT', 14, 212, 15, CREAM)
@@ -755,6 +764,9 @@ class BoxGame:
             return 'ARC UNREACHABLE', RED
         if funding.in_session and funding.last_deposit is not None:
             amount, sender = funding.last_deposit
+            name = getattr(funding, 'names', {}).get(sender)
+            if name:    # the status line is narrow: the handle, then what it sent
+                return f'{name.removesuffix(".tick.eth")} +{format_usdc(amount)}', MINT
             return f'+{format_usdc(amount)} FROM {short_address(sender)}', MINT
         if funding.in_session:
             return 'IN PLAY', MINT

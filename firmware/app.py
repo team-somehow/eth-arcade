@@ -12,6 +12,7 @@ from encoder import EncoderInput
 from games.box import BoxGame, handle_box_events
 from games.rush import RushGame, handle_rush_events
 from input import InputAction, actions_from_event
+from screens.board import BoardScreen, handle_board_events
 from screens.home import HomeScreen, handle_home_events
 from theme import FPS, init_display, present
 
@@ -27,6 +28,7 @@ class App:
             raise ValueError("TICK_GAME must be box or rush")
         self.game = BoxGame() if self.game_id == "box" else RushGame()
         self.home = HomeScreen(self.game_id, self.game)
+        self.board = BoardScreen(self.game)
         self.handle = handle_box_events if self.game_id == "box" else handle_rush_events
         self.encoder = EncoderInput.try_open()
         self.pad = ButtonPad.try_open()
@@ -38,7 +40,7 @@ class App:
                 if self.current == "game":
                     self.game.update(dt)
                 else:
-                    self.home.update(dt)
+                    (self.board if self.current == "board" else self.home).update(dt)
                     if hasattr(self.game, "watch"):
                         # Prices keep flowing behind the launcher (BOX RUN only).
                         self.game.watch(dt)
@@ -78,12 +80,26 @@ class App:
             target = handle_home_events(self.home, events, actions)
             if self.home.focus != focus:
                 self.game.play("nav")
-            if target in ("game", "wallet"):
+                if self.home.focused_item().id == "board":
+                    self.board.feed.want()      # start reading, so the board opens full
+            if target == "board":
+                self.board.open()
+                self.game.play("enter")
+                self.current = "board"
+            elif target in ("game", "wallet"):
                 self.game.enter()
                 if target == "wallet":
                     self.game.open_wallet()
                 self.game.play("enter")
                 self.current = "game"
+            elif target == "quit":
+                self.running = False
+        elif self.current == "board":
+            target = handle_board_events(self.board, events, actions)
+            if target == "home":
+                self.board.close()
+                self.game.play("back")
+                self.current = "home"
             elif target == "quit":
                 self.running = False
         elif self.current == "game":
@@ -99,9 +115,9 @@ class App:
                 self.running = False
 
     def _draw(self) -> None:
-        if self.current == "home":
+        if self.current in ("home", "board"):
             # The bed keeps running behind the launcher.
             self.game.ambient()
-            self.home.draw(self.screen)
+            (self.board if self.current == "board" else self.home).draw(self.screen)
         else:
             self.game.draw(self.screen)

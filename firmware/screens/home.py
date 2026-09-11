@@ -27,7 +27,7 @@ class LauncherItem:
 
 
 TITLES = {'box': ('BOX RUN', 'WHERE WILL {asset} LAND?',
-                  f'CRANK THE BOX. A BUYS {BoxModel.WINDOW_S:.0f}s.'),
+                  f'CRANK THE BOX. YELLOW BUYS {BoxModel.WINDOW_S:.0f}s.'),
           'rush': ('RUSH', 'KEEP IT TURNING.', 'THE DIAL IS THE BET.')}
 
 HORIZON, STREET_BOTTOM = 242, 274
@@ -44,6 +44,8 @@ STAKE = 10
 LOGO_LOW = (196, 104, 28)
 # B quits only when pressed twice this close together; a stray press just asks.
 QUIT_CONFIRM_S = 3.0
+# (x, width) of PLAY, the money button and LEADERS along the street
+MENU = ((16, 112), (136, 200), (344, 120))
 
 
 def noise(i: int) -> float:
@@ -92,11 +94,14 @@ class HomeScreen:
         return self.t < self.quit_until
 
     def row_rect(self, index: int) -> pygame.Rect:
-        return pygame.Rect(16, 246, 216, 24) if index == 0 else pygame.Rect(248, 246, 216, 24)
+        x, width = MENU[index]
+        return pygame.Rect(x, 246, width, 24)
 
     def focused_item(self) -> LauncherItem:
-        if self.focus:
+        if self.focus == 1:
             return LauncherItem('wallet', 'Load USDC')
+        if self.focus == 2:
+            return LauncherItem('board', 'Leaderboard')
         return LauncherItem(self.game_id, TITLES[self.game_id][0])
 
     def handle_action(self, action: InputAction) -> str | None:
@@ -109,7 +114,7 @@ class HomeScreen:
             return None
         self.quit_until = 0.0               # anything else backs out of quitting
         if action in (InputAction.UP, InputAction.DOWN):
-            self.focus = 1 - self.focus
+            self.focus = (self.focus + (1 if action == InputAction.DOWN else -1)) % len(MENU)
         elif action == InputAction.A:
             return self.focused_item().id if self.focus else 'game'
         return None
@@ -117,6 +122,8 @@ class HomeScreen:
     def handle_touch(self, pos: tuple[int, int]) -> str | None:
         if self.row_rect(1).collidepoint(pos):
             return 'wallet'
+        if self.row_rect(2).collidepoint(pos):
+            return 'board'
         if self.row_rect(0).collidepoint(pos) or 30 <= pos[1] < HORIZON:
             return 'game'               # the whole scene is the play button
         if pos[1] >= 274:
@@ -182,7 +189,8 @@ class HomeScreen:
         self.draw_top(surface)
         self.draw_banner(surface)
         self.draw_menu(surface)
-        footer(surface, '< QUIT', self.wallet_label().replace(' USDC', '') + ' >' if self.focus else 'PLAY >')
+        go = ('PLAY >', self.wallet_label().replace(' USDC', '') + ' >', 'LEADERBOARD >')
+        footer(surface, '< QUIT', go[self.focus])
 
     def glyph(self, ch: str, color: tuple) -> pygame.Surface:
         key = (ch, color)
@@ -309,11 +317,11 @@ class HomeScreen:
         say(s, text, 240, rect.y + 6, 16, color, True)
 
     def draw_menu(self, s: pygame.Surface) -> None:
-        """PLAY and LOAD sit on the street, where the game keeps its status line."""
+        """PLAY, the money and LEADERS sit on the street, where the game keeps its status line."""
         pulse = .5 + .5 * math.sin(self.t * 6)
         m = getattr(self.game, 'model', None)
         wallet = getattr(m, 'wallet', None)
-        for index in (0, 1):
+        for index in range(len(MENU)):
             rect = self.row_rect(index)
             on = self.focus == index
             if on:
@@ -321,8 +329,8 @@ class HomeScreen:
             else:
                 pygame.draw.rect(s, PANEL, rect, border_radius=5)
                 pygame.draw.rect(s, GRID, rect, 1, border_radius=5)
-            ink = NAVY if on else (CREAM if index == 0 else MINT)
-            text = 'PLAY' if index == 0 else self.wallet_label()
+            ink = NAVY if on else (CREAM, MINT, YELLOW)[index]
+            text = ('PLAY', self.wallet_label(), 'LEADERS')[index]
             tx = rect.x + 30
             s.blit(font(16).render(text, False, ink), (tx, rect.y + 3))
             if index == 0:
@@ -330,9 +338,12 @@ class HomeScreen:
                 pygame.draw.polygon(s, ink, [(rect.x + 12 + nudge, rect.y + 6),
                                              (rect.x + 12 + nudge, rect.y + 18),
                                              (rect.x + 21 + nudge, rect.y + 12)])
-                if on and int(self.t * 2) % 2 == 0:
-                    press = font(12).render('PRESS A', False, NAVY)
-                    s.blit(press, (rect.right - press.get_width() - 10, rect.y + 6))
+            elif index == 2:
+                cx, cy = rect.x + 16, rect.centery    # a little cup
+                pygame.draw.polygon(s, ink, [(cx - 6, cy - 7), (cx + 6, cy - 7),
+                                             (cx + 4, cy + 1), (cx - 4, cy + 1)])
+                pygame.draw.line(s, ink, (cx, cy + 1), (cx, cy + 4), 2)
+                pygame.draw.line(s, ink, (cx - 4, cy + 6), (cx + 4, cy + 6), 2)
             else:
                 pygame.draw.circle(s, ink, (rect.x + 16, rect.centery), 6, 2)
                 if wallet is not None:

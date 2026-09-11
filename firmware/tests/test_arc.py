@@ -96,7 +96,8 @@ class ArcFundingTests(unittest.TestCase):
         self.wallet = Wallet(self.funding.balance, self.funding)
 
     def make(self):
-        return ArcFunding(chain=self.chain, state_path=self.state, gas_fee=FEE, start=False)
+        return ArcFunding(chain=self.chain, state_path=self.state, gas_fee=FEE, start=False,
+                          lookup=lambda player: None)    # no Sepolia in tests
 
     def deposit(self, amount, sender=PLAYER):
         if self.funding.last_block is None:
@@ -189,6 +190,37 @@ class ArcFundingTests(unittest.TestCase):
         again.sync(wallet)
         self.assertEqual((again.sessions, wallet.balance), ([], 0))
 
+    def with_names(self, *answers):
+        """The funding again, with ENS giving `answers` in turn; an exception is raised."""
+        asked = []
+
+        def lookup(player):
+            asked.append(player)
+            answer = answers[len(asked) - 1]
+            if isinstance(answer, Exception):
+                raise answer
+            return answer
+        self.funding = ArcFunding(chain=self.chain, state_path=self.state, gas_fee=FEE,
+                                  start=False, lookup=lookup)
+        self.funding.NAME_S = 0
+        self.wallet = Wallet(self.funding.balance, self.funding)
+        return asked
+
+    def test_a_player_gets_their_name_once_the_scorekeeper_has_named_them(self):
+        asked = self.with_names(None, 'fancy-panda.tick.eth')
+        self.deposit(MICRO)
+        self.assertEqual(self.funding.names, {})           # not named yet
+        self.funding.step()
+        self.assertIn(('named', PLAYER, 'fancy-panda.tick.eth'), self.funding.sync(self.wallet))
+        self.funding.step()                                # and not asked about again
+        self.assertEqual(asked, [PLAYER, PLAYER])
+
+    def test_ens_trouble_never_gets_in_the_way_of_the_money(self):
+        self.with_names(OSError('sepolia down'))
+        news = self.deposit(MICRO)
+        self.assertEqual(news[0][:3], ('opened', MICRO - FEE, PLAYER))
+        self.assertEqual(self.funding.names, {})
+
     def test_calldata_matches_the_abi(self):
         # cast calldata 'close(uint256,uint256)' 1 15000
         self.assertEqual(calldata('close(uint256,uint256)', 1, 15000),
@@ -231,7 +263,7 @@ class ArcScreenTests(unittest.TestCase):
         self.addCleanup(env.stop)
         self.chain = FakeChain()
         self.funding = ArcFunding(chain=self.chain, state_path=Path(folder.name) / 's.json',
-                                  gas_fee=FEE, start=False)
+                                  gas_fee=FEE, start=False, lookup=lambda player: None)
         self.game = BoxGame(seed=1, sound=False, source='sim', wallet=Wallet(0, self.funding))
         self.addCleanup(self.game.close)
 
@@ -281,6 +313,20 @@ class ArcScreenTests(unittest.TestCase):
         self.game.sync_funding()
         self.assertEqual(self.chain.paid, [(PLAYER, MICRO - FEE)])
         self.assertIn('SENT 0.99 TO 0x7ee8..CCac', self.game.banner()[0])
+
+    def test_a_named_player_is_shown_by_their_name(self):
+        self.funding.lookup = lambda player: 'fancy-panda.tick.eth'
+        self.funding.step()
+        self.chain.arrive(PLAYER, MICRO)
+        self.funding.step()
+        self.game.sync_funding()
+        self.assertIn('WELCOME fancy-panda.tick.eth', self.game.banner()[0])
+        self.game.open_wallet()
+        self.game.draw(pygame.Surface((480, 320)))       # CASH OUT TO fancy-panda.tick.eth
+        self.game.handle_action(InputAction.A)
+        self.funding.step()
+        self.game.sync_funding()
+        self.assertIn('SENT 0.99 TO fancy-panda.tick.eth', self.game.banner()[0])
 
 
 if __name__ == '__main__':

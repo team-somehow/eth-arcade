@@ -2,7 +2,7 @@
 name = "tick-eth-price"
 version = "0.1.0"
 edition = "2021"
-description = "Live per-block Uniswap v3 pool prices with block time, built on Pinax uniswap_v3"
+description = "Live per-block Uniswap v3 and v4 pool prices with block time, built on Pinax uniswap_v3 and uniswap_v4"
 
 [lib]
 name = "tick_eth_price"

@@ -96,6 +96,12 @@ def short(address: str) -> str:
     return f'{address[:6]}..{address[-4:]}' if address else ''
 
 
+def ens_name(address: str) -> str | None:
+    """The player's tick.eth name, once the scorekeeper has named the wallet."""
+    import names    # names builds on this module
+    return names.name_of(address)
+
+
 def calldata(signature: str, *args) -> str:
     """ABI-encode a call; the argument types come from the signature."""
     inner = signature[signature.index('(') + 1:-1]
@@ -214,12 +220,13 @@ class Chain:
                 return log
         raise RpcError('expected escrow event missing from receipt')
 
-    def send(self, to: str, data: str) -> dict:
+    def send(self, to: str, data: str, value: int = 0) -> dict:
         """Sign and send one transaction and wait for its receipt. Raises on revert."""
         rpc = self.rpc
-        gas = int(rpc('eth_estimateGas', {'from': self.address, 'to': to, 'data': data}), 16)
+        gas = int(rpc('eth_estimateGas', {'from': self.address, 'to': to, 'data': data,
+                                          'value': hex(value)}), 16)
         price = int(rpc('eth_gasPrice'), 16)
-        tx = {'type': 2, 'chainId': self.net.chain_id, 'to': to, 'data': data, 'value': 0,
+        tx = {'type': 2, 'chainId': self.net.chain_id, 'to': to, 'data': data, 'value': value,
               'nonce': int(rpc('eth_getTransactionCount', self.address, 'pending'), 16),
               'gas': gas * 5 // 4, 'maxPriorityFeePerGas': self.TIP,
               'maxFeePerGas': max(2 * price, self.MIN_FEE)}
@@ -265,9 +272,10 @@ class ArcFunding:
     MAX_RANGE = 5_000     # blocks per log query when catching up after downtime
     MAX_TRIES = 3         # a deposit that fails this often is set aside, not retried forever
     SEEN = 200            # transfers remembered, so a retried range never opens one twice
+    NAME_S = 6.0          # between ENS name lookups
 
     def __init__(self, kind: str = 'arc-testnet', chain=None, state_path: Path | None = None,
-                 gas_fee: int | None = None, start: bool = True) -> None:
+                 gas_fee: int | None = None, start: bool = True, lookup=None) -> None:
         self.kind = kind
         self.net = network(kind)
         if not self.net.escrow:
@@ -293,6 +301,9 @@ class ArcFunding:
         self.last_cashout: tuple[int, str, str] | None = None   # paid, player, tx
         self.tries: dict[str, int] = {}
         self.checked = False
+        self.names: dict[str, str] = {}          # player -> tick.eth name, once ENS has one
+        self.lookup = lookup or ens_name
+        self._next_name = 0.0
         self._load()
         self._stop = threading.Event()
         self._wake = threading.Event()
@@ -406,6 +417,22 @@ class ArcFunding:
                 self._save()
         if not self.busy:
             self.status = 'IN PLAY' if self.sessions else 'WAITING FOR USDC'
+        self._look_up_names()
+
+    def _look_up_names(self) -> None:
+        """Find each player's tick.eth name. ENS trouble never gets in the way of the money."""
+        wanted = [s.player for s in self.sessions if s.player not in self.names]
+        if not wanted or time.monotonic() < self._next_name:
+            return
+        self._next_name = time.monotonic() + self.NAME_S
+        for player in dict.fromkeys(wanted):
+            try:
+                name = self.lookup(player)
+            except Exception:    # Sepolia unreachable or no names yet: keep showing the address
+                return
+            if name:
+                self.names[player] = name
+                self.events.put(('named', player, name))
 
     def _drop_ended_sessions(self) -> None:
         """Forget sessions that ended while the device was off (a reclaim, say)."""
