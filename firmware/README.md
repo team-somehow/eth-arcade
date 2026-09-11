@@ -18,30 +18,34 @@ The rotary encoder is the game: GPIO21 CLK, GPIO20 DT, GPIO16 switch, 3.3 V logi
 
 Press A again in the same window and the extra 10 goes onto **the same box** — the first press fixes that window's level. After that the dial is **locked out entirely**: the box does not move, does not shrink, and no second cursor appears. Only money can still be added, and only by pressing A. The dial frees up again when the bell rolls the window over.
 
-Placing a bet makes the box **jump left**, out of the `AIM` lane and into `NEXT`, and the `AIM` lane goes dark. That movement is the signal that the dial is no longer yours; the status line says `BOX LOCKED / A ADDS 10` if you turn it anyway.
+Placing a bet turns the dashed box **solid where it stands**, with a pop. That is the signal that the dial is no longer yours: turn it anyway and the box shakes and the status line says `BOX LOCKED / A ADDS 10`.
 
 Spending money on a dial nudge would be worse than a dead dial, which is why adding stake stays on the button.
 
-Desktop and touch equivalents: Up/Down (or W/S) held down emulates a spun dial, Right/Enter/Space is the short click, Left/Z/Backspace the long one, `F` opens the loader, and **Escape quits the program immediately** from any screen. On a desktop the game opens in a plain 480×320 window; only the Pi gets the fullscreen panel. Tapping the upper/lower half of the chart cranks the box.
+Desktop and touch equivalents: Up/Down (or W/S) held down emulates a spun dial, Right/Enter/Space is the short click, Left/Z/Backspace the long one, `F` opens the loader, and **Escape quits the program immediately** from any screen. On a desktop the game opens in a plain 480×320 window; only the Pi gets the fullscreen panel. Tapping above the aim box raises it and tapping below lowers it (`design/box-run-live/touch-zones.png`); buying stays on the button.
 
 `TICK_GAME=rush` still selects the earlier crank-a-flywheel game; `box` is the default.
 
 ## Reading the screen
 
-Time runs left to right: the price trace, then **NOW** (this window's bell), **NEXT** (the bell after), and **AIM** — your hand.
+Time is one horizontal scale across the whole screen, 16 px a second. A rider on a one-wheeler sits a quarter of the way in at *now*, the wheel resting on the live price; history trails off to the left, and every bell is a dotted post ahead that slides toward the wheel. A box is drawn centred on the post of the bell it settles at, so it arrives under the wheel at the exact moment it is judged: be inside it as you pass through and you're paid. There are no columns.
 
 | On screen | Meaning |
 |---|---|
-| `MOVE +0.62` | How far the price has come since this window opened |
+| `+0.62` beside the price | How far the price has come since this window opened |
 | Dashed grey line, `OPEN` | The price this window opened at — the chart is anchored here |
-| Faint horizontal lines | A ruler one box-height apart, so "it moved half a box" is something you can see |
-| Dotted white line | Where the price is now, carried across the columns to read against your box |
-| Solid yellow box, NOW | Your live bet, settling at this bell |
-| Solid cream box, NEXT | Bought and locked for the next window |
-| Dashed box, AIM | The cursor, with its live quote |
-| Dark AIM lane, `LOCKED` | A bet is placed; the dial does nothing |
+| `07s` over a post | Time to this window's bell |
+| Dotted line ahead of the wheel | Where the price is now, carried forward to read against the boxes |
+| Solid yellow box | Your live bet, arriving at this bell; it glows while the price is inside |
+| Solid cream box | Bought and locked for the next bell |
+| Dashed yellow box | The cursor, with its live quote; a fresh one slides in from the right after every bell |
+| Green / red box behind the rider | A box that already settled, with a dot where the price landed |
 | `20 @ 2.0x` | Stake on that box and the multiple it pays |
 | Small triangle | The box sits past the top or bottom of the visible band |
+
+The wheel is a single wheel on purpose: the price line is jagged, and legs or a two-wheeled base would visibly clip into it, while one wheel touches it at exactly one point. The rider leans into the slope and reacts to results — a hop on a hit, a backflip on 5x or better, a wobble on a miss. **Three hits in a row is a hat trick**: the rider leans back into a one-wheel wheelie with a jetpack on fire, and stays lit until a miss puts it out.
+
+The scene — sky, two parallax rows of city, the street, the rider — is drawn in code (`games/box_scene.py`), like the sound, with no image assets. Everything moves on the clock rather than on ticks, and the wheel, the camera and the cursor ease toward where the model says they are, so a price tick or a detent is a glide rather than a jump.
 
 The visible band is exactly **two box-heights either way** (±$2.83 on $2,500 ETH), which is what makes a dollar of drift a visible swing rather than a wobble. Widening it to fit every reachable box would flatten the price back out, so a box cranked to the far edge is clamped with a triangle instead.
 

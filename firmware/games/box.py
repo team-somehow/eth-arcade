@@ -1,34 +1,42 @@
 """BOX RUN: crank the box, buy the next window. Renderer, sound and input."""
 from __future__ import annotations
+from collections import deque
+import math
 import os
 import time
 from typing import Callable
 
 import pygame
 
-from games.box_model import BoxModel
+from games.box_model import BoxModel, Result
+from games.box_scene import Floaters, Rider, Skyline, Sparks, mix
 from input import InputAction, event_position
 from markets.feed import open_feed
-from ui import NAVY, PANEL, GRID, CREAM, MUTED, YELLOW, MINT, RED, Sounds, label, footer
+from ui import NAVY, GRID, CREAM, MUTED, YELLOW, MINT, RED, Sounds, font, label, footer
 from wallet import LOAD_CHOICES, MICRO, DemoFunding, UsdcFunding, Wallet, format_usdc
 
-# Chart geometry. Time reads left to right: history, this window's bell, the
-# next one's — then your hand. A placed bet visibly jumps left out of the AIM
-# lane, which is the only signal that says "you cannot crank this any more".
-TRACE = pygame.Rect(14, 72, 192, 166)
-NOW_COL = pygame.Rect(210, 72, 82, 166)
-NEXT_COL = pygame.Rect(296, 72, 82, 166)
-AIM_COL = pygame.Rect(382, 72, 82, 166)
-MID_Y = TRACE.centery
-HALF_PX = TRACE.height // 2 - 9
+# The world. Time is one horizontal scale across the whole screen: the rider
+# sits at RIDER_X at "now", history is to the left, and every bell is a post
+# ahead that slides toward him at PX_PER_S. There are no columns — a box is
+# drawn at the moment it settles, so it arrives under the wheel on its bell.
+PLAY = pygame.Rect(0, 34, 480, 208)
+STREET_BOTTOM = 274
+MID_Y = PLAY.centery
+HALF_PX = 92
 # Boxes are drawn inside this band, which has to cover the whole price range a
 # box can legally reach — squeeze it and a box at full crank gets clipped and
-# flagged off-scale when it is really on screen. Labels draw over it instead.
-BAND_TOP = TRACE.top + 4
-BAND_BOTTOM = TRACE.bottom - 4
-TRACE_S = BoxModel.WINDOW_S * 1.2   # history across the trace: this window, plus a lead-in
+# flagged off-scale when it is really on screen.
+BAND_TOP = PLAY.top + 4
+BAND_BOTTOM = PLAY.bottom - 4
+RIDER_X = 120
+# Slow enough that the next window's bell, twenty seconds out, is on screen.
+PX_PER_S = 16.0
+BOX_W = 44
 OPEN_LINE = (74, 96, 103)
-DEAD = (17, 30, 41)       # the AIM lane once the bet is locked
+POST = (40, 58, 76)
+POST_NOW = (88, 110, 128)
+SHADE = (80, 170, 210, 30)   # under the price line
+GLOW = (44, 80, 98)
 
 
 def build_wallet() -> Wallet:
@@ -56,6 +64,22 @@ def dashed_rect(s: pygame.Surface, rect: pygame.Rect, color: tuple, dash: int = 
         pygame.draw.line(s, color, (rect.right - 1, y), (rect.right - 1, end), 2)
 
 
+def say(s: pygame.Surface, words: str, x: float, y: float, size: int = 16,
+        color: tuple = CREAM, center: bool = False) -> None:
+    """A label with a drop shadow, so it reads over the city."""
+    label(s, words, round(x) + 1, round(y) + 1, size, (0, 0, 0), center)
+    label(s, words, round(x), round(y), size, color, center)
+
+
+def say_right(s: pygame.Surface, words: str, right: int, y: int, size: int, color: tuple) -> None:
+    say(s, words, right - font(size).size(words)[0], y, size, color)
+
+
+def ease_out(p: float) -> float:
+    p = min(1.0, max(0.0, p))
+    return 1 - (1 - p) ** 3
+
+
 class BoxGame:
     def __init__(self, seed: int | None = None, sound: bool = True,
                  source: str | None = None, wallet: Wallet | None = None,
@@ -77,6 +101,23 @@ class BoxGame:
         self.last_bell: tuple | None = None
         self.was_inside: bool | None = None
         self.was_fresh = True
+        # The scene. Everything on screen eases toward where the model says it
+        # is, in price terms, so a tick or a detent is a glide and not a jump.
+        self.skyline = Skyline(PLAY.width, PLAY.bottom, STREET_BOTTOM)
+        self.rider = Rider()
+        self.sparks = Sparks()
+        self.floaters = Floaters()
+        self.shade = pygame.Surface(PLAY.size, pygame.SRCALPHA)
+        self.anchor = 0.0          # eased window open: the camera
+        self.ride_price = 0.0      # eased spot: the wheel
+        self.aim_price = 0.0       # eased cursor: the dashed box
+        self.trail: deque[tuple[float, float]] = deque()
+        self.settled: deque[tuple[Result, float]] = deque(maxlen=4)
+        self.ghost: tuple[float, float, float, float] | None = None
+        self.aim_in_at = -99.0
+        self.pop_at = -99.0
+        self.shake_at = -99.0
+        self.streak = 0            # hits in a row; three sets the rider on fire
 
     def enter(self) -> None:
         self.held.clear()
@@ -130,6 +171,7 @@ class BoxGame:
             if self.clock - self.last_sound_at > .25:
                 self.play('warn')
                 self.last_sound_at = self.clock
+            self.shake_at = self.clock
             self.note('BOX LOCKED / A ADDS 10', 1.5)
             return
         above = m.aim - m.price
@@ -152,6 +194,12 @@ class BoxGame:
             presses = min(3, max(1, round(m.pending.stake / m.STAKE)))
             self.play(f'buy{presses}')
             self.message = ''
+            # The dashed box turns solid where it stands, with a pop.
+            self.aim_price = m.pending.level
+            self.pop_at = self.clock
+            x = self.x_at(m.window_end + m.WINDOW_S)
+            self.sparks.burst(x, self.y_of(m.pending.level), 10, (CREAM, YELLOW),
+                              110, .45, 3, gravity=0, drift=-PX_PER_S)
         elif not m.fresh(self.clock):
             self.note('NO LIVE PRICE / NOT PLACED')
         elif m.settling:
@@ -181,13 +229,14 @@ class BoxGame:
 
     def handle_touch(self, pos: tuple[int, int]) -> str | None:
         x, y = pos
-        if y >= 274:
+        if y >= STREET_BOTTOM:
             return self.handle_action(InputAction.B if x < 240 else InputAction.A)
         if self.wallet_open:
             return self.handle_action(InputAction.UP if x >= 240 else InputAction.DOWN)
-        if TRACE.top <= y < TRACE.bottom:
-            # Tap above or below the middle of the chart to crank the box.
-            return self.handle_action(InputAction.UP if y < MID_Y else InputAction.DOWN)
+        if PLAY.top <= y < PLAY.bottom:
+            # Tap above the aim box to raise it, below to lower it.
+            aim_y = self.y_of(self.aim_price) if self.model.started else MID_Y
+            return self.handle_action(InputAction.UP if y < aim_y else InputAction.DOWN)
         return None
 
     def update(self, dt: float) -> None:
@@ -213,9 +262,16 @@ class BoxGame:
             else:
                 self.play('miss')
             self.flash_until = self.clock + 1.6
+            self.on_result(m.last, m.window_end - m.WINDOW_S)
         elif m.windows != windows_before:
             # The empty-window heartbeat; a result speaks for the bell instead.
             self.play('bell')
+        if m.windows != windows_before:
+            if m.live is None:
+                # Nobody bought the box on its way in: it fades out on its post
+                # while a fresh one slides in from the right for the next bell.
+                self.ghost = (self.aim_price, m.half, m.window_end, self.clock)
+            self.aim_in_at = self.clock
 
         # Crossing into or out of a live box is the whole tension of a window,
         # so it gets a sound of its own in each direction.
@@ -237,9 +293,73 @@ class BoxGame:
             self.play('stale')
         self.was_fresh = fresh
         self.music('idle' if self.wallet_open else self.bed_for_now())
+        self.animate(dt)
+
+    def on_result(self, result: Result, bell: float) -> None:
+        """A box just reached the wheel: make it land."""
+        self.settled.append((result, bell))
+        y = self.y_of((result.low + result.high) / 2)
+        if result.voided:
+            self.floaters.add('VOID', RIDER_X + 64, y - 30, MUTED)
+            return
+        if result.hit:
+            self.streak += 1
+            self.sparks.burst(RIDER_X, y, 20, (YELLOW, YELLOW, CREAM), 180, 1.1, 5,
+                              square=True, drift=-PX_PER_S)
+            self.floaters.add(f'+{format_usdc(result.payout)}', RIDER_X + 64, y - 36, MINT, 20)
+            if self.streak >= 3:
+                # Low over the city, clear of the rider, the boxes and their tags.
+                self.floaters.add('HAT TRICK!' if self.streak == 3 else f'{self.streak} IN A ROW!',
+                                  300, BAND_BOTTOM - 30, YELLOW, 28, life=2.2, rise=10)
+                bx, by = self.rider.back(RIDER_X, self.rider_y())
+                self.sparks.burst(bx, by, 26, (YELLOW, (255, 138, 40), RED), 150, .6, 5,
+                                  gravity=-60)
+                self.play('hattrick')
+            self.rider.react('flip' if result.multiple >= 5
+                             else ('cheer' if self.streak == 3 else 'hop'))
+            return
+        if self.streak >= 3:
+            bx, by = self.rider.back(RIDER_X, self.rider_y())
+            self.sparks.burst(bx, by, 16, ((96, 104, 112), (70, 76, 84)), 60, 1.0, 6,
+                              gravity=-50)
+            self.play('fizzle')
+        self.streak = 0
+        self.sparks.burst(RIDER_X, y, 14, (RED, (140, 60, 56)), 150, .8, 4, square=True,
+                          drift=-PX_PER_S)
+        self.floaters.add('MISS', RIDER_X + 64, y - 34, RED, 20)
+        self.rider.react('wobble')
+
+    def animate(self, dt: float) -> None:
+        """Ease the camera, the wheel and the cursor; run the rider and sparks."""
+        m = self.model
+
+        def ease(rate: float) -> float:
+            return 1 - math.exp(-rate * dt)
+
+        if m.started:
+            if not self.anchor:
+                self.anchor, self.ride_price, self.aim_price = m.window_open, m.price, m.aim
+            # The camera still anchors on the window's open, as it always has —
+            # it just glides there at the bell instead of snapping.
+            self.anchor += (m.window_open - self.anchor) * ease(5)
+            self.ride_price += (m.price - self.ride_price) * ease(12)
+            self.aim_price += (m.aim - self.aim_price) * ease(24)
+            self.trail.append((self.clock, self.ride_price))
+            while len(self.trail) > 2 and self.clock - self.trail[0][0] > .6:
+                self.trail.popleft()
+        slope = 0.0
+        if len(self.trail) > 1 and m.view_half > 0:
+            t0, p0 = self.trail[0]
+            rise = (self.ride_price - p0) / m.view_half * HALF_PX
+            slope = math.degrees(math.atan2(rise, max(4.0, (self.clock - t0) * PX_PER_S)))
+        self.rider.update(dt, slope, self.streak >= 3)
+        if self.streak >= 3:
+            self.sparks.flame(*self.rider.back(RIDER_X, self.rider_y()), -PX_PER_S)
+        self.sparks.update(dt)
+        self.floaters.update(dt)
 
     # ---- drawing ---------------------------------------------------------
-    def y_of(self, price: float) -> int:
+    def y_of(self, price: float) -> float:
         """Price to screen, anchored on the window's opening price.
 
         Anchoring on spot instead would re-centre the chart on every tick and
@@ -248,118 +368,179 @@ class BoxGame:
         m = self.model
         if m.view_half <= 0:
             return MID_Y
-        return round(MID_Y - (price - m.window_open) / m.view_half * HALF_PX)
+        return MID_Y - (price - (self.anchor or m.window_open)) / m.view_half * HALF_PX
+
+    def x_at(self, t: float) -> float:
+        """Time to screen: the rider is now, a bell is a post ahead of him."""
+        return RIDER_X + (t - self.clock) * PX_PER_S
+
+    def rider_y(self) -> float:
+        if not self.model.started:
+            return PLAY.bottom - 1          # parked on the street until a price arrives
+        return max(BAND_TOP + 2, min(BAND_BOTTOM, self.y_of(self.ride_price)))
 
     def draw(self, s: pygame.Surface) -> None:
         m = self.model
-        s.fill(NAVY)
-        label(s, 'BOX RUN', 14, 5, 20, CREAM)
-        label(s, f'{format_usdc(m.wallet.balance)} {m.wallet.funding.name}', 336, 9, 16, MINT)
-        pygame.draw.line(s, GRID, (14, 32), (466, 32))
         if self.wallet_open:
+            s.fill(NAVY)
+            label(s, 'BOX RUN', 14, 5, 20, CREAM)
+            label(s, f'{format_usdc(m.wallet.balance)} {m.wallet.funding.name}', 336, 9, 16, MINT)
+            pygame.draw.line(s, GRID, (14, 32), (466, 32))
             self.draw_wallet(s)
             return
+        self.skyline.draw(s, self.clock * PX_PER_S, self.clock)
         if not m.started:
-            label(s, f'{self.feed.name} / PAPER', 14, 40, 16, MUTED)
-            label(s, 'WAITING FOR THE', 240, 130, 22, YELLOW, True)
-            label(s, 'FIRST PRICE...', 240, 165, 22, YELLOW, True)
+            self.rider.draw(s, RIDER_X, self.rider_y(), self.spin())
+            say(s, 'WAITING FOR THE', 280, 96, 22, YELLOW, True)
+            say(s, 'FIRST PRICE...', 280, 128, 22, YELLOW, True)
             footer(s, '< HOME', 'BUY 10 >')
             return
-        label(s, f'${m.price:,.2f}', 14, 38, 22, CREAM)
-        label(s, 'MOVE', 172, 47, 13, MUTED)
-        label(s, f'{m.move:+,.2f}', 218, 38, 22, MINT if m.move >= 0 else RED)
-        if m.settling:
-            label(s, 'SETTLING', 348, 44, 18, RED)
-        else:
-            left = m.remaining(self.clock)
-            label(s, 'BELL', 352, 47, 13, MUTED)
-            label(s, f'{int(left):02d}s', 402, 36, 26, RED if left <= 3 else YELLOW)
-        self.draw_chart(s)
+        self.draw_world(s)
+        self.draw_hud(s)
         self.draw_status(s)
         footer(s, '< HOME', 'BUY 10 >' if m.can_buy() else 'LOAD >')
 
-    def draw_chart(self, s: pygame.Surface) -> None:
-        m = self.model
-        locked = m.locked
-        for rect in (TRACE, NOW_COL, NEXT_COL):
-            pygame.draw.rect(s, PANEL, rect)
-        pygame.draw.rect(s, DEAD if locked else PANEL, AIM_COL)
-        # A ruler in box-heights: the band is exactly two boxes either way, so
-        # "the price has moved one box" is something you can see at a glance.
-        for step in (-2, -1, 1, 2):
-            y = self.y_of(m.window_open + step * 2 * m.half)
-            pygame.draw.line(s, GRID, (TRACE.left, y), (TRACE.right, y), 1)
-        open_y = self.y_of(m.window_open)
-        for x in range(TRACE.left, AIM_COL.right, 10):
-            pygame.draw.line(s, OPEN_LINE, (x, open_y), (x + 5, open_y), 1)
+    def spin(self) -> float:
+        return self.clock * PX_PER_S / Rider.WHEEL
 
+    def draw_hud(self, s: pygame.Surface) -> None:
+        m = self.model
+        price = f'${m.price:,.2f}'
+        say(s, price, 10, 6, 20, CREAM)
+        say(s, f'{m.move:+,.2f}', 22 + font(20).size(price)[0], 10, 16, MINT if m.move >= 0 else RED)
+        say_right(s, f'{format_usdc(m.wallet.balance)} {m.wallet.funding.name}', 470, 10, 15, MINT)
+
+    def draw_world(self, s: pygame.Surface) -> None:
+        m = self.model
+        open_y = round(self.y_of(m.window_open))
+        for x in range(0, PLAY.right, 10):
+            pygame.draw.line(s, OPEN_LINE, (x, open_y), (x + 5, open_y), 1)
+        say(s, 'OPEN', 4, open_y + 3, 12, MUTED)
+
+        # Bell posts, one per window, riding in toward the wheel.
+        for k in (-1, 0, 1):
+            bx = round(self.x_at(m.window_end + k * m.WINDOW_S))
+            if -2 <= bx <= PLAY.right + 2:
+                for y in range(PLAY.top + 26, PLAY.bottom, 8):
+                    pygame.draw.line(s, POST_NOW if k == 0 else POST, (bx, y), (bx, y + 3))
+        bell_x = self.x_at(m.window_end)
+        if m.settling:
+            say(s, 'SETTLING', max(40, bell_x), PLAY.top + 5, 14, RED, True)
+        else:
+            left = m.remaining(self.clock)
+            say(s, f'{int(left):02d}s', bell_x, PLAY.top + 2, 20,
+                RED if left <= 3 else YELLOW, True)
+
+        self.draw_settled(s)
+        self.draw_bets(s)
+        self.draw_trace(s)
+        self.sparks.draw(s)
+        ride_y = self.rider_y()
+        if ride_y != self.y_of(self.ride_price):
+            say(s, 'OFF SCALE', RIDER_X + 18, ride_y - 16, 12, YELLOW)
+        self.rider.draw(s, RIDER_X, ride_y, self.spin())
+        self.floaters.draw(s)
+
+    def draw_trace(self, s: pygame.Surface) -> None:
+        m = self.model
+        ride_y = self.rider_y()
+        points = [(self.x_at(t), self.y_of(p)) for t, p in m.history]
+        # The wheel is eased; the last raw tick would put a jag under it.
+        points = [pt for pt in points if -4 <= pt[0] < RIDER_X - 3]
+        points.append((RIDER_X, ride_y))
         clip = s.get_clip()
-        s.set_clip(TRACE)
-        points = [(TRACE.right - round((self.clock - t) / TRACE_S * TRACE.width), self.y_of(p))
-                  for t, p in m.history if self.clock - t <= TRACE_S]
+        s.set_clip(PLAY)
         if len(points) > 1:
-            pygame.draw.lines(s, CREAM, False, points, 3)
+            self.shade.fill((0, 0, 0, 0))
+            hill = [(x, y - PLAY.top) for x, y in points]
+            hill += [(RIDER_X, PLAY.height), (points[0][0], PLAY.height)]
+            pygame.draw.polygon(self.shade, SHADE, hill)
+            s.blit(self.shade, PLAY.topleft)
+            pygame.draw.lines(s, GLOW, False, points, 6)
+            pygame.draw.lines(s, CREAM, False, points, 2)
+        # Where the price is now, carried forward to read against the boxes.
+        for x in range(RIDER_X + 16, PLAY.right, 8):
+            pygame.draw.line(s, (150, 146, 128), (x, round(ride_y)), (x + 3, round(ride_y)))
         s.set_clip(clip)
 
-        # Where spot sits relative to the boxes, carried across the columns.
-        spot_y = max(TRACE.top + 1, min(TRACE.bottom - 2, self.y_of(m.price)))
-        for x in range(TRACE.right - 10, AIM_COL.right, 7):
-            pygame.draw.line(s, CREAM, (x, spot_y), (x + 3, spot_y), 1)
-        label(s, 'OPEN', TRACE.left + 3, open_y + 3, 12, MUTED)
-        if not TRACE.top < self.y_of(m.price) < TRACE.bottom:
-            label(s, 'OFF SCALE', TRACE.left + 40, spot_y - 14, 13, YELLOW)
+    def box_rect(self, x: float, low: float, high: float) -> pygame.Rect:
+        top = max(BAND_TOP, min(BAND_BOTTOM - 8, round(self.y_of(high))))
+        bottom = max(top + 8, min(BAND_BOTTOM, round(self.y_of(low))))
+        return pygame.Rect(round(x - BOX_W / 2), top, BOX_W, bottom - top)
 
-        flashing = self.clock < self.flash_until and m.last is not None
-        if m.live is not None and m.live.stake:
-            self.draw_box(s, NOW_COL, m.live.low, m.live.high, YELLOW,
-                          stake=m.live.stake, multiple=m.live.multiple)
-        elif flashing:
-            self.draw_result(s)
-        if locked:
-            self.draw_box(s, NEXT_COL, m.pending.low, m.pending.high, CREAM,
-                          stake=m.pending.stake, multiple=m.pending.multiple)
-            label(s, 'LOCKED', AIM_COL.x + 4, AIM_COL.bottom - 23, 14, MUTED)
+    def draw_box(self, s: pygame.Surface, x: float, low: float, high: float, color: tuple,
+                 alpha: int = 48, dashed: bool = False, grow: int = 0,
+                 width: int = 3) -> pygame.Rect:
+        rect = self.box_rect(x, low, high).inflate(grow, grow)
+        if alpha:
+            glass = pygame.Surface(rect.size, pygame.SRCALPHA)
+            glass.fill((*color, alpha))
+            s.blit(glass, rect)
+        if dashed:
+            dashed_rect(s, rect, color)
         else:
-            dashed_rect(s, self.box_rect(AIM_COL, m.aim - m.half, m.aim + m.half), YELLOW)
-            label(s, f'{m.quote(m.aim, self.clock):.1f}x',
-                  AIM_COL.x + 4, AIM_COL.bottom - 24, 17, YELLOW)
-        label(s, 'NOW', NOW_COL.x + 5, 76, 13, MUTED)
-        label(s, 'NEXT', NEXT_COL.x + 5, 76, 13, MUTED)
-        label(s, 'AIM', AIM_COL.x + 5, 76, 13, GRID if locked else MUTED)
-
-    def box_rect(self, col: pygame.Rect, low: float, high: float) -> pygame.Rect:
-        top = max(BAND_TOP, min(BAND_BOTTOM - 8, self.y_of(high)))
-        bottom = max(top + 8, min(BAND_BOTTOM, self.y_of(low)))
-        return pygame.Rect(col.x + 3, top, col.width - 6, bottom - top)
-
-    def draw_box(self, s: pygame.Surface, col: pygame.Rect, low: float, high: float,
-                 color: tuple, stake: int = 0, multiple: float = 0.0) -> None:
-        rect = self.box_rect(col, low, high)
-        tint = tuple(int(c * .18 + PANEL[i] * .82) for i, c in enumerate(color))
-        pygame.draw.rect(s, tint, rect)
-        pygame.draw.rect(s, color, rect, 3)
-        # The box stays a clean shape; its numbers live on the column floor.
+            pygame.draw.rect(s, color, rect, width, border_radius=3)
+        # Past the edge of the visible band: say so rather than lie about it.
+        cx = rect.centerx
         if self.y_of(high) < BAND_TOP:
-            pygame.draw.polygon(s, color, [(col.centerx, col.y + 6),
-                                           (col.centerx - 7, col.y + 15),
-                                           (col.centerx + 7, col.y + 15)])
+            pygame.draw.polygon(s, color, [(cx, rect.top + 4), (cx - 6, rect.top + 12),
+                                           (cx + 6, rect.top + 12)])
         if self.y_of(low) > BAND_BOTTOM:
-            pygame.draw.polygon(s, color, [(col.centerx, BAND_BOTTOM + 12),
-                                           (col.centerx - 7, BAND_BOTTOM + 3),
-                                           (col.centerx + 7, BAND_BOTTOM + 3)])
-        if stake:
-            label(s, f'{format_usdc(stake, 0)} @ {multiple:.1f}x',
-                  col.x + 4, col.bottom - 22, 14, color)
+            pygame.draw.polygon(s, color, [(cx, rect.bottom - 4), (cx - 6, rect.bottom - 12),
+                                           (cx + 6, rect.bottom - 12)])
+        return rect
 
-    def draw_result(self, s: pygame.Surface) -> None:
-        """Flash the box that just settled, so you see where the price landed."""
-        result = self.model.last
-        color = MUTED if result.voided else (MINT if result.hit else RED)
-        self.draw_box(s, NOW_COL, result.low, result.high, color)
-        word = 'VOID' if result.voided else ('HIT' if result.hit else 'MISS')
-        y = self.y_of(result.high) - 24 if result.hit else self.y_of(result.price) - 10
-        label(s, word, NOW_COL.centerx, max(NOW_COL.y + 18, min(NOW_COL.bottom - 26, y)),
-              21, color, True)
+    def box_tag(self, s: pygame.Surface, rect: pygame.Rect, text: str, color: tuple) -> None:
+        y = rect.top - 17 if rect.top - 17 >= PLAY.top + 22 else rect.bottom + 3
+        say(s, text, rect.centerx, y, 14, color, True)
+
+    def draw_bets(self, s: pygame.Surface) -> None:
+        m = self.model
+        now = self.clock
+        if m.live is not None and m.live.stake:
+            left = m.remaining(now)
+            urgent = left <= 3 and int(now * 6) % 2 == 0
+            rect = self.draw_box(s, self.x_at(m.window_end), m.live.low, m.live.high, YELLOW,
+                                 alpha=96 if m.inside else 40, width=4 if urgent else 3)
+            self.box_tag(s, rect, f'{format_usdc(m.live.stake, 0)} @ {m.live.multiple:.1f}x', YELLOW)
+
+        if self.ghost is not None:
+            level, half, bell, since = self.ghost
+            fade = (now - since) / .45
+            if fade < 1:
+                self.draw_box(s, self.x_at(bell), level - half, level + half,
+                              mix(YELLOW, POST, fade), alpha=0, dashed=True)
+
+        next_x = self.x_at(m.window_end + m.WINDOW_S)
+        if m.locked:
+            p = (now - self.pop_at) / .25
+            grow = round(10 * (1 - p)) if p < 1 else 0
+            t = now - self.shake_at
+            if t < .3:
+                next_x += 4 * math.sin(t * 60) * (1 - t / .3)
+            rect = self.draw_box(s, next_x, m.pending.low, m.pending.high, CREAM, grow=grow)
+            self.box_tag(s, rect, f'{format_usdc(m.pending.stake, 0)} @ {m.pending.multiple:.1f}x',
+                         CREAM)
+        else:
+            # A fresh cursor slides in from the right edge after each bell.
+            next_x += 60 * (1 - ease_out((now - self.aim_in_at) / .45))
+            half = m.half
+            rect = self.draw_box(s, next_x, self.aim_price - half, self.aim_price + half, YELLOW,
+                                 alpha=18, dashed=True)
+            self.box_tag(s, rect, f'{m.quote(m.aim, now):.1f}x', YELLOW)
+
+    def draw_settled(self, s: pygame.Surface) -> None:
+        """Boxes that already rang stay in the world and scroll away behind him."""
+        for result, bell in self.settled:
+            x = self.x_at(bell)
+            if x < -BOX_W:
+                continue
+            color = MUTED if result.voided else (MINT if result.hit else RED)
+            fade = min(1.0, max(0.0, (self.clock - bell) / 7))
+            self.draw_box(s, x, result.low, result.high, mix(color, POST, fade),
+                          alpha=round(70 * (1 - fade)))
+            # Where the price actually landed, so a miss shows by how much.
+            pygame.draw.circle(s, mix(color, POST, fade), (round(x), round(self.y_of(result.price))), 3)
 
     def status(self) -> tuple[str, tuple]:
         """The one line of words at the bottom, as text and colour.
@@ -387,9 +568,12 @@ class BoxGame:
     def draw_status(self, s: pygame.Surface) -> None:
         m = self.model
         text, color = self.status()
-        label(s, text[:27], 14, 244, 17, color)
-        if m.rounds:
-            label(s, f'HITS {m.hits}/{m.rounds}', 380, 246, 15, MUTED)
+        say(s, text[:27], 10, PLAY.bottom + 6, 16, color)
+        if self.streak >= 2:
+            say_right(s, f'STREAK {self.streak}', 470, PLAY.bottom + 7, 15,
+                      (255, 138, 40) if self.streak >= 3 else YELLOW)
+        elif m.rounds:
+            say_right(s, f'HITS {m.hits}/{m.rounds}', 470, PLAY.bottom + 7, 15, MUTED)
 
     def draw_wallet(self, s: pygame.Surface) -> None:
         wallet = self.model.wallet
@@ -399,7 +583,7 @@ class BoxGame:
         label(s, subtitle, 240, 88, 15, MUTED, True)
         for i, amount in enumerate(LOAD_CHOICES):
             rect = pygame.Rect(16 + i * 155, 122, 140, 66)
-            pygame.draw.rect(s, YELLOW if i == self.amount_index else PANEL, rect, border_radius=4)
+            pygame.draw.rect(s, YELLOW if i == self.amount_index else GRID, rect, border_radius=4)
             label(s, f'+{amount}', rect.centerx, 138, 28,
                   NAVY if i == self.amount_index else CREAM, True)
         label(s, 'UP / DOWN TO CHOOSE', 240, 204, 17, MUTED, True)
