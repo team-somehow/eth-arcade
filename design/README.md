@@ -4,6 +4,10 @@
 
 White FDM case, charcoal painted bezel, existing red/yellow buttons, short side crank, tape assembly, Pi Zero 2 W, 3.5-inch landscape display. Enclosure size and crank attachment are NOT verified; measurements are required before CAD. Older screw-fastened and multi-color renders below are preserved as explorations, not the current build plan.
 
+## Proposals in progress
+
+- [INSERT COIN: the money and leaderboard flow](insert-coin/) — arcade-style deposit and payout, and a leaderboard that climbs your row one place at a time. 480x320 mockups, two animated moves, and the flow in plain words; not built yet. [Contact sheet](insert-coin/contact-sheet.png).
+
 ## Saved images and concepts
 
 - [Latest crank / open-back appearance study](practical-crank/assembly.png)

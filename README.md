@@ -1,6 +1,6 @@
 # ethonline-2026
 
-TICK: a landscape **480×320** pygame crypto arcade for a Raspberry Pi handheld. **BOX RUN** is playable now: a box on the ETH price ladder and a 20-second clock that never stops — crank the dial to move the box, press A to buy the next 20 seconds. Prices are read-only. Money is paper by default; with `TICK_FUNDING=arc-testnet` it is real Arc testnet USDC: send it to the QR code on the device, play, and cash out back to the wallet it came from, through the [`TickEscrow`](contracts/) contract.
+TICK: a landscape **480×320** pygame crypto arcade for a Raspberry Pi handheld. **BOX RUN** is playable now: a box on the ETH price ladder and a 10-second clock that never stops — crank the dial to move the box, press A to buy the next 10 seconds. Prices are read-only. Money is paper by default; with `TICK_FUNDING=arc-testnet` it is real Arc testnet USDC: send it to the QR code on the device, play, and cash out back to the wallet it came from, through the [`TickEscrow`](contracts/) contract.
 
 ## Layout
 
@@ -34,4 +34,4 @@ python main.py
 
 See [`firmware/README.md`](firmware/README.md) for controls and Pi/KMSDRM notes.
 
-**On the device:** the dial moves your box up and down the price ladder; a short click buys the next 20 seconds (+10 USDC), pressing again adds more to the same box. Distance from spot sets the payout, priced from measured live volatility. On desktop, hold Up/Down to emulate a spun dial and press Escape to quit. See the [actual gameplay sheet](design/box-run-live/gameplay-sheet.png).
+**On the device:** the dial moves your box up and down the price ladder; a short click buys the next 10 seconds (+10 USDC in paper play), pressing again adds more to the same box. Distance from spot sets the payout, priced from measured live volatility. On desktop, hold Up/Down to emulate a spun dial and press Escape to quit. See the [actual gameplay sheet](design/box-run-live/gameplay-sheet.png).
