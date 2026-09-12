@@ -33,28 +33,28 @@ function noise(x: CanvasRenderingContext2D, W: number, H: number, alpha: number)
   x.putImageData(img, 0, 0);
 }
 
-/** The Raspberry Pi 5's top face: 85 x 56 mm. */
+/** The Raspberry Pi Zero W's top face: 65 x 30 mm. */
 export function piTop() {
-  const { c, x, W, H } = canvas(85, 56);
+  const { c, x, W, H } = canvas(65, 30);
   const at = map(W, H);
   x.fillStyle = '#186b37';
   x.fillRect(0, 0, W, H);
 
   // ground pour: a slightly lighter field with a hatched edge, as on a real board
   x.fillStyle = '#1c7a3e';
-  x.fillRect(px(3), px(3), W - px(6), H - px(6));
+  x.fillRect(px(2), px(2), W - px(4), H - px(4));
   x.strokeStyle = 'rgba(255,255,255,.035)';
   x.lineWidth = px(.35);
   for (let i = -H; i < W; i += px(1.6)) {
     x.beginPath(); x.moveTo(i, 0); x.lineTo(i + H, H); x.stroke();
   }
 
-  // routed copper: long traces fanning out of the SoC, just visible under the mask
+  // routed copper: traces fanning out of the SoC, just visible under the mask
   x.strokeStyle = 'rgba(255,214,130,.10)';
   x.lineWidth = px(.25);
-  for (let i = 0; i < 90; i++) {
-    const [sx, sy] = at(-12.5 + (Math.random() - .5) * 16, -1 + (Math.random() - .5) * 16);
-    const a = Math.random() * Math.PI * 2, len = px(6 + Math.random() * 22);
+  for (let i = 0; i < 70; i++) {
+    const [sx, sy] = at(-5 + (Math.random() - .5) * 14, -3 + (Math.random() - .5) * 12);
+    const a = Math.random() * Math.PI * 2, len = px(5 + Math.random() * 16);
     x.beginPath();
     x.moveTo(sx, sy);
     x.lineTo(sx + Math.cos(a) * len * .5, sy + Math.sin(a) * len * .5);
@@ -87,41 +87,42 @@ export function piTop() {
     else x.fillRect(cx, cy, px(w), px(h));
   };
 
-  // gold pads under the 40-pin header, pin 1 square and called out
+  // gold pads under the soldered 40-pin header, pin 1 square and called out
   for (let col = 0; col < 20; col++) {
     for (const row of [0, 1]) {
-      const mx = -35.5 + col * 2.54, my = row ? 24.04 : 21.5;
-      if (col === 0 && row === 0) pad(mx, my, 1.9, 1.9);
-      else pad(mx, my, 1.9, 1.9, .9);
+      const mx = -28.7 + col * 2.54, my = row ? 11.5 : 8.96;
+      if (col === 0 && row === 0) pad(mx, my, 1.8, 1.8);
+      else pad(mx, my, 1.8, 1.8, .85);
     }
   }
-  outline(-35.5, 21.5, 3.2, 3.2);
-  silk('1', -37.9, 19.3, 1.7, 'center');
-  silk('40', 12.5, 26.2, 1.7, 'center');
+  outline(-28.7, 8.96, 3, 3);
+  silk('1', -31, 6.6, 1.5, 'center');
 
-  // the wordmark and the usual board legends
-  silk('Raspberry Pi 5', -39, 8.5, 3.2);
-  silk('Model B  © 2023', -39, 4.8, 1.9);
-  silk('GPIO', 16, 22.8, 1.9);
-  silk('CAM/DISP 0', 4, -20.5, 1.5);
-  silk('CAM/DISP 1', 14.5, -20.5, 1.5);
-  silk('PCIe', -37.5, -6, 1.5, 'left', -Math.PI / 2);
-  silk('FAN', 30, 15.5, 1.5);
-  silk('UART', -30, -12, 1.5);
-  silk('PWR', -40, -19, 1.5);
+  // the wordmark and the legends the Zero actually carries
+  silk('Raspberry Pi Zero W', -30, 3, 2.4);
+  silk('© 2017', -30, -.2, 1.6);
+  silk('RUN', -23.5, 5.6, 1.3);
+  silk('TV', -18, 5.6, 1.3);
+  silk('SD', -31.5, -7.5, 1.4);
+  silk('HDMI', -20.1, -10.6, 1.3, 'center');
+  silk('USB', 8.9, -10.6, 1.3, 'center');
+  silk('PWR IN', 21.5, -10.6, 1.3, 'center');
+  silk('CAMERA', 27.5, -8, 1.2, 'center', -Math.PI / 2);
 
-  // component outlines, so the silicon is seated on printed footprints
-  outline(-12.5, -1, 16.5, 16.5);
-  outline(-29, 2, 12, 12);
-  outline(10, -9, 13, 13);
-  outline(-31, 16.5, 13, 11);
-  outline(-31.3, -25, 10, 8);
+  // component footprints and the wireless module's antenna keep-out
+  outline(-5, -3, 12.4, 12.4);
+  outline(23, 1, 10.4, 8.4);
+  x.strokeStyle = 'rgba(238,244,240,.35)';
+  x.lineWidth = px(.4);
+  const [ax, ay] = at(29.6, 10);
+  x.strokeRect(ax - px(3.4), ay - px(2), px(6.8), px(7));
 
-  // mounting-hole rings
-  for (const [mx, my] of [[-39, -24.5], [19, -24.5], [-39, 24.5], [19, 24.5]] as [number, number][]) {
+  // the two through-hole test pads, and the mounting holes
+  for (const [mx, my] of [[-23.5, 3.6], [-18, 3.6]] as [number, number][]) pad(mx, my, 1.6, 1.6, .8);
+  for (const [mx, my] of [[-29, -11.5], [29, -11.5], [-29, 11.5], [29, 11.5]] as [number, number][]) {
     const [cx, cy] = at(mx, my);
     x.fillStyle = '#c9c2a8';
-    x.beginPath(); x.arc(cx, cy, px(2.7), 0, 7); x.fill();
+    x.beginPath(); x.arc(cx, cy, px(2.6), 0, 7); x.fill();
     x.fillStyle = '#0b0f12';
     x.beginPath(); x.arc(cx, cy, px(1.35), 0, 7); x.fill();
   }
@@ -145,7 +146,7 @@ export function panelBack() {
   x.fillText('3.5" IPS  480 x 320', tx, ty);
   x.font = `400 ${px(2.2)}px "Chivo Mono", monospace`;
   [tx, ty] = at(-40, 14.5);
-  x.fillText('CAPACITIVE TOUCH  SPI 48MHz', tx, ty);
+  x.fillText('SPI 48MHz  26-PIN SOCKET', tx, ty);
   [tx, ty] = at(-40, -24);
   x.fillText('TICK  BOX RUN', tx, ty);
   noise(x, W, H, 8);

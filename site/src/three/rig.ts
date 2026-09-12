@@ -19,7 +19,7 @@ export const rig = {
  * explode change. */
 export const KEYS: { pos: [number, number, number]; look: [number, number, number]; ex: number }[] = [
   { pos: [-26, 28, 318], look: [18, 2, 0], ex: 0 },       // hero: three-quarter, front lit
-  { pos: [212, -16, 168], look: [34, -30, 6], ex: 0 },   // the dial: down the right face at the knob
+  { pos: [236, -4, 202], look: [24, -26, 4], ex: 0 },   // the dial: down the right face at the knob
   { pos: [-14, 34, 246], look: [2, 19, 6], ex: 0 },      // the game: close on the screen
   { pos: [372, 158, 452], look: [0, -8, -16], ex: 1 },     // exploded
   { pos: [-196, 26, 250], look: [-6, 0, 0], ex: 0 },     // sound: back together, from the left

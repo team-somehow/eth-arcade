@@ -352,14 +352,14 @@ section.doc > .head p { margin-top: 18px; }
 /* the knob comes out of the right wall, so only its cap is on the face */
 .dial {
   position: absolute; right: -7%; top: 80%; transform: translateY(-50%); width: 14.5%; aspect-ratio: 1; border-radius: 50%; cursor: grab; touch-action: none;
-  background: radial-gradient(circle at 42% 36%, #6a7076, #2e3338 76%, #1b1f23);
+  background: radial-gradient(circle at 42% 36%, #e4685a, #a82f25 76%, #75201a);
   box-shadow: 0 10px 20px rgba(0, 0, 0, .55), inset 0 2px 3px rgba(255, 255, 255, .22);
 }
 .dial:active { cursor: grabbing; }
 .dial i { position: absolute; left: 50%; top: 11%; width: 8%; height: 26%; margin-left: -4%; background: var(--yellow); border-radius: 2px; transform-origin: 50% 150%; }
 .dial .knurl {
   position: absolute; inset: 0; border-radius: 50%;
-  background: repeating-conic-gradient(from 0deg, rgba(0, 0, 0, .45) 0 3deg, rgba(255, 255, 255, .1) 3deg 9deg);
+  background: repeating-conic-gradient(from 0deg, rgba(0, 0, 0, .4) 0 3deg, rgba(255, 255, 255, .12) 3deg 9deg);
   mask: radial-gradient(circle, transparent 62%, #000 64%); -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%);
 }
 .devtag { position: absolute; left: 6%; bottom: 3.5%; font-weight: 900; font-stretch: 125%; font-size: clamp(13px, 2.4vw, 18px); letter-spacing: .04em; color: rgba(0, 0, 0, .26); }

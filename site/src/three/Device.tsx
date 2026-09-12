@@ -26,7 +26,7 @@ type V3 = [number, number, number];
 /* ---------------- where every part lives ---------------- */
 const HOME = {
   lid: [0, 0, -16] as V3, lidEx: [0, 0, -104] as V3,
-  pi: [0, 24, -16.7] as V3, piEx: [0, -24, -54] as V3,
+  pi: [6.8, 11.5, -3.5] as V3, piEx: [14, -92, -18] as V3,
   panel: [0, 19, 16] as V3, panelEx: [0, 14, 80] as V3,
   enc: [46, -33, 0] as V3, encEx: [62, 0, 0] as V3,
   btnY: -33, btnZ: 20, btnEx: [0, -6, 46] as V3,
@@ -36,7 +36,7 @@ const HOME = {
 const bump = layerLines();
 const M = {
   shell: new THREE.MeshPhysicalMaterial({ color: '#e9e3d4', roughness: .62, clearcoat: .22, clearcoatRoughness: .6, bumpMap: bump, bumpScale: .5 }),
-  lid: new THREE.MeshPhysicalMaterial({ color: '#dcd6c7', roughness: .68, clearcoat: .14, clearcoatRoughness: .7, bumpMap: bump, bumpScale: .5 }),
+  lid: new THREE.MeshPhysicalMaterial({ color: '#8f9599', roughness: .68, clearcoat: .14, clearcoatRoughness: .7, bumpMap: bump, bumpScale: .5 }),
   dark: new THREE.MeshStandardMaterial({ color: '#14171b', roughness: .55 }),
   black: new THREE.MeshStandardMaterial({ color: '#0b0d10', roughness: .48 }),
   pcb: new THREE.MeshStandardMaterial({ color: '#17652f', roughness: .58 }),
@@ -51,6 +51,8 @@ const M = {
   kapton: new THREE.MeshStandardMaterial({ color: '#c08a2e', roughness: .45, side: THREE.DoubleSide }),
   glass: new THREE.MeshPhysicalMaterial({ color: '#0a0d10', roughness: .06, clearcoat: 1, clearcoatRoughness: .04, metalness: .1, transparent: true, opacity: .55 }),
   red: new THREE.MeshPhysicalMaterial({ color: '#d4392c', roughness: .3, clearcoat: .8, clearcoatRoughness: .15 }),
+  knob: new THREE.MeshPhysicalMaterial({ color: '#b8362b', roughness: .38, clearcoat: .5, clearcoatRoughness: .3 }),
+  knobDark: new THREE.MeshStandardMaterial({ color: '#7d2119', roughness: .5 }),
   yellow: new THREE.MeshPhysicalMaterial({ color: '#e9b41c', roughness: .3, clearcoat: .8, clearcoatRoughness: .15 }),
   usb3: new THREE.MeshStandardMaterial({ color: '#1f5fbf', roughness: .5 }),
   led: new THREE.MeshStandardMaterial({ color: '#3d2020', emissive: '#ff4436', emissiveIntensity: 2.2, roughness: .4 }),
@@ -116,8 +118,8 @@ function Lid() {
       <mesh geometry={geo} material={M.lid} castShadow receiveShadow />
       {[-1, 1].map((s) => (
         <group key={s} position={[s * 46, -9, 0]}>
-          <mesh position={[0, 0, -.5]} material={M.shell}><boxGeometry args={[10, 25, 2]} /></mesh>
-          <mesh position={[s * 4, 0, 4.5]} material={M.shell}><boxGeometry args={[2, 25, 10]} /></mesh>
+          <mesh position={[0, 0, -.5]} material={M.lid}><boxGeometry args={[10, 25, 2]} /></mesh>
+          <mesh position={[s * 4, 0, 4.5]} material={M.lid}><boxGeometry args={[2, 25, 10]} /></mesh>
         </group>
       ))}
       <Callout position={[-40, -44, 0]} show={[3]} title="Back lid" sub="presses on, 5 mm lip, no screws" />
@@ -125,110 +127,79 @@ function Lid() {
   );
 }
 
-/* ---------------- RASPBERRY PI 5 ----------------
-   Board-local mm from the board centre, as on the mechanical drawing:
-   the 40-pin header along the top edge, the USB-C and micro-HDMIs along the
-   bottom edge, and the Ethernet back in its classic bottom-right corner. */
-const PIN_X0 = -35.5, PIN_ROW = [21.5, 24.04], PIN_TOP = 9.2;
+/* ---------------- RASPBERRY PI ZERO W ----------------
+   Board-local mm from the board centre: 65 x 30, the soldered 40-pin header
+   along the top edge, mini-HDMI and the two micro-USBs along the bottom, the
+   card slot off the left edge and the radio at the right with its antenna. */
+const PIN_X0 = -28.7, PIN_ROW = [8.96, 11.5], PIN_TOP = 9.2;
 function pinPos(n: number): V3 {
   const col = Math.floor((n - 1) / 2), row = (n - 1) % 2;
   return [PIN_X0 + col * 2.54, PIN_ROW[row], PIN_TOP];
 }
-/** Header pin n in device space, following the Pi's half-turn and its explode. */
+/** Header pin n in device space, following the board's half-turn and its explode. */
 function pinWorld(n: number, explode: number): THREE.Vector3 {
   const [x, y, z] = pinPos(n);
-  return new THREE.Vector3(-x, HOME.pi[1] - y, HOME.pi[2] + z + HOME.piEx[2] * explode);
-}
-
-function UsbStack({ y, blue }: { y: number; blue: boolean }) {
-  return (
-    <group position={[36.4, y, 8.4]}>
-      <mesh material={M.metal}><boxGeometry args={[13.2, 17.5, 15.6]} /></mesh>
-      {[-4.2, 4.2].map((z) => (
-        <group key={z} position={[6.7, 0, z]}>
-          <mesh material={M.black}><boxGeometry args={[1.2, 13.6, 6.2]} /></mesh>
-          <mesh position={[.2, 0, -1.2]} material={blue ? M.usb3 : M.white}><boxGeometry args={[1, 12, 2.2]} /></mesh>
-        </group>
-      ))}
-    </group>
+  return new THREE.Vector3(
+    HOME.pi[0] - x + HOME.piEx[0] * explode,
+    HOME.pi[1] - y + HOME.piEx[1] * explode,
+    HOME.pi[2] + z + HOME.piEx[2] * explode,
   );
 }
 
-function Pi5() {
+function Pi() {
   const top = useMemo(() => piTop(), []);
   const boardMat = useMemo(() => new THREE.MeshStandardMaterial({ map: top, roughness: .55 }), [top]);
   const pins = useMemo(() => Array.from({ length: 40 }, (_, i) => pinPos(i + 1)), []);
   return (
-    // Rotated half a turn so the USB-C edge faces the top of the case and the
-    // GPIO header faces the buttons, which is where the wires have to go.
+    // Rotated half a turn so the power micro-USB faces the top of the case and
+    // the header faces the buttons, which is where the wires have to go.
     <Part home={HOME.pi} explode={HOME.piEx} rotation={[0, 0, Math.PI]}>
       {/* board: green edge, printed top */}
-      <mesh material={M.pcbEdge} castShadow receiveShadow><boxGeometry args={[85, 56, 1.4]} /></mesh>
-      <mesh position={[0, 0, .71]} material={boardMat}><planeGeometry args={[85, 56]} /></mesh>
+      <mesh material={M.pcbEdge} castShadow receiveShadow><boxGeometry args={[65, 30, 1.4]} /></mesh>
+      <mesh position={[0, 0, .71]} material={boardMat}><planeGeometry args={[65, 30]} /></mesh>
 
-      {/* 40-pin header: black body, gold pins, pin 1 chamfer */}
-      <mesh position={[-11.37, 22.77, 1.95]} material={M.black}><boxGeometry args={[50.8, 5.08, 2.5]} /></mesh>
+      {/* the soldered 40-pin header */}
+      <mesh position={[-4.57, 10.23, 1.95]} material={M.black}><boxGeometry args={[50.8, 5.08, 2.5]} /></mesh>
       {pins.map((p, i) => (
         <mesh key={i} position={[p[0], p[1], 4.3]} material={M.gold}><boxGeometry args={[.64, .64, 11.2]} /></mesh>
       ))}
 
-      {/* silicon: BCM2712 under its heat spreader, RAM, RP1, PMIC, radio can */}
-      <mesh position={[-12.5, -1, 1.15]} material={M.chip}><boxGeometry args={[15.5, 15.5, .9]} /></mesh>
-      <mesh position={[-12.5, -1, 2.1]} material={M.chipLid}><boxGeometry args={[13.2, 13.2, 1]} /></mesh>
-      <mesh position={[-29, 2, 1.25]} material={M.chip}><boxGeometry args={[11, 11, 1.1]} /></mesh>
-      <mesh position={[10, -9, 1.25]} material={M.chip}><boxGeometry args={[12, 12, 1.1]} /></mesh>
-      <mesh position={[-31, 16.5, 1.5]} material={M.chipLid}><boxGeometry args={[12.4, 10.4, 1.6]} /></mesh>
-      <mesh position={[-39, 23, 1.2]} material={M.white}><boxGeometry args={[4, 2.2, .9]} /></mesh>
-      <mesh position={[-22, 14, 1.1]} material={M.chip}><boxGeometry args={[5, 5, .7]} /></mesh>
-      <mesh position={[2, 12, 1.1]} material={M.chip}><boxGeometry args={[4, 4, .7]} /></mesh>
-      {[[-20, -16], [-6, -14], [24, 6], [26, -19]].map(([x, y], i) => (
-        <mesh key={i} position={[x, y, 1.1]} material={M.steel}><boxGeometry args={[4.4, 3.6, .9]} /></mesh>
+      {/* BCM2835 with its RAM stacked on top, and the wireless module */}
+      <mesh position={[-5, -3, 1.35]} material={M.chip}><boxGeometry args={[12.4, 12.4, 1.3]} /></mesh>
+      <mesh position={[-5, -3, 2.1]} material={M.black}><boxGeometry args={[9.6, 9.6, .4]} /></mesh>
+      <mesh position={[23, 1, 1.5]} material={M.chipLid}><boxGeometry args={[10.4, 8.4, 1.6]} /></mesh>
+      <mesh position={[29.6, 11, 1.1]} material={M.chipLid}><boxGeometry args={[5.2, 4, .5]} /></mesh>
+      {[[-16, -7], [-14, 2], [6, 4], [12, -6]].map(([x, y], i) => (
+        <mesh key={i} position={[x, y, 1.1]} material={M.steel}><boxGeometry args={[3.4, 2.6, .8]} /></mesh>
       ))}
+      {/* the two solder pads for RUN and TV */}
+      {[[-23.5, 3.6], [-18, 3.6]].map(([x, y], i) => (
+        <mesh key={i} position={[x, y, .8]} material={M.gold}><cylinderGeometry args={[.9, .9, .3, 12]} /></mesh>
+      ))}
+      <mesh position={[-26, -6, 1]} material={M.led}><boxGeometry args={[1.8, 1.2, .7]} /></mesh>
 
-      {/* bottom edge: USB-C power, two micro-HDMI, the two MIPI FPCs, power button */}
-      <group position={[-31.3, -26.4, 2.3]}>
-        <mesh material={M.metal}><boxGeometry args={[9.2, 7.6, 3.2]} /></mesh>
-        <mesh position={[0, -3.7, 0]} material={M.black}><boxGeometry args={[7.6, .8, 2.2]} /></mesh>
+      {/* bottom edge: mini-HDMI, micro-USB data, micro-USB power */}
+      <group position={[-20.1, -13.4, 2.2]}>
+        <mesh material={M.metal}><boxGeometry args={[11.2, 6.8, 3]} /></mesh>
+        <mesh position={[0, -3.3, 0]} material={M.black}><boxGeometry args={[9.6, .8, 1.9]} /></mesh>
       </group>
-      {[-16.7, -3.3].map((x) => (
-        <group key={x} position={[x, -26.8, 2.2]}>
-          <mesh material={M.metal}><boxGeometry args={[7.2, 6.6, 3]} /></mesh>
-          <mesh position={[0, -3.2, 0]} material={M.black}><boxGeometry args={[5.8, .8, 1.8]} /></mesh>
+      {[8.9, 21.5].map((x) => (
+        <group key={x} position={[x, -13.6, 2.1]}>
+          <mesh material={M.metal}><boxGeometry args={[7.6, 6.4, 2.8]} /></mesh>
+          <mesh position={[0, -3, 0]} material={M.black}><boxGeometry args={[6.2, .8, 1.7]} /></mesh>
         </group>
       ))}
-      {[9, 19.5].map((x) => (
-        <group key={x} position={[x, -25.4, 2.3]}>
-          <mesh material={M.black}><boxGeometry args={[15, 3, 3.2]} /></mesh>
-          <mesh position={[0, 0, 2]} material={M.white}><boxGeometry args={[15, 2.2, .8]} /></mesh>
-        </group>
-      ))}
-      <mesh position={[-40, -22, 2]} material={M.black}><boxGeometry args={[3.6, 4, 2.6]} /></mesh>
-      <mesh position={[-40, -22, 3.4]} material={M.steel}><cylinderGeometry args={[1.3, 1.3, .8, 16]} /></mesh>
-      <mesh position={[-36.5, -22, 1.2]} material={M.led}><boxGeometry args={[1.8, 1.2, .7]} /></mesh>
 
-      {/* left edge: PCIe FFC and the RTC battery lead */}
-      <mesh position={[-39.5, 0, 2]} material={M.black}><boxGeometry args={[5.4, 22, 2.6]} /></mesh>
-      <mesh position={[-39.5, 0, 3.4]} material={M.chipLid}><boxGeometry args={[5, 21, .5]} /></mesh>
-      <mesh position={[-39.5, -13, 2]} material={M.white}><boxGeometry args={[4.4, 4.6, 3]} /></mesh>
+      {/* microSD off the left edge, camera FPC on the right */}
+      <mesh position={[-33.5, 0, -1.4]} material={M.steel}><boxGeometry args={[13, 12, 1.6]} /></mesh>
+      <mesh position={[30, -3, 1.6]} material={M.black}><boxGeometry args={[3.4, 12, 1.8]} /></mesh>
 
-      {/* right edge: USB 2.0, USB 3.0, then Ethernet back in the corner */}
-      <UsbStack y={19} blue={false} />
-      <UsbStack y={0} blue />
-      <group position={[36.4, -18.5, 7.4]}>
-        <mesh material={M.metal}><boxGeometry args={[16, 16, 13.4]} /></mesh>
-        <mesh position={[8.1, 0, 0]} material={M.black}><boxGeometry args={[1, 13.6, 11]} /></mesh>
-        <mesh position={[8.4, -4.6, 5]} material={M.led}><boxGeometry args={[.6, 2, 1.4]} /></mesh>
-      </group>
-      {/* fan header, and the microSD slot underneath */}
-      <mesh position={[30, 19, 2.2]} material={M.white}><boxGeometry args={[6.6, 4, 3]} /></mesh>
-      <mesh position={[-24, -25, -1.5]} material={M.steel}><boxGeometry args={[14, 12, 1.8]} /></mesh>
-
-      <Callout position={[14, -30, 10]} show={[3]} title="Raspberry Pi 5" sub="BCM2712 · 4 GB · 85 × 56 mm" />
+      <Callout position={[-4, -20, 6]} show={[3]} title="Raspberry Pi Zero W" sub="BCM2835 · 512 MB · 65 × 30 mm" />
     </Part>
   );
 }
 
-/* ---------------- PANEL: 3.5" IPS with capacitive touch, running the game ---------------- */
+/* ---------------- PANEL: the 3.5" IPS module, running the game ---------------- */
 function Panel() {
   const back = useMemo(() => panelBack(), []);
   const gloss = useMemo(() => sheen(), []);
@@ -274,7 +245,7 @@ function Panel() {
       {[[-42, -26], [42, -26], [-42, 26], [42, 26]].map(([x, y], i) => (
         <mesh key={i} position={[x, y, -2.4]} material={M.steel}><cylinderGeometry args={[2, 2, 3.2, 12]} /></mesh>
       ))}
-      <Callout position={[-18, 32, 4]} show={[2, 3]} title="3.5″ IPS · 480 × 320" sub="capacitive touch, on the first 26 pins" />
+      <Callout position={[-18, 32, 4]} show={[2, 3]} title="3.5″ IPS · 480 × 320" sub="on the first 26 header pins" />
     </Part>
   );
 }
@@ -331,14 +302,14 @@ function Encoder() {
       {/* only this comes out of the case */}
       <group ref={spin}>
         <mesh position={[11, 0, 0]} material={M.steel} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[3, 3, 9, 20]} /></mesh>
-        <mesh position={[14.5, 0, 0]} material={M.dark} rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[7.4, 7, 12, 40]} /></mesh>
+        <mesh position={[14.5, 0, 0]} material={M.knob} rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[7.4, 7, 12, 40]} /></mesh>
         {knurl.map((a, i) => (
-          <mesh key={i} position={[14.5, Math.cos(a) * 7.2, Math.sin(a) * 7.2]} rotation={[-a, 0, 0]} material={M.black}><boxGeometry args={[11, .9, .9]} /></mesh>
+          <mesh key={i} position={[14.5, Math.cos(a) * 7.2, Math.sin(a) * 7.2]} rotation={[-a, 0, 0]} material={M.knobDark}><boxGeometry args={[11, .9, .9]} /></mesh>
         ))}
-        <mesh position={[20.6, 0, 0]} material={M.dark} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[7, 7, .6, 40]} /></mesh>
+        <mesh position={[20.6, 0, 0]} material={M.knob} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[7, 7, .6, 40]} /></mesh>
         <mesh position={[21, 0, 4.2]} material={M.yellow}><boxGeometry args={[.8, 1.6, 5]} /></mesh>
       </group>
-      <Callout position={[22, 15, 0]} show={[1, 3]} title="KY-040 encoder" sub="CLK 21 · DT 20 · SW 16" />
+      <Callout position={[-2, 20, 0]} show={[1, 3]} title="KY-040 encoder" sub="CLK 21 · DT 20 · SW 16" />
     </Part>
   );
 }
@@ -409,7 +380,7 @@ export function Device() {
     <group ref={yaw}>
       <Body />
       <Lid />
-      <Pi5 />
+      <Pi />
       <Panel />
       <Buttons />
       <Encoder />

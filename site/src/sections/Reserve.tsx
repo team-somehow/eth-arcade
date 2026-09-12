@@ -66,7 +66,7 @@ export function Reserve() {
         <ul className="includes">
           <li>
             <b>The handheld, built and flashed</b>
-            <span>Two-part printed shell, Raspberry Pi 5, 3.5″ capacitive panel, KY-040 knob, red and yellow switches.</span>
+            <span>Two-part printed shell, Raspberry Pi Zero W, 3.5″ panel, KY-040 knob, red and yellow switches.</span>
           </li>
           <li>
             <b>BOX RUN, installed</b>

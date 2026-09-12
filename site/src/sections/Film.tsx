@@ -104,7 +104,7 @@ export function Film() {
         <h2>Two printed parts. No screws.</h2>
         <p>
           The shell is a body and a lid that press together on a 5 mm lip running the whole perimeter.
-          Inside: a Raspberry Pi 5, a 3.5-inch capacitive panel on the first 26 header pins, the encoder
+          Inside: a Raspberry Pi Zero W, a 3.5-inch panel on the first 26 header pins, the encoder
           bolted through the right wall, two 12 mm switches and six jumpers. Nothing is glued down —
           small printed L-brackets stop the board where you want it.
         </p>
@@ -112,7 +112,7 @@ export function Film() {
           ['case', '104 × 110 × 40 mm'],
           ['wall', '2.5 mm, 3 mm fillet'],
           ['join', '5 mm lip, 0.3 mm clearance'],
-          ['board', 'Raspberry Pi 5 · 4 GB'],
+          ['board', 'Raspberry Pi Zero W'],
         ]} />
       </Chapter>
 
@@ -139,7 +139,7 @@ export function Film() {
           ['box height', '$1.41 at $2,500 ETH'],
           ['payout range', '1.05× to 25×'],
           ['display', '3.5″ IPS, 480 × 320'],
-          ['computer', 'Raspberry Pi 5, 4 GB'],
+          ['computer', 'Raspberry Pi Zero W, 512 MB'],
           ['shell', '104 × 110 × 40 mm'],
           ['money', 'demo USDC, paper bets'],
           ['feed', 'read-only ETH, 5 Hz'],
