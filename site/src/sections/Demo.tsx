@@ -136,6 +136,7 @@ export function Demo() {
   return (
     <section className="doc" id="demo">
       <div className="head">
+        <div className="eyebrow">01 / PRESS PLAY</div>
         <h2>Play it here first.</h2>
         <p className="lead">
           The same rules, the same odds engine and the same sounds the device runs, on a simulated ETH

@@ -9,10 +9,13 @@ export default function App() {
     <>
       <div className="grain" aria-hidden />
       <Nav />
+      <main>
       <Film />
+      <div className="manifesto"><span>Less scrolling.</span><span>More <i>feeling.</i></span><p>A real knob. A moving market. A little room for play.</p></div>
       <Demo />
       <Proof />
       <Reserve />
+      </main>
       <Footer />
     </>
   );

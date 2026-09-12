@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, ContactShadows } from '@react-three/drei';
-import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing';
 import { Device } from './Device';
 import { rig, KEYS } from './rig';
 import { read, scroll } from '../scroll';
@@ -40,19 +39,17 @@ function CameraRig() {
 }
 
 export function Stage() {
-  const light = useMemo(() => typeof matchMedia !== 'undefined' && matchMedia('(max-width: 900px)').matches, []);
   return (
     <Canvas
       shadows
       dpr={[1, 1.75]}
-      gl={{ antialias: true, alpha: false, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.08 }}
+      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.08 }}
       camera={{ fov: 30, near: 1, far: 3000, position: [-34, 30, 300] }}
       style={{ position: 'absolute', inset: 0 }}
     >
-      <color attach="background" args={['#070F17']} />
-      <fog attach="fog" args={['#070F17', 460, 1100]} />
+
       {/* a dim room, one warm key, a cool rim down the right edge and a low fill */}
-      <hemisphereLight args={['#31505f', '#05090d', .45]} />
+      <hemisphereLight args={['#fff8ec', '#b6a995', 1.4]} />
       <directionalLight
         color="#fff1cf"
         intensity={2.1}
@@ -76,15 +73,9 @@ export function Stage() {
         <Lightformer form="rect" intensity={.9} color="#3d8fd0" position={[0, -7, 5]} scale={[12, 3, 1]} />
       </Environment>
       <Device />
-      <ContactShadows position={[0, -62, 6]} opacity={.55} scale={300} blur={2.8} far={120} resolution={768} color="#000000" />
+      <ContactShadows position={[0, -62, 6]} opacity={.22} scale={300} blur={2.8} far={120} resolution={768} color="#000000" />
       <CameraRig />
-      {!light && (
-        <EffectComposer multisampling={4}>
-          <Bloom mipmapBlur luminanceThreshold={.8} luminanceSmoothing={.22} intensity={.5} />
-          <Noise premultiply opacity={.045} />
-          <Vignette offset={.2} darkness={.8} />
-        </EffectComposer>
-      )}
+
     </Canvas>
   );
 }

@@ -79,6 +79,7 @@ export function Proof() {
   return (
     <section className="doc" id="proof">
       <div className="head">
+        <div className="eyebrow">02 / BUILT IN THE OPEN</div>
         <h2>Open the back.</h2>
         <p className="lead">
           Three chains do three jobs for this machine, and none of them is decoration. The price it

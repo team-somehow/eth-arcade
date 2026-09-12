@@ -53,13 +53,12 @@ export function Reserve() {
   return (
     <section className="doc" id="reserve">
       <div className="head">
+        <div className="eyebrow">03 / THE NEXT CHAPTER</div>
         <h2>Should I build more than one?</h2>
         <p className="lead">
-          One of these exists. Whether there is ever a second depends on whether anyone wants it, so
-          this is the honest version of a pre-order: no unit is for sale, nothing is charged, nothing
-          is queued, and nothing is promised. Say you want one and I will know to keep building.
-          About <b>$150</b> is what an assembled unit costs in parts and time &mdash; an indication,
-          not an offer.
+          One exists. Help decide what comes next. An assembled TICK would cost about <b>$150</b>
+          in parts and time. Leave a note if you’d like one — this is an expression of interest,
+          with no payment, order, queue, or promise of production.
         </p>
       </div>
       <div className="reserve">

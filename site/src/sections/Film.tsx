@@ -35,8 +35,8 @@ function Chapter({ i, hero, chapter, children }: { i: number; hero?: boolean; ch
   const cls = ['chapter', hero ? 'hero' : '', chapter === i ? 'in' : ''].filter(Boolean).join(' ');
   return (
     <div className={cls} style={{ top: `${i * 100}vh` }} id={i === 0 ? 'top' : undefined}>
-      <div className="copy">{children}</div>
-      {hero && <div className="scrollcue"><i />keep scrolling</div>}
+      <div className="copy"><div className="eyebrow">{hero ? <><span className="status-dot" /> A pocket-sized market arcade</> : <><span>{String(i).padStart(2, '0')}</span> / {RAIL[i]}</>}</div>{children}</div>
+      {hero && <div className="scrollcue"><span aria-hidden>↓</span> Scroll to meet TICK</div>}
     </div>
   );
 }
@@ -47,23 +47,25 @@ export function Film() {
   return (
     <div className="film" ref={ref}>
       <div className="stage">
+        <div className="stage-word" aria-hidden>TICK</div>
         <Stage />
+        <div className="stage-caption"><span>FIG. {String(chapter + 1).padStart(2, '0')} / {RAIL[chapter]}</span><span>DESIGNED TO BE PLAYED.</span></div>
         <div className="glow" />
         <div className="frame" aria-hidden><span /><span /><span /><span /></div>
         <Rail chapter={chapter} />
       </div>
 
       <Chapter i={0} hero chapter={chapter}>
-        <h1>The market, as an arcade.</h1>
+        <h1>The market.<br />Now <span className="hero-accent">in play.</span></h1>
         <p className="lead">
-          TICK is a handheld that puts a $1.41 box on the live ETH price and gives you ten seconds
-          to place it. Crank the knob, press the yellow button, wait for the bell.
+          Meet TICK. A tiny handheld that turns the ETH price into an arcade.
+          One knob. Two buttons. Ten seconds to make your move.
         </p>
-        <p className="note">The rule under the bar at the top of this page is one window. On the device, it never stops.</p>
         <div className="ctas">
-          <a className="key hot big" href="#demo"><span className="cap" />Play it in your browser</a>
-          <a className="key big" href="#reserve">Want one?</a>
+          <a className="key hot big" href="#demo">Let’s play <span aria-hidden>↗</span></a>
+          <a className="text-link" href="#reserve">I want one <span aria-hidden>→</span></a>
         </div>
+        <div className="hero-facts"><span><b>10s</b> per round</span><span><b>100%</b> open source</span><span><b>Zero</b> real money here</span></div>
       </Chapter>
 
       <Chapter i={1} chapter={chapter}>

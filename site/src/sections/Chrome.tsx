@@ -1,15 +1,16 @@
 export function Nav() {
   return (
-    <nav className="topbar">
+    <nav className="topbar" aria-label="Main navigation">
       <a className="wordmark" href="#top">TIC<em>K</em></a>
+      <span className="brand-note">Small device. Big little moments.</span>
       <div className="baraction">
-        <a className="key ghostable" href="#proof">What it runs on</a>
+        <a className="key ghostable" href="#proof">Under the hood</a>
         <a className="key ghostable" href="#demo">Play the demo</a>
-        <a className="key hot" href="#reserve">Want one?</a>
+        <a className="key hot" href="#reserve">Get in on it <span aria-hidden>↗</span></a>
       </div>
       {/* the rule under the bar is one ten-second window, running whether or
           not anyone is playing — the same clock the device keeps */}
-      <div className="window" aria-hidden><i /><b>ten-second window</b></div>
+      <div className="window" aria-hidden><i /></div>
     </nav>
   );
 }

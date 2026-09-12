@@ -18,7 +18,7 @@ export const rig = {
  * device stays centred in it and only the angle, the distance and the
  * explode change. */
 export const KEYS: { pos: [number, number, number]; look: [number, number, number]; ex: number }[] = [
-  { pos: [-26, 28, 318], look: [18, 2, 0], ex: 0 },       // hero: three-quarter, front lit
+  { pos: [-105, 65, 320], look: [4, 0, 0], ex: 0 },       // hero: three-quarter, front lit
   { pos: [236, -4, 202], look: [24, -26, 4], ex: 0 },   // the dial: down the right face at the knob
   { pos: [-14, 34, 246], look: [2, 19, 6], ex: 0 },      // the game: close on the screen
   { pos: [372, 158, 452], look: [0, -8, -16], ex: 1 },     // exploded
