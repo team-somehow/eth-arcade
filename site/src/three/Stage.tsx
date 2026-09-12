@@ -13,7 +13,6 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 /** Damps scroll into progress, blends the chapter keyframes, drives camera and explode. */
 function CameraRig() {
   const camera = useThree((s) => s.camera);
-  const size = useThree((s) => s.size);
   const look = useMemo(() => new THREE.Vector3(), []);
   useFrame((_, delta) => {
     const dt = Math.min(.1, delta);
@@ -29,8 +28,8 @@ function CameraRig() {
     look.set(lerp(a.look[0], b.look[0], u), lerp(a.look[1], b.look[1], u), lerp(a.look[2], b.look[2], u));
     // On a phone the stage is the whole width: stand further back and stop
     // framing the machine off-centre, or the knob and the lid fall off the edge.
-    if (size.width < 760) {
-      camera.position.multiplyScalar(1.2);
+    if (window.matchMedia('(max-width: 960px)').matches) {
+      camera.position.multiplyScalar(1.08);
       look.x *= .25;
     }
     camera.lookAt(look);

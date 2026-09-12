@@ -39,10 +39,10 @@ export function Reserve() {
     const input = e.currentTarget.elements.namedItem('email') as HTMLInputElement;
     if (!input.checkValidity()) { input.focus(); input.reportValidity(); return; }
     const ref = reference();
-    const body = `I'd want a ETH Arcade.fun handheld\n\nReference: ${ref}\nHow many: ${qty}\nIndicative cost: $${qty * PRICE} (not an order, nothing owed)\nContact: ${email.trim()}\n\nSent from the ETH Arcade.fun page on ${new Date().toISOString().slice(0, 10)}.`;
+    const body = `I'd want an ETHarcade handheld\n\nReference: ${ref}\nHow many: ${qty}\nIndicative cost: $${qty * PRICE} (not an order, nothing owed)\nContact: ${email.trim()}\n\nSent from the ETHarcade page on ${new Date().toISOString().slice(0, 10)}.`;
     setReserved({ body, ref });
     try { localStorage.setItem('tick-reservation', JSON.stringify({ qty, email: email.trim(), ref, at: Date.now() })); } catch { /* ignore */ }
-    location.href = `mailto:${PREORDER_EMAIL}?subject=${encodeURIComponent(`ETH Arcade.fun reservation × ${qty}`)}&body=${encodeURIComponent(body)}`;
+    location.href = `mailto:${PREORDER_EMAIL}?subject=${encodeURIComponent(`ETHarcade reservation × ${qty}`)}&body=${encodeURIComponent(body)}`;
   };
 
   const copy = async () => {
@@ -53,10 +53,10 @@ export function Reserve() {
   return (
     <section className="doc" id="reserve">
       <div className="head">
-        <div className="eyebrow">03 / THE NEXT CHAPTER</div>
+        <div className="eyebrow">04 / THE NEXT CHAPTER</div>
         <h2>Should I build more than one?</h2>
         <p className="lead">
-          One exists. Help decide what comes next. An assembled ETH Arcade.fun would cost about <b>$150</b>
+          One exists. Help decide what comes next. An assembled ETHarcade would cost about <b>$150</b>
           in parts and time. Leave a note if you’d like one — this is an expression of interest,
           with no payment, order, queue, or promise of production.
         </p>
@@ -65,10 +65,10 @@ export function Reserve() {
         <ul className="includes">
           <li>
             <b>The handheld, built and flashed</b>
-            <span>Two-part printed shell, Raspberry Pi Zero W, 3.5″ panel, KY-040 knob, red and yellow switches.</span>
+            <span>Two-part printed shell, Raspberry Pi Zero W, 3.5″ panel, KY-040 knob, red and yellow switches, lithium-ion battery, and charging circuit.</span>
           </li>
           <li>
-            <b>BOX RUN, installed</b>
+            <b>Box Run, installed</b>
             <span>Ten-second windows on a read-only ETH feed, with the demo USDC wallet preloaded.</span>
           </li>
           <li>
@@ -102,7 +102,7 @@ export function Reserve() {
               </div>
               <div className="perf" aria-hidden />
               <div className="stub">
-                <div><span>unit</span><b>ETH Arcade.fun handheld</b></div>
+                <div><span>unit</span><b>ETHarcade handheld</b></div>
                 <div><span>how many</span><b>{qty}</b></div>
                 <div><span>charged now</span><b>$0</b></div>
                 <div><span>charged later</span><b>$0</b></div>

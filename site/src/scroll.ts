@@ -15,9 +15,26 @@ const listeners = new Set<() => void>();
  * embedded frames), and a missed one freezes the whole film on chapter zero. */
 export function read() {
   if (!film) return;
-  const r = film.getBoundingClientRect();
-  const total = Math.max(1, film.offsetHeight - window.innerHeight);
-  scroll.target = Math.max(0, Math.min(1, -r.top / total));
+  if (window.matchMedia('(max-width: 960px)').matches) {
+    // Keep each camera keyframe aligned with its actual text chapter, even
+    // when a small screen wraps the copy onto more lines.
+    const stage = film.querySelector<HTMLElement>('.stage');
+    const bar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bar')) || 72;
+    const line = bar + (stage?.offsetHeight || 0) + 24;
+    const chapters = Array.from(film.querySelectorAll<HTMLElement>('.chapter'));
+    const positions = chapters.map(el => el.getBoundingClientRect().top - line);
+    let progress = 0;
+    for (let i = 0; i < positions.length - 1; i++) {
+      if (positions[i] <= 0) {
+        progress = i + Math.min(1, Math.max(0, -positions[i] / Math.max(1, positions[i + 1] - positions[i])));
+      }
+    }
+    scroll.target = progress / (CHAPTERS - 1);
+  } else {
+    const r = film.getBoundingClientRect();
+    const total = Math.max(1, film.offsetHeight - window.innerHeight);
+    scroll.target = Math.max(0, Math.min(1, -r.top / total));
+  }
   const c = Math.round(scroll.target * (CHAPTERS - 1));
   if (c !== chapter) {
     chapter = c;

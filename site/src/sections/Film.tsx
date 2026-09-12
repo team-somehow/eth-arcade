@@ -1,4 +1,5 @@
 import { useCallback, type ReactNode } from 'react';
+import { rig } from '../three/rig';
 import { Stage } from '../three/Stage';
 import { bindFilm, useChapter } from '../scroll';
 
@@ -7,7 +8,15 @@ const RAIL = ['Intro', 'The knob', 'The game', 'Inside', 'The sound', 'The numbe
 function Rail({ chapter }: { chapter: number }) {
   const go = (i: number) => {
     const film = document.querySelector<HTMLElement>('.film');
-    if (film) window.scrollTo({ top: film.offsetTop + i * window.innerHeight, behavior: 'smooth' });
+    if (!film) return;
+    const mobile = window.matchMedia('(max-width: 960px)').matches;
+    const target = film.querySelectorAll<HTMLElement>('.chapter')[i];
+    const stage = film.querySelector<HTMLElement>('.stage');
+    const bar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bar')) || 72;
+    const top = mobile && target
+      ? window.scrollY + target.getBoundingClientRect().top - bar - (stage?.offsetHeight || 0) - 24
+      : film.offsetTop + i * window.innerHeight;
+    window.scrollTo({ top: Math.max(0, top), behavior: rig.reduced ? 'auto' : 'smooth' });
   };
   return (
     <nav className="rail" aria-label="Chapters">
@@ -34,9 +43,9 @@ function Plate({ rows, wide }: { rows: [string, string][]; wide?: boolean }) {
 function Chapter({ i, hero, chapter, children }: { i: number; hero?: boolean; chapter: number; children: ReactNode }) {
   const cls = ['chapter', hero ? 'hero' : '', chapter === i ? 'in' : ''].filter(Boolean).join(' ');
   return (
-    <div className={cls} style={{ top: `${i * 100}vh` }} id={i === 0 ? 'top' : undefined}>
+    <div className={cls} style={{ top: `${i * 100}vh` }}>
       <div className="copy"><div className="eyebrow">{hero ? <><span className="status-dot" /> A pocket-sized market arcade</> : <><span>{String(i).padStart(2, '0')}</span> / {RAIL[i]}</>}</div>{children}</div>
-      {hero && <div className="scrollcue"><span aria-hidden>↓</span> Scroll to meet ETH Arcade.fun</div>}
+      {hero && <div className="scrollcue"><span aria-hidden>↓</span> Scroll to meet ETHarcade</div>}
     </div>
   );
 }
@@ -45,7 +54,7 @@ export function Film() {
   const ref = useCallback((el: HTMLDivElement | null) => bindFilm(el), []);
   const chapter = useChapter();
   return (
-    <div className="film" ref={ref}>
+    <div className="film" id="top" ref={ref}>
       <div className="stage">
         <div className="stage-word" aria-hidden>PLAY.</div>
         <Stage />
@@ -58,14 +67,15 @@ export function Film() {
       <Chapter i={0} hero chapter={chapter}>
         <h1>The market.<br />Now <span className="hero-accent">in play.</span></h1>
         <p className="lead">
-          Meet ETH Arcade.fun. A tiny handheld that turns the ETH price into an arcade.
-          One knob. Two buttons. Ten seconds to make your move.
+          Meet ETHarcade. An open handheld for market-powered games.
+          Play Box Run, built with our SDK — or use the same tools to make your own.
         </p>
         <div className="ctas">
-          <a className="key hot big" href="#demo">Let’s play <span aria-hidden>↗</span></a>
-          <a className="text-link" href="#reserve">I want one <span aria-hidden>→</span></a>
+          <a className="key hot big" href="#demo">Play Box Run <span aria-hidden>↗</span></a>
+          <a className="text-link" href="#sdk">Build a game <span aria-hidden>→</span></a>
         </div>
         <div className="hero-facts"><span><b>10s</b> per round</span><span><b>100%</b> open source</span></div>
+        <div className="hero-sponsors" aria-label="Sponsor integrations"><span>Built with</span><a href="#graph">The Graph</a><a href="#circle">Circle / Arc</a><a href="#ens">ENSv2</a></div>
       </Chapter>
 
       <Chapter i={1} chapter={chapter}>
@@ -105,16 +115,16 @@ export function Film() {
       <Chapter i={3} chapter={chapter}>
         <h2>Two printed parts. No screws.</h2>
         <p>
-          The shell is a body and a lid that press together on a 5 mm lip running the whole perimeter.
-          Inside: a Raspberry Pi Zero W, a 3.5-inch panel on the first 26 header pins, the encoder
-          bolted through the right wall, two 12 mm switches with two leads each, seven jumpers, and a rear-mounted speaker. Nothing is glued down —
-          small printed L-brackets stop the board where you want it.
+          A press-fit body and lid surround the Pi, wired display, rear speaker, and controls.
+          A lithium-ion battery and charging board supply the power. Each button has two leads;
+          the display cable connects to the Pi’s 26-pin header interface. Scroll to pull it all apart.
         </p>
         <Plate rows={[
           ['case', '104 × 110 × 40 mm'],
           ['wall', '2.5 mm, 3 mm fillet'],
           ['join', '5 mm lip, 0.3 mm clearance'],
           ['board', 'Raspberry Pi Zero W'],
+          ['power', 'Li-ion battery + charging circuit'],
         ]} />
       </Chapter>
 

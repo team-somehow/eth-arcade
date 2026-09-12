@@ -29,6 +29,8 @@ const HOME = {
   pi: [6.8, 11.5, -3.5] as V3, piEx: [14, -92, -18] as V3,
   panel: [0, 19, 16] as V3, panelEx: [0, 14, 80] as V3,
   enc: [46, -33, 0] as V3, encEx: [62, 0, 0] as V3,
+  battery: [-19, -31, -6] as V3, batteryEx: [-42, -100, 12] as V3,
+  charger: [27, -26, -6] as V3, chargerEx: [35, -58, -40] as V3,
   btnY: -33, btnZ: 20, btnEx: [0, -6, 46] as V3,
 };
 
@@ -385,6 +387,72 @@ function Wires() {
   );
 }
 
+/* Battery and power board use illustrative dimensions, not a manufacturing BOM. */
+function PowerAssembly() {
+  const pouch = useMemo(() => rbox(42, 29, 6, 1.2), []);
+  return <>
+    <Part home={HOME.battery} explode={HOME.batteryEx}>
+      <mesh geometry={pouch} material={M.steel} castShadow />
+      <mesh position={[0, 0, 3.1]} material={M.white}><boxGeometry args={[32, 21, .3]} /></mesh>
+      <mesh position={[0, 13, 0]} material={M.kapton}><boxGeometry args={[42, 4, 6.3]} /></mesh>
+      {[-1, 1].map(side => <mesh key={side} position={[side * 7, 16, 0]} material={M.gold}><boxGeometry args={[3, 5, .5]} /></mesh>)}
+      <Callout position={[-15, -20, 2]} show={[3]} title="Li-ion battery" sub="rechargeable pouch cell" />
+    </Part>
+    <Part home={HOME.charger} explode={HOME.chargerEx}>
+      <mesh material={M.pcb} castShadow><boxGeometry args={[20, 27, 1.5]} /></mesh>
+      <mesh position={[0, 0, 2]} material={M.chip}><boxGeometry args={[7, 7, 3]} /></mesh>
+      <mesh position={[4, -8, 2.5]} material={M.dark}><boxGeometry args={[7, 6, 4]} /></mesh>
+      <mesh position={[0, 12, 2]} material={M.metal}><boxGeometry args={[9, 6, 3.5]} /></mesh>
+      <mesh position={[0, 15.1, 2]} material={M.black}><boxGeometry args={[7, .4, 2]} /></mesh>
+      {[-1, 1].map(side => <mesh key={side} position={[side * 7, -11, 1]} material={M.gold}><boxGeometry args={[3, 3, .5]} /></mesh>)}
+      <mesh position={[-6, 5, 1.3]} material={M.led}><boxGeometry args={[1.4, 2, 1]} /></mesh>
+      <Callout position={[12, -16, 2]} show={[3]} title="Charging + power" sub="USB input · battery · Pi supply" />
+    </Part>
+  </>;
+}
+
+function partPoint(home: V3, explode: V3, local: V3, progress: number) {
+  return new THREE.Vector3(...home).add(new THREE.Vector3(...local)).addScaledVector(new THREE.Vector3(...explode), progress);
+}
+
+/** Cables follow both moving endpoints rather than floating between exploded parts. */
+function Cable({ from, to, color, radius = .45, bow = 0 }: {
+  from: (progress: number) => THREE.Vector3;
+  to: (progress: number) => THREE.Vector3;
+  color: string; radius?: number; bow?: number;
+}) {
+  const mesh = useRef<THREE.Mesh>(null!);
+  const last = useRef(-1);
+  useFrame(() => {
+    if (Math.abs(last.current - rig.explode) < .002) return;
+    last.current = rig.explode;
+    const a = from(rig.explode), b = to(rig.explode);
+    const bend = new THREE.Vector3(bow, -8 - 16 * rig.explode, -8);
+    const curve = new THREE.CubicBezierCurve3(a, a.clone().lerp(b, .3).add(bend), a.clone().lerp(b, .7).add(bend), b);
+    const previous = mesh.current.geometry;
+    mesh.current.geometry = new THREE.TubeGeometry(curve, 24, radius, 6, false);
+    previous.dispose();
+  });
+  return <mesh ref={mesh}><meshStandardMaterial color={color} roughness={.6} /></mesh>;
+}
+
+function DisplayAndPowerCables() {
+  return <>
+    {/* All 26 display-header contacts, paired to the panel's 2 × 13 socket. */}
+    {Array.from({ length: 26 }, (_, i) => <Cable key={i}
+      from={progress => pinWorld(i + 1, progress)}
+      to={progress => partPoint(HOME.panel, HOME.panelEx, [34.24 - Math.floor(i / 2) * 2.54, -17.8 + (i % 2 === 0 ? -1.27 : 1.27), -9.8], progress)}
+      color={i === 0 ? '#c8513d' : i % 2 ? '#858a87' : '#bbbdb1'} radius={.32} />)}
+    {[-1, 1].map(side => <Cable key={side}
+      from={progress => partPoint(HOME.battery, HOME.batteryEx, [side * 7, 18, 0], progress)}
+      to={progress => partPoint(HOME.charger, HOME.chargerEx, [side * 7, -11, 1], progress)}
+      color={side === 1 ? '#dc5343' : '#24282b'} radius={.65} bow={side * 4} />)}
+    <Cable from={progress => partPoint(HOME.charger, HOME.chargerEx, [-7, 0, 1], progress)}
+      to={progress => partPoint(HOME.pi, HOME.piEx, [-21.5, 16.6, 2.1], progress)}
+      color="#303638" radius={1.2} bow={-24} />
+  </>;
+}
+
 /* ---------------- the whole device ---------------- */
 export function Device() {
   const yaw = useRef<THREE.Group>(null!);
@@ -405,6 +473,8 @@ export function Device() {
       <Buttons />
       <Encoder />
       <Wires />
+      <PowerAssembly />
+      <DisplayAndPowerCables />
     </group>
   );
 }
