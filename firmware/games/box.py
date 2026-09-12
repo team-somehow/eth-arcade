@@ -86,6 +86,14 @@ def ease_out(p: float) -> float:
 
 
 class BoxGame:
+    # A fresh cursor is not armed the moment it slides in. Presses meant as one
+    # more stake on the box that just went live keep arriving for a beat after
+    # the bell, and with nothing pending they would buy the *new* window and
+    # lock it wherever the cursor happened to sit. For this long after each
+    # bell the first press is swallowed; topping up a box already bought is
+    # never held back.
+    ARM_S = 2.0
+
     def __init__(self, seed: int | None = None, sound: bool = True,
                  source: str | None = None, wallet: Wallet | None = None,
                  clock: Callable[[], float] | None = None) -> None:
@@ -274,6 +282,10 @@ class BoxGame:
             return
         if not m.can_buy():
             self.open_wallet()
+            return
+        if m.pending is None and self.clock - self.aim_in_at < self.ARM_S:
+            # Still settling in from the last bell: aim it, then buy it.
+            self.note('NEW BOX / AIM IT FIRST', 1.2)
             return
         if m.buy(self.clock):
             # Each stacked press on the same box answers a note higher.

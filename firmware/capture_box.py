@@ -62,6 +62,9 @@ def new_game(clock: Clock, seed: int = 11) -> BoxGame:
     game = BoxGame(seed=seed, sound=False, source='sim',
                    wallet=Wallet(100 * MICRO, DemoFunding()), clock=clock)
     game.feed = Steered(game.feed)
+    # Presses here are scripted, never a finger carried past the bell, so the
+    # fresh cursor's arming delay would only push every shot out of frame.
+    game.ARM_S = 0.0
     return game
 
 
