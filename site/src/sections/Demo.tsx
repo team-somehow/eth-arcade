@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Game } from '../game/engine';
+import { Game, type Result } from '../game/engine';
 import { sfx } from '../game/sfx';
+
+/** How many settled windows the readout keeps. Enough to show a run, short
+ *  enough that the panel never grows the page under you. */
+const LOG_LEN = 6;
 
 export function Demo() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -11,6 +15,11 @@ export function Demo() {
   const visible = useRef(false);
   const dialAngle = useRef(0);
   const [ledger, setLedger] = useState({ bal: '100.00', hits: '0/0' });
+  const [log, setLog] = useState<Result[]>([]);
+  /** The best multiple actually paid this session — a quoted multiple that
+   *  missed paid nothing, so it is not a best. */
+  const [best, setBest] = useState(0);
+  const seenRounds = useRef(0);
   const [sound, setSound] = useState(false);
   const [focused, setFocused] = useState(false);
   const [redDown, setRedDown] = useState(false);
@@ -30,7 +39,18 @@ export function Demo() {
     const canvas = canvasRef.current!, device = deviceRef.current!;
     const game = new Game(canvas, sfx, {
       seed: 3,
-      onChange: () => setLedger({ bal: game.fmt(game.model.balance), hits: `${game.model.hits}/${game.model.rounds}` }),
+      onChange: () => {
+        const m = game.model;
+        setLedger({ bal: game.fmt(m.balance), hits: `${m.hits}/${m.rounds}` });
+        // rounds only ever increases, and only when a window has settled — so
+        // it, not `last`, is what tells us a new result is worth recording.
+        if (m.rounds > seenRounds.current && m.last) {
+          seenRounds.current = m.rounds;
+          const r = m.last;
+          setLog((prev) => [r, ...prev].slice(0, LOG_LEN));
+          if (r.hit) setBest((b) => Math.max(b, r.multiple));
+        }
+      },
     });
     gameRef.current = game;
     let raf = 0, last = performance.now() / 1000;
@@ -152,7 +172,38 @@ export function Demo() {
           </div>
           <div className="sound">
             <button className={'toggle' + (sound ? ' on' : '')} onClick={toggleSound} aria-pressed={sound}><span className="led" />{sound ? 'Sound on' : 'Sound off'}</button>
-            <div className="ledger">Balance <b>{ledger.bal}</b> &nbsp; Hits <b>{ledger.hits}</b></div>
+          </div>
+
+          <div className="readout">
+            <dl className="plate">
+              <div><dt>balance</dt><dd>{ledger.bal} <span className="unit">demo USDC</span></dd></div>
+              <div><dt>hit / played</dt><dd>{ledger.hits}</dd></div>
+              <div><dt>best so far</dt><dd>{best ? `${best.toFixed(1)}×` : '—'}</dd></div>
+            </dl>
+
+            <h3 className="rd-title">Settled windows</h3>
+            {log.length === 0 ? (
+              <p className="rd-empty">
+                Nothing has settled yet. Crank the knob to move the box, then press buy &mdash; the
+                first bell is ten seconds later.
+              </p>
+            ) : (
+              <ol className="rd-log">
+                {log.map((r, i) => (
+                  <li key={seenRounds.current - i} className={r.hit ? 'hit' : 'miss'}>
+                    <span className="rd-mult">{r.multiple.toFixed(1)}×</span>
+                    <span className="rd-flow">
+                      {(r.stake / 1e6).toFixed(0)}
+                      <svg className="rd-arrow" viewBox="0 0 20 8" aria-hidden focusable="false">
+                        <path d="M0 4h13" /><path d="m13.5 1.5 4 2.5-4 2.5" />
+                      </svg>
+                      {(r.payout / 1e6).toFixed(0)}
+                    </span>
+                    <span className="rd-verdict">{r.hit ? 'paid' : 'lost'}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
           </div>
         </div>
       </div>

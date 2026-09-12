@@ -12,14 +12,21 @@
   --yellow: #FFCC48;
   --yellow-deep: #B88A15;
   --mint: #7FE4B8;
-  --red: #E9645B;
+  --red: #E9645B;          /* the button cap, and dots: never small text */
+  --red-text: #F2938B;     /* the same red lifted to clear 4.5:1 at label sizes */
   --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --mono: "Chivo Mono", ui-monospace, Menlo, Consolas, monospace;
   --bar: 58px;
+  /* drawn, not a glyph: one stroke weight, shared by every outbound link */
+  --out-mark: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M3.2 8.8 8.8 3.2'/><path d='M4.4 3.2h4.4v4.4'/></svg>");
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  /* the bar is fixed, so an anchor must stop below it, not under it */
+  scroll-padding-top: calc(var(--bar) + 20px);
+}
 body {
   margin: 0; background: var(--ink); color: var(--cream);
   font-family: var(--display); font-size: 17px; line-height: 1.6;
@@ -31,10 +38,18 @@ button { font: inherit; cursor: pointer; }
 :focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; border-radius: 2px; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
+/* the surfaces we did not draw still belong to the machine */
+input, textarea { caret-color: var(--yellow); }
+* { scrollbar-color: #24404f var(--ink); scrollbar-width: thin; }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: var(--ink); }
+::-webkit-scrollbar-thumb { background: #24404f; border: 3px solid var(--ink); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #33566a; }
+
 h1, h2, h3 { margin: 0; text-wrap: balance; }
-h1, h2 { font-weight: 800; font-stretch: 118%; letter-spacing: -.018em; line-height: .98; }
-h1 { font-size: clamp(40px, 5.4vw, 78px); }
-h2 { font-size: clamp(32px, 3.9vw, 56px); }
+h1, h2 { font-weight: 800; font-stretch: 118%; letter-spacing: -.026em; line-height: .95; }
+h1 { font-size: clamp(42px, 6.2vw, 96px); }
+h2 { font-size: clamp(34px, 4.4vw, 64px); }
 h3 { font-weight: 700; font-stretch: 110%; font-size: 22px; letter-spacing: -.01em; line-height: 1.15; }
 p { margin: 0 0 14px; }
 .lead { font-size: 18px; color: rgba(244, 236, 210, .9); }
@@ -93,11 +108,26 @@ p { margin: 0 0 14px; }
 
 /* ---------- the film: copy column left, machine field right ---------- */
 .film { position: relative; height: 600vh; }
+/* The machine is lit out of the dark on every side: it must not end at a hard
+   edge where the next section starts, or the sticky stage reads as a cut. */
 .stage { position: sticky; top: 0; height: 100vh; margin-left: 46%; width: 54%; overflow: hidden;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 14%, #000 100%);
-  mask-image: linear-gradient(to right, transparent, #000 14%, #000 100%); }
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 14%, #000 100%), linear-gradient(to bottom, #000 78%, transparent 99%);
+  mask-image: linear-gradient(to right, transparent, #000 14%, #000 100%), linear-gradient(to bottom, #000 78%, transparent 99%);
+  -webkit-mask-composite: source-in; mask-composite: intersect; }
 .stage canvas { display: block; }
-.stage .glow { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 62% 50% at 50% 48%, rgba(255, 204, 72, .06), transparent 72%); }
+/* the room: a warm key off the screen, a cold fill from the left, a pool of
+   light the machine sits in, and a vignette so the dark has somewhere to go */
+.stage .glow {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 46% 30% at 50% 86%, rgba(255, 204, 72, .10), transparent 70%),
+    radial-gradient(ellipse 62% 50% at 52% 44%, rgba(255, 204, 72, .07), transparent 72%),
+    radial-gradient(ellipse 70% 60% at 6% 30%, rgba(120, 175, 210, .07), transparent 70%);
+}
+.stage .glow::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 74% 68% at 52% 48%, transparent 42%, rgba(3, 8, 13, .62) 100%);
+}
 .stage .frame { position: absolute; inset: 24px 28px; pointer-events: none; }
 .stage .frame span { position: absolute; width: 13px; height: 13px; border: 1px solid rgba(146, 170, 178, .28); }
 .stage .frame span:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; }
@@ -112,9 +142,14 @@ p { margin: 0 0 14px; }
   background: none; border: 0; padding: 7px 0; color: var(--dim);
   font-family: var(--mono); font-size: 11px;
 }
-.rail button i { display: block; width: 13px; height: 1px; background: rgba(146, 170, 178, .5); transition: width .25s ease, background .25s ease; }
+/* the detent grows leftward out of the rail; scaled, not re-laid-out */
+.rail button i {
+  display: block; width: 26px; height: 1px; background: rgba(146, 170, 178, .5);
+  transform: scaleX(.5); transform-origin: right center;
+  transition: transform .25s ease, background .25s ease;
+}
 .rail button span { opacity: 0; transition: opacity .25s ease; }
-.rail button:hover i, .rail button.on i { width: 26px; background: var(--yellow); }
+.rail button:hover i, .rail button.on i { transform: scaleX(1); background: var(--yellow); }
 .rail button.on span, .rail button:hover span { opacity: 1; }
 .rail button.on span { color: var(--cream); }
 @media (max-width: 960px) { .rail { display: none; } }
@@ -169,7 +204,7 @@ p { margin: 0 0 14px; }
 .callout {
   position: relative; transform: translate(14px, -50%);
   font-family: var(--mono); font-size: 11.5px; color: var(--cream);
-  background: rgba(6, 14, 21, .9); border: 1px solid rgba(255, 204, 72, .45); border-left: 2px solid var(--yellow);
+  background: rgba(6, 14, 21, .9); border: 1px solid rgba(255, 204, 72, .45);
   padding: 6px 10px; white-space: nowrap; opacity: 0; transition: opacity .4s ease;
 }
 .callout i { position: absolute; left: -15px; top: 50%; width: 13px; height: 1px; background: rgba(255, 204, 72, .7); }
@@ -179,10 +214,109 @@ p { margin: 0 0 14px; }
 
 /* ---------- document sections ---------- */
 section.doc { position: relative; z-index: 2; padding: clamp(64px, 8vw, 116px) clamp(20px, 5vw, 80px); }
-section.doc > .head { max-width: 54ch; margin-bottom: clamp(28px, 4vw, 46px); }
-section.doc > .head p { margin-top: 16px; }
+section.doc > .head { max-width: 62ch; margin-bottom: clamp(28px, 4vw, 46px); }
+section.doc > .head p { margin-top: 18px; }
 #demo { background: var(--navy); border-top: 1px solid var(--hair); }
 #reserve { background: var(--ink); border-top: 1px solid var(--hair); }
+
+/* ---------- proof: the case, opened ----------
+   A darker surface than the rest of the page with the faintest silkscreen grid
+   on it: you are looking at the inside of the machine, not at its face. */
+#proof {
+  background: #040B11; border-top: 1px solid var(--hair); overflow: hidden;
+}
+/* The case is open under the same lamp the machine sat under: one soft pool
+   from above, nothing else. A texture here would be decoration; the light is
+   the thing that says we are still in the same room. */
+#proof::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 62% 46% at 50% -6%, rgba(255, 204, 72, .055), transparent 72%);
+}
+#proof > * { position: relative; }
+
+.lanes { display: grid; gap: clamp(34px, 4.4vw, 58px); }
+.lane {
+  display: grid; grid-template-columns: 7.5ch minmax(0, 1fr) minmax(230px, 290px);
+  gap: clamp(18px, 3vw, 44px); padding-top: clamp(24px, 3vw, 34px); border-top: 1px solid var(--hair);
+}
+.lane:first-child { border-top: 0; padding-top: 0; }
+.lane-tag { font-family: var(--mono); font-size: 11.5px; color: var(--yellow); letter-spacing: .04em; padding-top: .55em; }
+.lane-body h3 { font-size: clamp(21px, 2.2vw, 29px); font-stretch: 114%; letter-spacing: -.016em; }
+
+/* the evidence column: the facts a reviewer checks, and the addresses they open */
+.evidence { display: grid; align-content: start; gap: 14px; }
+.facts { margin: 0; display: grid; border: 1px solid var(--edge); background: linear-gradient(180deg, rgba(17, 33, 46, .92), rgba(8, 18, 26, .92)); }
+.facts > div { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: baseline; padding: 8px 13px; border-top: 1px solid var(--hair); }
+.facts > div:first-child { border-top: 0; }
+.facts dt { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.facts dd { margin: 0; font-family: var(--mono); font-size: 11.5px; color: var(--cream); text-align: right; font-variant-numeric: tabular-nums; }
+
+.ref {
+  display: grid; gap: 2px; padding: 10px 13px; text-decoration: none;
+  border: 1px solid rgba(255, 204, 72, .3); border-radius: 3px; background: rgba(255, 204, 72, .045);
+  transition: border-color .16s ease, background .16s ease;
+}
+.ref b {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 500; color: var(--yellow);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.ref b::after {
+  content: ""; width: 9px; height: 9px; flex: none; background: currentColor; opacity: .85;
+  -webkit-mask: var(--out-mark) center / contain no-repeat; mask: var(--out-mark) center / contain no-repeat;
+}
+.ref i { font-family: var(--mono); font-style: normal; font-size: 10.5px; color: var(--dim); }
+.ref:hover { border-color: var(--yellow); background: rgba(255, 204, 72, .1); }
+
+/* the signal path: stations joined by hairline hops */
+.path { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 2px; margin: 18px 0 0; padding: 0; }
+.path li { display: flex; align-items: center; gap: 2px; }
+.path .hop { width: 34px; height: 8px; flex: none; fill: none; stroke: rgba(146, 170, 178, .55); stroke-width: 1; }
+.station {
+  display: grid; padding: 7px 12px; border: 1px solid var(--edge); border-radius: 3px;
+  background: linear-gradient(180deg, rgba(17, 33, 46, .9), rgba(8, 18, 26, .9));
+}
+.station b { font-family: var(--mono); font-size: 12.5px; font-weight: 500; color: var(--cream); white-space: nowrap; }
+.station i { font-family: var(--mono); font-style: normal; font-size: 10.5px; color: var(--dim); white-space: nowrap; margin-top: 2px; }
+
+.lane-note { margin: 18px 0 0; max-width: 72ch; color: rgba(244, 236, 210, .82); font-size: 15.5px; }
+.lane-note b { color: var(--cream); font-weight: 700; font-variant-numeric: tabular-nums; }
+.mn { font-family: var(--mono); font-size: .89em; color: var(--cream); }
+
+/* the end-to-end session, printed like a till receipt */
+.endtoend {
+  margin: clamp(44px, 5.5vw, 72px) 0 0; padding-top: clamp(28px, 3.4vw, 40px);
+  border-top: 1px solid var(--hair);
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 380px); gap: clamp(24px, 4vw, 56px); align-items: start;
+}
+.e2e-head h3 { font-size: clamp(21px, 2.2vw, 29px); font-stretch: 114%; letter-spacing: -.016em; margin-bottom: 14px; }
+.e2e-refs { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.e2e-refs .ref { flex: 1 1 230px; }
+.tape { display: grid; border: 1px solid var(--edge); background: linear-gradient(180deg, rgba(17, 33, 46, .92), rgba(8, 18, 26, .92)); }
+.tape-row { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: baseline; padding: 9px 14px; border-top: 1px solid var(--hair); }
+.tape-row:first-child { border-top: 0; }
+.t-k { font-family: var(--mono); font-size: 11.5px; color: var(--dim); }
+.t-v { font-size: 13px; color: var(--cream); text-align: right; font-variant-numeric: tabular-nums; }
+.tape-row.net { background: rgba(127, 228, 184, .07); }
+.tape-row.net .t-v { color: var(--mint); font-weight: 700; }
+.endtoend .lane-note { margin-top: 20px; }
+
+@media (max-width: 1120px) {
+  .lane { grid-template-columns: 7.5ch minmax(0, 1fr); }
+  .evidence { grid-column: 2; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); align-items: start; }
+  .endtoend { grid-template-columns: 1fr; }
+  .tape { max-width: 420px; }
+}
+@media (max-width: 760px) {
+  .lane { grid-template-columns: 1fr; gap: 14px; }
+  .lane-tag { padding-top: 0; }
+  .evidence { grid-column: 1; }
+  /* Wrapped horizontally, a hop can land at the start of a line and read as a
+     dangling dash. Narrow, the path runs down the page instead. */
+  .path { flex-direction: column; align-items: stretch; gap: 0; }
+  .path li { flex-direction: column; align-items: stretch; gap: 0; }
+  .path .hop { width: 22px; margin: 3px 0 3px 18px; transform: rotate(90deg); }
+  .station { justify-items: start; }
+}
 
 /* the playable device */
 .arcade > div:first-child { padding-right: 8%; }   /* the knob stands outside the shell */
@@ -237,6 +371,32 @@ section.doc > .head p { margin-top: 16px; }
 .controls .v { font-size: 15px; color: rgba(244, 236, 210, .9); }
 .controls kbd { display: inline-block; font-family: var(--mono); font-size: 11.5px; padding: 2px 6px; border: 1px solid var(--edge); border-bottom-width: 2px; border-radius: 4px; margin-right: 4px; color: var(--cream); }
 .sound { margin-top: 22px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+/* ---------- the readout: what the machine remembers ----------
+   The page is otherwise navy and yellow; this is the one place the game's own
+   outcome colours belong, because here they are reporting an outcome. */
+.readout { margin-top: 26px; padding-top: 24px; border-top: 1px solid var(--hair); }
+.readout .plate { margin: 0; max-width: none; }
+.readout .plate dd .unit { color: var(--dim); font-size: 11px; margin-left: 4px; }
+.rd-title { font-family: var(--mono); font-size: 11.5px; font-weight: 400; font-stretch: 100%; letter-spacing: .04em; color: var(--dim); margin: 22px 0 10px; }
+.rd-empty { font-size: 14px; color: var(--dim); margin: 0; max-width: 42ch; }
+
+.rd-log { list-style: none; margin: 0; padding: 0; display: grid; }
+.rd-log li {
+  display: grid; grid-template-columns: 5ch 1fr auto; gap: 16px; align-items: baseline;
+  padding: 9px 12px; border-top: 1px solid var(--hair);
+  font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums;
+}
+.rd-log li:first-child { border-top: 0; }
+.rd-mult { color: var(--cream); font-weight: 700; }
+.rd-flow { display: flex; align-items: center; gap: 8px; color: var(--dim); }
+.rd-arrow { width: 20px; height: 8px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.1; }
+.rd-verdict { font-size: 11px; letter-spacing: .06em; }
+.rd-log li.hit { background: linear-gradient(90deg, rgba(127, 228, 184, .11), transparent 62%); }
+.rd-log li.hit .rd-verdict { color: var(--mint); }
+.rd-log li.hit .rd-flow { color: rgba(127, 228, 184, .78); }
+.rd-log li.miss { background: linear-gradient(90deg, rgba(233, 100, 91, .1), transparent 62%); }
+.rd-log li.miss .rd-verdict { color: var(--red-text); }
 .toggle { display: inline-flex; align-items: center; gap: 9px; background: var(--slab); color: var(--cream); border: 1px solid var(--edge); padding: 10px 15px; border-radius: 4px; font-family: var(--mono); font-size: 12.5px; box-shadow: 0 3px 0 rgba(0, 0, 0, .55); }
 .toggle:active { transform: translateY(3px); box-shadow: none; }
 .toggle .led { width: 8px; height: 8px; border-radius: 50%; background: #55636a; }
@@ -276,7 +436,8 @@ section.doc > .head p { margin-top: 16px; }
 .stub div.due b { color: var(--yellow); font-size: 19px; }
 .reservebtn { width: 100%; justify-content: center; margin-top: 20px; }
 .fineprint { font-size: 13px; color: var(--dim); margin: 14px 0 0; line-height: 1.5; }
-.done .mark { width: 44px; height: 44px; border-radius: 50%; background: var(--mint); display: grid; place-items: center; color: var(--ink); font-size: 24px; font-weight: 700; margin-bottom: 14px; }
+.done .mark { width: 42px; height: 42px; border-radius: 50%; background: var(--mint); display: grid; place-items: center; color: var(--ink); margin-bottom: 14px; }
+.done .mark svg { width: 22px; height: 22px; }
 .done pre { font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; background: var(--ink); padding: 14px; border: 1px solid var(--hair); color: var(--dim); overflow-x: auto; }
 .done .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 

@@ -1,10 +1,20 @@
 import { useEffect, useState } from 'react';
 
-/** The inbox that should receive reservation requests. Set this before sharing the page. */
+/**
+ * SET THIS BEFORE SHARING THE PAGE. Until it is a real inbox, every request
+ * drafted below is addressed nowhere. It is deliberately left as a placeholder
+ * rather than guessed at: publishing someone's address is the author's call.
+ */
 const PREORDER_EMAIL = 'orders@example.com';
+
+/**
+ * What an assembled unit would cost to build and send. This is an indication,
+ * not an offer: no unit has been sold, nothing is in production, and nothing
+ * below creates a queue, a slot, or an obligation to build anything.
+ */
 const PRICE = 150;
 
-/** A reference the buyer can quote back. Generated here, so it is never a claim about an order. */
+/** A reference the sender can quote back. Generated here, so it is never a claim about an order. */
 function reference() {
   const d = new Date();
   const stamp = [d.getFullYear() % 100, d.getMonth() + 1, d.getDate()].map((n) => String(n).padStart(2, '0')).join('');
@@ -29,7 +39,7 @@ export function Reserve() {
     const input = e.currentTarget.elements.namedItem('email') as HTMLInputElement;
     if (!input.checkValidity()) { input.focus(); input.reportValidity(); return; }
     const ref = reference();
-    const body = `Reservation request — TICK handheld\n\nReference: ${ref}\nQuantity: ${qty}\nDue on delivery: $${qty * PRICE}\nContact: ${email.trim()}\n\nReserved from the landing page on ${new Date().toISOString().slice(0, 10)}.`;
+    const body = `I'd want a TICK handheld\n\nReference: ${ref}\nHow many: ${qty}\nIndicative cost: $${qty * PRICE} (not an order, nothing owed)\nContact: ${email.trim()}\n\nSent from the TICK page on ${new Date().toISOString().slice(0, 10)}.`;
     setReserved({ body, ref });
     try { localStorage.setItem('tick-reservation', JSON.stringify({ qty, email: email.trim(), ref, at: Date.now() })); } catch { /* ignore */ }
     location.href = `mailto:${PREORDER_EMAIL}?subject=${encodeURIComponent(`TICK reservation × ${qty}`)}&body=${encodeURIComponent(body)}`;
@@ -43,10 +53,13 @@ export function Reserve() {
   return (
     <section className="doc" id="reserve">
       <div className="head">
-        <h2>Hold one back for me.</h2>
+        <h2>Should I build more than one?</h2>
         <p className="lead">
-          $150 an assembled unit, due when your build slot is confirmed. Reserving costs nothing and
-          bills nothing — it puts you in the queue in the order the requests arrive.
+          One of these exists. Whether there is ever a second depends on whether anyone wants it, so
+          this is the honest version of a pre-order: no unit is for sale, nothing is charged, nothing
+          is queued, and nothing is promised. Say you want one and I will know to keep building.
+          About <b>$150</b> is what an assembled unit costs in parts and time &mdash; an indication,
+          not an offer.
         </p>
       </div>
       <div className="reserve">
@@ -72,8 +85,10 @@ export function Reserve() {
         <div className="ticket">
           {!reserved ? (
             <form onSubmit={submit} noValidate>
-              <h3>Reservation</h3>
-              <p className="lede">We confirm slots by email. Nothing is charged today.</p>
+              <h3>Say you want one</h3>
+              <p className="lede">
+                This goes to a person, not a shop. Nothing is charged, now or later.
+              </p>
               <div className="field">
                 <label htmlFor="email">Email</label>
                 <input id="email" name="email" type="email" required autoComplete="email" placeholder="you@somewhere.eth" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -89,23 +104,34 @@ export function Reserve() {
               <div className="perf" aria-hidden />
               <div className="stub">
                 <div><span>unit</span><b>TICK handheld</b></div>
-                <div><span>quantity</span><b>{qty}</b></div>
-                <div><span>today</span><b>$0</b></div>
-                <div className="due"><span>due on delivery</span><b>${(qty * PRICE).toLocaleString('en-US')}</b></div>
+                <div><span>how many</span><b>{qty}</b></div>
+                <div><span>charged now</span><b>$0</b></div>
+                <div><span>charged later</span><b>$0</b></div>
+                <div className="due"><span>would cost about</span><b>${(qty * PRICE).toLocaleString('en-US')}</b></div>
               </div>
-              <button className="key hot big reservebtn" type="submit"><span className="cap" />Reserve</button>
-              <p className="fineprint">Reserving opens a prefilled email you send yourself. Prototype hardware: nothing ships until your slot is confirmed.</p>
+              <button className="key hot big reservebtn" type="submit"><span className="cap" />I&rsquo;d want one</button>
+              <p className="fineprint">
+                This opens a prefilled email that you send yourself. It is a message, not an order:
+                there is no queue to join and no date to miss.
+              </p>
             </form>
           ) : (
             <div className="done">
-              <div className="mark" aria-hidden>✓</div>
-              <h3>You&rsquo;re in the queue</h3>
-              <p className="lede">Your request is drafted in your mail app — send it and the slot is held. If nothing opened, copy it below.</p>
+              <div className="mark" aria-hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m5 12.5 4.5 4.5L19 7.5" />
+                </svg>
+              </div>
+              <h3>Noted.</h3>
+              <p className="lede">
+                The message is drafted in your mail app &mdash; send it and I will see it. If nothing
+                opened, copy it below.
+              </p>
               <div className="perf" aria-hidden />
               <div className="stub">
                 <div><span>reference</span><b>{reserved.ref}</b></div>
-                <div><span>quantity</span><b>{qty}</b></div>
-                <div className="due"><span>due on delivery</span><b>${(qty * PRICE).toLocaleString('en-US')}</b></div>
+                <div><span>how many</span><b>{qty}</b></div>
+                <div className="due"><span>would cost about</span><b>${(qty * PRICE).toLocaleString('en-US')}</b></div>
               </div>
               <pre>{reserved.body}</pre>
               <div className="row">

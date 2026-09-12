@@ -62,7 +62,7 @@ export function Film() {
         <p className="note">The rule under the bar at the top of this page is one window. On the device, it never stops.</p>
         <div className="ctas">
           <a className="key hot big" href="#demo"><span className="cap" />Play it in your browser</a>
-          <a className="key big" href="#reserve">Reserve for $150</a>
+          <a className="key big" href="#reserve">Want one?</a>
         </div>
       </Chapter>
 
