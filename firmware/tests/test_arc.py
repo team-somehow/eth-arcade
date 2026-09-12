@@ -215,6 +215,16 @@ class ArcFundingTests(unittest.TestCase):
         self.funding.step()                                # and not asked about again
         self.assertEqual(asked, [PLAYER, PLAYER])
 
+    def test_a_player_named_after_cashing_out_still_gets_their_name(self):
+        """The scorekeeper often names a wallet only once its first session has closed."""
+        self.with_names(None, 'fierce-lynx.tick.eth')
+        self.deposit(MICRO)
+        self.funding.cash_out(self.wallet)
+        self.funding.step()
+        self.assertFalse(self.funding.in_session)
+        self.funding.step()
+        self.assertEqual(self.funding.names, {PLAYER: 'fierce-lynx.tick.eth'})
+
     def test_ens_trouble_never_gets_in_the_way_of_the_money(self):
         self.with_names(OSError('sepolia down'))
         news = self.deposit(MICRO)

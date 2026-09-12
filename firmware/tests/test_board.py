@@ -29,8 +29,9 @@ class StubFeed:
         self.wanted += 1
 
 
-def screen(rows=None, me='', error='', names=None) -> BoardScreen:
-    funding = SimpleNamespace(player=me, last_cashout=None, names=names or {})
+def screen(rows=None, me='', error='', names=None, in_session=False) -> BoardScreen:
+    funding = SimpleNamespace(player=me, last_cashout=None, names=names or {},
+                              in_session=in_session)
     game = SimpleNamespace(model=SimpleNamespace(wallet=SimpleNamespace(funding=funding)))
     return BoardScreen(game, StubFeed(rows, error))
 
@@ -69,6 +70,12 @@ class BoardTests(unittest.TestCase):
         rows = [standing(i) for i in range(3)]
         y, rank, row, mine = screen(rows, ME).layout(rows, ME)[-1]
         self.assertEqual((y, rank, row, mine), (YOU_Y, 0, None, True))
+
+    def test_an_unranked_player_is_told_why(self):
+        board = screen([], ME, in_session=True)
+        self.assertEqual(board.waiting_note(), 'RANKED AFTER CASH OUT')
+        board.funding.in_session = False        # cashed out: the scorekeeper has the rest
+        self.assertTrue(board.waiting_note().startswith('SCORING ON ENS'))
 
     def test_the_last_player_paid_counts_as_ours(self):
         board = screen([])

@@ -899,3 +899,39 @@ class GameTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class SessionStreakTests(unittest.TestCase):
+    """A streak belongs to a session, not to the device it was won on."""
+
+    PLAYER = '0xa686c0F8743a24c388d8b61EBA7939F36a710f80'
+
+    def game_with(self, *events):
+        import pygame
+        from types import SimpleNamespace
+        pygame.init()
+        pygame.display.set_mode((480, 320))
+        from games.box import BoxGame
+        game = BoxGame(seed=7, sound=False, source='sim', wallet=Wallet(START, DemoFunding()))
+        self.addCleanup(game.close)
+        game.model.wallet.funding = SimpleNamespace(sync=lambda wallet: list(events), names={})
+        return game
+
+    def test_cashing_out_breaks_the_streak(self):
+        game = self.game_with(('cashed_out', [(990995, self.PLAYER, '0xtx')]))
+        game.streak = 14
+        game.sync_funding()
+        self.assertEqual(game.streak, 0)
+
+    def test_a_session_that_ended_on_chain_breaks_the_streak(self):
+        game = self.game_with(('ended',))
+        game.streak = 14
+        game.sync_funding()
+        self.assertEqual(game.streak, 0)
+
+    def test_paying_more_in_mid_session_does_not(self):
+        """A second deposit stacks a session on a live game; the run continues."""
+        game = self.game_with(('opened', 990000, self.PLAYER, '0xtx'))
+        game.streak = 4
+        game.sync_funding()
+        self.assertEqual(game.streak, 4)

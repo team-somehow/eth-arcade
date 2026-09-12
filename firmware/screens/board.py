@@ -213,7 +213,13 @@ class BoardScreen:
         say_right(s, '-', 36, y + 4, 15, MUTED)
         say(s, handle, 46, y + 4, 15, CREAM)
         self.you(s, handle, y)
-        say_right(s, 'RANKED AFTER CASH OUT', PLAYS_R, y + 6, 11, MUTED)
+        say_right(s, self.waiting_note(), PLAYS_R, y + 6, 11, MUTED)
+
+    def waiting_note(self) -> str:
+        """Why this player has no rank yet: still playing, or waiting to be scored."""
+        if getattr(self.funding, 'in_session', False):
+            return 'RANKED AFTER CASH OUT'
+        return 'SCORING ON ENS' + '.' * (int(self.t * 2) % 4)
 
     def note(self, s: pygame.Surface, big: str, small: str, color: tuple) -> None:
         say(s, big, 240, 120, 18, color, True)

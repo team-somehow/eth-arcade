@@ -421,7 +421,12 @@ class ArcFunding:
 
     def _look_up_names(self) -> None:
         """Find each player's tick.eth name. ENS trouble never gets in the way of the money."""
-        wanted = [s.player for s in self.sessions if s.player not in self.names]
+        # The last player paid still wants their name: the scorekeeper names a wallet
+        # from its first session, which may land after that session has been closed.
+        players = [s.player for s in self.sessions]
+        if self.last_cashout is not None:
+            players.append(self.last_cashout[1])
+        wanted = [p for p in players if p and p not in self.names]
         if not wanted or time.monotonic() < self._next_name:
             return
         self._next_name = time.monotonic() + self.NAME_S

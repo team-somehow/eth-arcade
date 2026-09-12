@@ -130,7 +130,9 @@ class BoxGame:
         self.aim_in_at = -99.0
         self.pop_at = -99.0
         self.shake_at = -99.0
-        self.streak = 0            # hits in a row; three sets the rider on fire
+        self.streak = 0            # hits in a row; three sets the rider on fire.
+        # A miss breaks it, and so does the end of a session: the next player to
+        # pay in starts from nothing, whoever they are.
         # Real funds only.
         self.cashing = False       # cash-out asked for; waiting for the live box to land
         self.money_note: tuple[str, float] | None = None   # shown on the launcher too
@@ -227,10 +229,12 @@ class BoxGame:
                 paid = sum(payout for payout, _, _ in event[1])
                 self.announce(f'SENT {format_usdc(paid)} TO {self.who(event[1][-1][1])}', 8)
                 self.play('coin')
+                self.streak = 0
             elif kind == 'refunded':
                 self.announce(f'SENT BACK {format_usdc(event[1])} / {event[3]}', 6)
             elif kind == 'ended':
                 self.announce('SESSION ENDED ON CHAIN', 4)
+                self.streak = 0
         if self.cashing and (m.live is None or not m.live.stake):
             self.cashing = False
             funding.cash_out(m.wallet)

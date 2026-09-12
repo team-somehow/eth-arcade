@@ -232,6 +232,8 @@ class Scorekeeper:
     """Follows TickEscrow on Arc; names players and publishes their stats on Sepolia."""
     POLL_S = 6.0
     RANGE = 10_000   # Arc blocks per log query
+    PACE_S = 0.5     # between catch-up queries: a cold start is a burst of them,
+                     # and Arc's public RPC answers a burst with 429
 
     def __init__(self, team: Chain, keeper: Chain, arc_rpc: Rpc, escrow: str, since: int) -> None:
         self.team, self.keeper = team, keeper
@@ -251,6 +253,11 @@ class Scorekeeper:
             self.publish(self.named[player], stats.records())
 
     def scan(self) -> None:
+        """Every session since the escrow's first block, a range at a time.
+
+        A failed range leaves `self.last` where it was, so the next pass asks
+        for it again and nothing is counted twice.
+        """
         head = int(self.arc('eth_blockNumber'), 16)
         while self.last < head:
             last = min(head, self.last + self.RANGE)
@@ -259,6 +266,8 @@ class Scorekeeper:
                     'topics': [[OPENED, CLOSED, RECLAIMED]]}):
                 self.apply(log)
             self.last = last
+            if self.last < head:
+                time.sleep(self.PACE_S)
 
     def apply(self, log: dict) -> None:
         kind, sid = log['topics'][0], int(log['topics'][1], 16)
@@ -320,6 +329,10 @@ def deployed() -> names.Ens:
 
 def run() -> None:
     deployed()
+    if not KEEPER_KEY.exists():
+        # load_device would quietly mint one: a stranger with no gas and no
+        # roles, whose every write reverts. Only deploy may create this key.
+        sys.exit(f'No {KEEPER_KEY}: copy it from the machine that ran deploy')
     net = arc.network('arc-testnet')
     keeper = Scorekeeper(sepolia(team_account()), sepolia(arc.load_device(KEEPER_KEY)),
                          Rpc(net.rpc), net.escrow,
