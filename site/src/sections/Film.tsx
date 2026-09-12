@@ -45,7 +45,7 @@ function Chapter({ i, hero, chapter, children }: { i: number; hero?: boolean; ch
   return (
     <div className={cls} style={{ top: `${i * 100}vh` }}>
       <div className="copy"><div className="eyebrow">{hero ? <><span className="status-dot" /> A pocket-sized market arcade</> : <><span>{String(i).padStart(2, '0')}</span> / {RAIL[i]}</>}</div>{children}</div>
-      {hero && <div className="scrollcue"><span aria-hidden>↓</span> Scroll to meet ETHarcade</div>}
+      {hero && <div className="scrollcue"><span aria-hidden>↓</span> Scroll to meet ETH Arcade</div>}
     </div>
   );
 }
@@ -67,7 +67,7 @@ export function Film() {
       <Chapter i={0} hero chapter={chapter}>
         <h1>The market.<br />Now <span className="hero-accent">in play.</span></h1>
         <p className="lead">
-          Meet ETHarcade. An open handheld for market-powered games.
+          Meet ETH Arcade. An open handheld for market-powered games.
           Play Box Run, built with our SDK — or use the same tools to make your own.
         </p>
         <div className="ctas">

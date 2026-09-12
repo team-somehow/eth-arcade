@@ -32,7 +32,7 @@ export function Proof() {
         <div className="eyebrow">03 / THE INTEGRATIONS THAT MAKE IT WORK</div>
         <h2 id="proof-title">Real infrastructure.<br />A little more play.</h2>
         <p className="lead">The Graph supplies the market. Circle’s Arc settles USDC sessions.
-          ENSv2 makes the player record portable. Box Run brings them together on ETHarcade;
+          ENSv2 makes the player record portable. Box Run brings them together on ETH Arcade;
           the SDK exposes the same building blocks for the next game.</p>
       </div>
 
@@ -40,7 +40,7 @@ export function Proof() {
         <figcaption id="architecture-title"><span>THE SYSTEM / ARCHITECTURE</span><b>From market data to a player’s record.</b></figcaption>
         <ol>
           <li><span className="map-number">01 / THE GRAPH</span><b>Live pool prices</b><p>Standardized subgraphs → composed Substreams → HTTP relay</p><span className="map-arrow" aria-hidden>→</span></li>
-          <li><span className="map-number">02 / ETHARCADE</span><b>Box Run + SDK</b><p>Price aggregation, odds, inputs, sound, and off-chain rounds</p><span className="map-arrow" aria-hidden>→</span></li>
+          <li><span className="map-number">02 / ETH ARCADE</span><b>Box Run + SDK</b><p>Price aggregation, odds, inputs, sound, and off-chain rounds</p><span className="map-arrow" aria-hidden>→</span></li>
           <li><span className="map-number">03 / CIRCLE · ARC</span><b>USDC settlement</b><p>Wallet → device → escrow → payout to the player</p><span className="map-arrow" aria-hidden>→</span></li>
           <li><span className="map-number">04 / ENSv2</span><b>Identity + standings</b><p>Arc events → scorekeeper → ENS records → leaderboard</p></li>
         </ol>
@@ -53,7 +53,7 @@ export function Proof() {
           <div>
             <p className="bounty">TARGET TRACK / Best Use of Composable or Standardized Graph Products</p>
             <h3 id="graph-title">One query pattern.<br />One pipeline. More markets.</h3>
-            <p className="sponsor-lead">A ten-second game needs a price that keeps moving. ETHarcade combines multiple pools across two chains, instead of letting one quiet pool dictate the round.</p>
+            <p className="sponsor-lead">A ten-second game needs a price that keeps moving. ETH Arcade combines multiple pools across two chains, instead of letting one quiet pool dictate the round.</p>
             <div className="integration-points">
               <div><b>Discover once, reuse across protocols.</b><p>The same Messari standardized DEX query retrieves pool metadata for Uniswap v3 and Sushiswap v3. Token order and decimals arrive in a shared schema, so a supported protocol needs configuration rather than another parser.</p></div>
               <div><b>Compose the event decoding.</b><p><code>tick_eth_price</code> imports Pinax’s <code>uniswap_v3</code> and <code>uniswap_v4</code> Substreams packages. The same compiled module runs on Arbitrum and Base with different pool lists.</p></div>
@@ -129,7 +129,7 @@ export function Proof() {
             <Link href={code('ens/README.md')}>Read the ENSv2 integration</Link>
           </aside>
         </div>
-        <details className="implementation-detail"><summary>Why the ENSv2 features matter</summary><p>The hierarchical registry makes player issuance and season expiry programmable. Enhanced Access Control separates trusted score updates from player-controlled profile records on the shared resolver. Both contracts were created through ENS’s VerifiableFactory. The scorekeeper has its own <code>scorekeeper.tick.eth</code> name and an <code>agent-context</code> record, but is a deterministic service, not an AI agent. <code>tick.eth</code> remains the deployed namespace after the ETHarcade product rename.</p></details>
+        <details className="implementation-detail"><summary>Why the ENSv2 features matter</summary><p>The hierarchical registry makes player issuance and season expiry programmable. Enhanced Access Control separates trusted score updates from player-controlled profile records on the shared resolver. Both contracts were created through ENS’s VerifiableFactory. The scorekeeper has its own <code>scorekeeper.tick.eth</code> name and an <code>agent-context</code> record, but is a deterministic service, not an AI agent. <code>tick.eth</code> remains the deployed namespace after the ETH Arcade product rename.</p></details>
       </article>
 
       <figure className="session-proof">

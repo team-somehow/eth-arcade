@@ -1,10 +1,10 @@
 export function Nav() {
   return (
     <nav className="topbar" aria-label="Main navigation">
-      <a className="wordmark" href="#top">ETHarcade<em>.fun</em></a>
+      <a className="wordmark" href="#top">ETH Arcade</a>
 
       <div className="baraction">
-        <a className="key ghostable" href="#sdk">Build a game</a>
+        <a className="key docs-nav" href="/docs/">Docs</a>
         <a className="key ghostable" href="#proof">Integrations</a>
         <a className="key ghostable" href="#demo">Play Box Run</a>
         <a className="key hot" href="#reserve">Get in on it <span aria-hidden>↗</span></a>
@@ -19,7 +19,7 @@ export function Nav() {
 export function Footer() {
   return (
     <footer>
-      <span className="wordmark">ETHarcade<em>.fun</em></span>
+      <span className="wordmark">ETH Arcade</span>
       <p>
         Built at ETHOnline 2026. Prices are read-only. Every bet on this page is paper and its
         balance is demo money; on the device, money is paper by default and real USDC only on Arc

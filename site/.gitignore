@@ -3,3 +3,6 @@ dist/
 .vite/
 *.log
 .DS_Store
+
+# Generated from sdk/web/dist by docs:sync
+public/docs/

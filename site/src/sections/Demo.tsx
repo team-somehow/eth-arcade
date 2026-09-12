@@ -139,7 +139,7 @@ export function Demo() {
         <div className="eyebrow">01 / A GAME BUILT WITH THE SDK</div>
         <h2>Meet Box Run.</h2>
         <p className="lead">
-          Our game, built with the ETHarcade SDK. Place a box on the ETH price, crank the dial,
+          Our game, built with the ETH Arcade SDK. Place a box on the ETH price, crank the dial,
           and wait for the bell. Try it here on a simulated feed with 100 demo USDC.
         </p>
       </div>
@@ -150,7 +150,7 @@ export function Demo() {
             className={'device' + (focused ? ' focus' : '')}
             ref={deviceRef}
             tabIndex={0}
-            aria-label="ETHarcade handheld. Use arrow keys to crank, Enter to buy."
+            aria-label="ETH Arcade handheld. Use arrow keys to crank, Enter to buy."
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             onClick={() => deviceRef.current?.focus({ preventScroll: true })}
@@ -162,7 +162,7 @@ export function Demo() {
             <div className="dial" ref={dialRef} role="slider" aria-label="Crank dial" aria-valuemin={-12} aria-valuemax={12} aria-valuenow={0} tabIndex={0}>
               <div className="knurl" /><i ref={needleRef} />
             </div>
-            <div className="devtag">ETHarcade</div>
+            <div className="devtag">ETH Arcade</div>
           </div>
         </div>
         <div>

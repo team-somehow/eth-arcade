@@ -249,3 +249,5 @@ footer .wordmark { font-size: clamp(28px, 4vw, 48px); }
      Mobile names each view in its caption and keeps details in the text. */
   .stage .callout { display: none; }
 }
+.topbar .docs-nav { border: 0; padding: 10px 0; }
+@media (max-width: 560px) { .topbar .baraction { gap: 12px; } .topbar .key.hot { padding: 11px 12px; } .topbar .key.hot span:last-child { margin-left: 4px; } .topbar .docs-nav { font-size: 12px; } }

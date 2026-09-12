@@ -8,7 +8,11 @@
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "docs:sync": "node scripts/sync-docs.mjs",
+    "docs:generate": "python3 ../sdk/web/build.py && npm run docs:sync",
+    "predev": "npm run docs:sync",
+    "prebuild": "npm run docs:sync"
   },
   "dependencies": {
     "@react-three/drei": "^10.1.2",
