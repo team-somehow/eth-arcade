@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/input.py - TICK SDK</title>
+<meta name="description" content="Source of tick/input.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">input.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/input.py &middot; 258 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span><span>128</span><span>129</span><span>130</span><span>131</span><span>132</span><span>133</span><span>134</span><span>135</span><span>136</span><span>137</span><span>138</span><span>139</span><span>140</span><span>141</span><span>142</span><span>143</span><span>144</span><span>145</span><span>146</span><span>147</span><span>148</span><span>149</span><span>150</span><span>151</span><span>152</span><span>153</span><span>154</span><span>155</span><span>156</span><span>157</span><span>158</span><span>159</span><span>160</span><span>161</span><span>162</span><span>163</span><span>164</span><span>165</span><span>166</span><span>167</span><span>168</span><span>169</span><span>170</span><span>171</span><span>172</span><span>173</span><span>174</span><span>175</span><span>176</span><span>177</span><span>178</span><span>179</span><span>180</span><span>181</span><span>182</span><span>183</span><span>184</span><span>185</span><span>186</span><span>187</span><span>188</span><span>189</span><span>190</span><span>191</span><span>192</span><span>193</span><span>194</span><span>195</span><span>196</span><span>197</span><span>198</span><span>199</span><span>200</span><span>201</span><span>202</span><span>203</span><span>204</span><span>205</span><span>206</span><span>207</span><span>208</span><span>209</span><span>210</span><span>211</span><span>212</span><span>213</span><span>214</span><span>215</span><span>216</span><span>217</span><span>218</span><span>219</span><span>220</span><span>221</span><span>222</span><span>223</span><span>224</span><span>225</span><span>226</span><span>227</span><span>228</span><span>229</span><span>230</span><span>231</span><span>232</span><span>233</span><span>234</span><span>235</span><span>236</span><span>237</span><span>238</span><span>239</span><span>240</span><span>241</span><span>242</span><span>243</span><span>244</span><span>245</span><span>246</span><span>247</span><span>248</span><span>249</span><span>250</span><span>251</span><span>252</span><span>253</span><span>254</span><span>255</span><span>256</span><span>257</span><span>258</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;Four actions. That is the whole controller.
+
+    UP / DOWN   the dial, one detent
+    A           go / buy / confirm
+    B           back / cancel
+    QUIT        leave
+
+A rotary encoder, two panel buttons, a keyboard and a touchscreen all collapse
+into those four, so a game written on a laptop runs on the handheld with no
+input code changed. That is the only reason a game is testable at all: you
+cannot unit-test a thumb on a dial, but you can feed a list of `InputAction`.
+
+Hardware (BCM numbering, not header position -- this is where it usually goes
+wrong):
+
+    encoder  CLK=GPIO21 (pin 40)  DT=GPIO20 (pin 38)  SW=GPIO16 (pin 36)
+    red      GPIO13 (pin 33) -&gt; button -&gt; GND     back / B
+    yellow   GPIO26 (pin 37) -&gt; button -&gt; GND     go / A
+
+Both readers are `try_open()`: on a machine with no GPIO they return None and
+the game plays on the keyboard instead of refusing to start.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">from</span> enum <span class="t-key">import</span> <span class="t-type">Enum</span>, auto
+<span class="t-key">import</span> time
+<span class="t-key">from</span> typing <span class="t-key">import</span> <span class="t-type">Callable</span>
+
+<span class="t-key">from</span> .display <span class="t-key">import</span> display_to_canvas, to_canvas
+
+
+<span class="t-key">class</span> <span class="t-fn">InputAction</span>(<span class="t-type">Enum</span>):
+    <span class="t-type">UP</span> = <span class="t-fn">auto</span>()
+    <span class="t-type">DOWN</span> = <span class="t-fn">auto</span>()
+    <span class="t-type">A</span> = <span class="t-fn">auto</span>()
+    <span class="t-type">B</span> = <span class="t-fn">auto</span>()
+    <span class="t-type">QUIT</span> = <span class="t-fn">auto</span>()
+
+
+<span class="t-com"># ---- keyboard and touch --------------------------------------------------</span>
+<span class="t-key">def</span> <span class="t-fn">event_position</span>(event) -&gt; tuple[int, int] | <span class="t-key">None</span>:
+    <span class="t-doc">&quot;&quot;&quot;Canvas pixels of a tap or click, or None if the event is neither.&quot;&quot;&quot;</span>
+    <span class="t-key">import</span> pygame
+    <span class="t-key">if</span> event.type == pygame.<span class="t-type">MOUSEBUTTONDOWN</span>:
+        <span class="t-key">if</span> <span class="t-fn">getattr</span>(event, <span class="t-str">&#x27;touch&#x27;</span>, <span class="t-key">False</span>) <span class="t-key">or</span> event.button != <span class="t-num">1</span>:
+            <span class="t-key">return</span> <span class="t-key">None</span>
+        <span class="t-key">return</span> <span class="t-fn">display_to_canvas</span>(event.pos)
+    <span class="t-key">if</span> event.type == pygame.<span class="t-type">FINGERDOWN</span>:
+        <span class="t-com"># Finger positions are fractions of the display, which may be turned.</span>
+        <span class="t-key">return</span> <span class="t-fn">to_canvas</span>(event.x, event.y)
+    <span class="t-key">return</span> <span class="t-key">None</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">actions_from_event</span>(event) -&gt; list[<span class="t-type">InputAction</span>]:
+    <span class="t-doc">&quot;&quot;&quot;A pygame event to zero or more actions. Position is not converted here.&quot;&quot;&quot;</span>
+    <span class="t-key">import</span> pygame
+    <span class="t-key">if</span> event.type == pygame.<span class="t-type">QUIT</span>:
+        <span class="t-key">return</span> [<span class="t-type">InputAction</span>.<span class="t-type">QUIT</span>]
+    <span class="t-key">if</span> event.type != pygame.<span class="t-type">KEYDOWN</span>:
+        <span class="t-key">return</span> []
+    key = event.key
+    <span class="t-com"># Escape always leaves the program, from any screen, mid-round included.</span>
+    <span class="t-key">if</span> key == pygame.<span class="t-type">K_ESCAPE</span>:
+        <span class="t-key">return</span> [<span class="t-type">InputAction</span>.<span class="t-type">QUIT</span>]
+    <span class="t-key">if</span> key <span class="t-key">in</span> (pygame.<span class="t-type">K_UP</span>, pygame.<span class="t-type">K_w</span>):
+        <span class="t-key">return</span> [<span class="t-type">InputAction</span>.<span class="t-type">UP</span>]
+    <span class="t-key">if</span> key <span class="t-key">in</span> (pygame.<span class="t-type">K_DOWN</span>, pygame.<span class="t-type">K_s</span>):
+        <span class="t-key">return</span> [<span class="t-type">InputAction</span>.<span class="t-type">DOWN</span>]
+    <span class="t-key">if</span> key <span class="t-key">in</span> (pygame.<span class="t-type">K_RIGHT</span>, pygame.<span class="t-type">K_RETURN</span>, pygame.<span class="t-type">K_SPACE</span>, pygame.<span class="t-type">K_x</span>):
+        <span class="t-key">return</span> [<span class="t-type">InputAction</span>.<span class="t-type">A</span>]
+    <span class="t-key">if</span> key <span class="t-key">in</span> (pygame.<span class="t-type">K_LEFT</span>, pygame.<span class="t-type">K_z</span>, pygame.<span class="t-type">K_BACKSPACE</span>):
+        <span class="t-key">return</span> [<span class="t-type">InputAction</span>.<span class="t-type">B</span>]
+    <span class="t-key">return</span> []
+
+
+<span class="t-key">class</span> <span class="t-type">HeldKeys</span>:
+    <span class="t-doc">&quot;&quot;&quot;Held Up/Down on a desktop emulates a spun dial.
+
+    Without this, developing on a laptop means tapping a key forty times to
+    move a bet across the ladder, and the game feels wrong in a way that has
+    nothing to do with the game.
+    &quot;&quot;&quot;</span>
+
+    <span class="t-type">FIRST_S</span> = <span class="t-num">0.12</span>      <span class="t-com"># pause before a held key starts repeating</span>
+    <span class="t-type">REPEAT_S</span> = <span class="t-num">0.05</span>     <span class="t-com"># then one detent this often</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.held: dict[int, float] = {}
+
+    <span class="t-key">def</span> <span class="t-fn">handle</span>(<span class="t-key">self</span>, event) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">import</span> pygame
+        <span class="t-key">if</span> event.type == pygame.<span class="t-type">WINDOWFOCUSLOST</span>:
+            <span class="t-key">self</span>.held.<span class="t-fn">clear</span>()
+        <span class="t-key">elif</span> event.type == pygame.<span class="t-type">KEYDOWN</span> <span class="t-key">and</span> event.key <span class="t-key">in</span> (
+                pygame.<span class="t-type">K_UP</span>, pygame.<span class="t-type">K_DOWN</span>, pygame.<span class="t-type">K_w</span>, pygame.<span class="t-type">K_s</span>):
+            <span class="t-key">self</span>.held[event.key] = <span class="t-key">self</span>.<span class="t-type">FIRST_S</span>
+        <span class="t-key">elif</span> event.type == pygame.<span class="t-type">KEYUP</span>:
+            <span class="t-key">self</span>.held.<span class="t-fn">pop</span>(event.key, <span class="t-key">None</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">tick</span>(<span class="t-key">self</span>, dt: float) -&gt; list[<span class="t-type">InputAction</span>]:
+        <span class="t-key">import</span> pygame
+        out: list[<span class="t-type">InputAction</span>] = []
+        <span class="t-key">for</span> key <span class="t-key">in</span> <span class="t-fn">list</span>(<span class="t-key">self</span>.held):
+            <span class="t-key">self</span>.held[key] -= dt
+            <span class="t-key">if</span> <span class="t-key">self</span>.held[key] &lt;= <span class="t-num">0</span>:
+                out.<span class="t-fn">append</span>(<span class="t-type">InputAction</span>.<span class="t-type">UP</span> <span class="t-key">if</span> key <span class="t-key">in</span> (pygame.<span class="t-type">K_UP</span>, pygame.<span class="t-type">K_w</span>)
+                           <span class="t-key">else</span> <span class="t-type">InputAction</span>.<span class="t-type">DOWN</span>)
+                <span class="t-key">if</span> key <span class="t-key">in</span> <span class="t-key">self</span>.held:
+                    <span class="t-key">self</span>.held[key] = <span class="t-key">self</span>.<span class="t-type">REPEAT_S</span>
+        <span class="t-key">return</span> out
+
+    <span class="t-key">def</span> <span class="t-fn">clear</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.held.<span class="t-fn">clear</span>()
+
+
+<span class="t-com"># ---- GPIO ----------------------------------------------------------------</span>
+<span class="t-type">CLK_PIN</span>, <span class="t-type">DT_PIN</span>, <span class="t-type">SW_PIN</span> = <span class="t-num">21</span>, <span class="t-num">20</span>, <span class="t-num">16</span>
+<span class="t-type">RED_PIN</span>, <span class="t-type">YELLOW_PIN</span> = <span class="t-num">13</span>, <span class="t-num">26</span>
+<span class="t-type">LONG_PRESS_S</span> = <span class="t-num">0.65</span>
+<span class="t-type">STEPS_PER_CLICK</span> = <span class="t-num">1</span>
+<span class="t-type">MIN_NAV_INTERVAL_S</span> = <span class="t-num">0.05</span>
+<span class="t-type">BOUNCE_S</span> = <span class="t-num">0.03</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">_pin_factory</span>():
+    <span class="t-key">from</span> gpiozero <span class="t-key">import</span> <span class="t-type">Device</span>
+    <span class="t-key">from</span> gpiozero.pins.lgpio <span class="t-key">import</span> <span class="t-type">LGPIOFactory</span>
+    <span class="t-key">if</span> <span class="t-type">Device</span>.pin_factory <span class="t-key">is</span> <span class="t-key">None</span>:
+        <span class="t-type">Device</span>.pin_factory = <span class="t-fn">LGPIOFactory</span>(chip=<span class="t-num">0</span>)
+
+
+<span class="t-key">class</span> <span class="t-type">EncoderInput</span>:
+    <span class="t-doc">&quot;&quot;&quot;Rotary encoder: turn -&gt; UP/DOWN, click -&gt; A, hold -&gt; B.
+
+    `poll(continuous=True)` in play reports **this poll&#x27;s motion only** and
+    never queues old turns, so a stopped crank stops moving the bet at once.
+    `continuous=False` in menus rate-limits instead, so a whip-spin scrolls a
+    list smoothly rather than wrapping it a dozen times.
+    &quot;&quot;&quot;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, encoder, button, *, invert: bool = <span class="t-key">False</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>._encoder = encoder
+        <span class="t-key">self</span>._button = button
+        <span class="t-key">self</span>._invert = invert
+        <span class="t-key">self</span>._last_steps = <span class="t-fn">int</span>(<span class="t-fn">getattr</span>(encoder, <span class="t-str">&#x27;steps&#x27;</span>, <span class="t-num">0</span>))
+        <span class="t-key">self</span>._pending = <span class="t-num">0</span>
+        <span class="t-key">self</span>._was_pressed = <span class="t-fn">bool</span>(<span class="t-fn">getattr</span>(button, <span class="t-str">&#x27;is_pressed&#x27;</span>, <span class="t-key">False</span>))
+        <span class="t-key">self</span>._press_at = <span class="t-num">0.0</span>
+        <span class="t-key">self</span>._last_nav_at = <span class="t-num">0.0</span>
+
+    @classmethod
+    <span class="t-key">def</span> <span class="t-fn">try_open</span>(cls, clk: int = <span class="t-type">CLK_PIN</span>, dt: int = <span class="t-type">DT_PIN</span>, sw: int = <span class="t-type">SW_PIN</span>,
+                 invert: bool = <span class="t-key">False</span>) -&gt; <span class="t-str">&#x27;EncoderInput | None&#x27;</span>:
+        <span class="t-key">try</span>:
+            <span class="t-key">from</span> gpiozero <span class="t-key">import</span> <span class="t-type">Button</span>, <span class="t-type">RotaryEncoder</span>
+        <span class="t-key">except</span> <span class="t-type">ImportError</span>:
+            <span class="t-key">return</span> <span class="t-key">None</span>
+        <span class="t-key">try</span>:
+            <span class="t-fn">_pin_factory</span>()
+            <span class="t-com"># max_steps=0 is unlimited; the default of 16 clamps and appears to</span>
+            <span class="t-com"># &quot;break&quot; after a fast spin one way. No bounce_time: mechanical</span>
+            <span class="t-com"># filtering drops edges when the dial is spun hard.</span>
+            encoder = <span class="t-fn">RotaryEncoder</span>(clk, dt, bounce_time=<span class="t-key">None</span>, max_steps=<span class="t-num">0</span>)
+            button = <span class="t-fn">Button</span>(sw, pull_up=<span class="t-key">True</span>, bounce_time=<span class="t-num">0.05</span>)
+        <span class="t-key">except</span> <span class="t-type">Exception</span>:
+            <span class="t-key">return</span> <span class="t-key">None</span>
+        <span class="t-key">return</span> <span class="t-fn">cls</span>(encoder, button, invert=invert)
+
+    <span class="t-key">def</span> <span class="t-fn">poll</span>(<span class="t-key">self</span>, *, continuous: bool = <span class="t-key">False</span>) -&gt; list[<span class="t-type">InputAction</span>]:
+        actions: list[<span class="t-type">InputAction</span>] = []
+        now = time.<span class="t-fn">monotonic</span>()
+        steps = <span class="t-fn">int</span>(<span class="t-key">self</span>._encoder.steps)
+        delta = steps - <span class="t-key">self</span>._last_steps
+        <span class="t-key">self</span>._last_steps = steps
+        <span class="t-key">if</span> continuous:
+            <span class="t-key">self</span>._pending = <span class="t-num">0</span>
+            <span class="t-key">if</span> <span class="t-key">self</span>._invert:
+                delta = -delta
+            <span class="t-key">if</span> delta:
+                action = <span class="t-type">InputAction</span>.<span class="t-type">UP</span> <span class="t-key">if</span> delta &gt; <span class="t-num">0</span> <span class="t-key">else</span> <span class="t-type">InputAction</span>.<span class="t-type">DOWN</span>
+                actions.<span class="t-fn">extend</span>([action] * <span class="t-fn">min</span>(<span class="t-num">16</span>, <span class="t-fn">abs</span>(delta)))
+        <span class="t-key">elif</span> delta:
+            <span class="t-key">if</span> <span class="t-key">self</span>._invert:
+                delta = -delta
+            <span class="t-key">self</span>._pending += delta
+            <span class="t-key">if</span> <span class="t-fn">abs</span>(<span class="t-key">self</span>._pending) &gt;= <span class="t-type">STEPS_PER_CLICK</span> <span class="t-key">and</span> now - <span class="t-key">self</span>._last_nav_at &gt;= <span class="t-type">MIN_NAV_INTERVAL_S</span>:
+                <span class="t-key">if</span> <span class="t-key">self</span>._pending &gt; <span class="t-num">0</span>:
+                    actions.<span class="t-fn">append</span>(<span class="t-type">InputAction</span>.<span class="t-type">DOWN</span>)
+                    <span class="t-key">self</span>._pending -= <span class="t-type">STEPS_PER_CLICK</span>
+                <span class="t-key">else</span>:
+                    actions.<span class="t-fn">append</span>(<span class="t-type">InputAction</span>.<span class="t-type">UP</span>)
+                    <span class="t-key">self</span>._pending += <span class="t-type">STEPS_PER_CLICK</span>
+                <span class="t-key">self</span>._last_nav_at = now
+            <span class="t-com"># Direction reversed: drop leftover chatter from the other way.</span>
+            <span class="t-key">if</span> actions <span class="t-key">and</span> ((actions[-<span class="t-num">1</span>] == <span class="t-type">InputAction</span>.<span class="t-type">DOWN</span> <span class="t-key">and</span> <span class="t-key">self</span>._pending &lt; <span class="t-num">0</span>)
+                            <span class="t-key">or</span> (actions[-<span class="t-num">1</span>] == <span class="t-type">InputAction</span>.<span class="t-type">UP</span> <span class="t-key">and</span> <span class="t-key">self</span>._pending &gt; <span class="t-num">0</span>)):
+                <span class="t-key">self</span>._pending = <span class="t-num">0</span>
+
+        pressed = <span class="t-fn">bool</span>(<span class="t-key">self</span>._button.is_pressed)
+        <span class="t-key">if</span> pressed <span class="t-key">and</span> <span class="t-key">not</span> <span class="t-key">self</span>._was_pressed:
+            <span class="t-key">self</span>._press_at = now
+        <span class="t-key">elif</span> <span class="t-key">not</span> pressed <span class="t-key">and</span> <span class="t-key">self</span>._was_pressed:
+            held = now - <span class="t-key">self</span>._press_at
+            actions.<span class="t-fn">append</span>(<span class="t-type">InputAction</span>.<span class="t-type">B</span> <span class="t-key">if</span> held &gt;= <span class="t-type">LONG_PRESS_S</span> <span class="t-key">else</span> <span class="t-type">InputAction</span>.<span class="t-type">A</span>)
+        <span class="t-key">self</span>._was_pressed = pressed
+        <span class="t-key">return</span> actions
+
+    <span class="t-key">def</span> <span class="t-fn">close</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">for</span> device <span class="t-key">in</span> (<span class="t-key">self</span>._encoder, <span class="t-key">self</span>._button):
+            closer: <span class="t-type">Callable</span>[[], <span class="t-key">None</span>] | <span class="t-key">None</span> = <span class="t-fn">getattr</span>(device, <span class="t-str">&#x27;close&#x27;</span>, <span class="t-key">None</span>)
+            <span class="t-key">if</span> closer <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+                <span class="t-key">try</span>:
+                    <span class="t-fn">closer</span>()
+                <span class="t-key">except</span> <span class="t-type">Exception</span>:
+                    <span class="t-key">pass</span>
+
+
+<span class="t-key">class</span> <span class="t-type">ButtonPad</span>:
+    <span class="t-doc">&quot;&quot;&quot;The two panel buttons. Edge-triggered: holding one repeats nothing, and
+    one already held when the game starts is ignored rather than firing on the
+    first frame.&quot;&quot;&quot;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, red, yellow) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>._buttons = ((red, <span class="t-type">InputAction</span>.<span class="t-type">B</span>), (yellow, <span class="t-type">InputAction</span>.<span class="t-type">A</span>))
+        <span class="t-key">self</span>._down = {<span class="t-fn">id</span>(b): <span class="t-fn">bool</span>(<span class="t-fn">getattr</span>(b, <span class="t-str">&#x27;is_pressed&#x27;</span>, <span class="t-key">False</span>)) <span class="t-key">for</span> b, _ <span class="t-key">in</span> <span class="t-key">self</span>._buttons}
+
+    @classmethod
+    <span class="t-key">def</span> <span class="t-fn">try_open</span>(cls, red: int = <span class="t-type">RED_PIN</span>, yellow: int = <span class="t-type">YELLOW_PIN</span>) -&gt; <span class="t-str">&#x27;ButtonPad | None&#x27;</span>:
+        <span class="t-key">try</span>:
+            <span class="t-key">from</span> gpiozero <span class="t-key">import</span> <span class="t-type">Button</span>
+        <span class="t-key">except</span> <span class="t-type">ImportError</span>:
+            <span class="t-key">return</span> <span class="t-key">None</span>
+        <span class="t-key">try</span>:
+            <span class="t-fn">_pin_factory</span>()
+            pins = [<span class="t-fn">Button</span>(pin, pull_up=<span class="t-key">True</span>, bounce_time=<span class="t-type">BOUNCE_S</span>) <span class="t-key">for</span> pin <span class="t-key">in</span> (red, yellow)]
+        <span class="t-key">except</span> <span class="t-type">Exception</span>:
+            <span class="t-com"># A pin already claimed by an overlay, or no permission: play on</span>
+            <span class="t-com"># with the encoder rather than refusing to start.</span>
+            <span class="t-key">return</span> <span class="t-key">None</span>
+        <span class="t-key">return</span> <span class="t-fn">cls</span>(*pins)
+
+    <span class="t-key">def</span> <span class="t-fn">poll</span>(<span class="t-key">self</span>) -&gt; list[<span class="t-type">InputAction</span>]:
+        actions: list[<span class="t-type">InputAction</span>] = []
+        <span class="t-key">for</span> button, action <span class="t-key">in</span> <span class="t-key">self</span>._buttons:
+            pressed = <span class="t-fn">bool</span>(button.is_pressed)
+            <span class="t-key">if</span> pressed <span class="t-key">and</span> <span class="t-key">not</span> <span class="t-key">self</span>._down[<span class="t-fn">id</span>(button)]:
+                actions.<span class="t-fn">append</span>(action)
+            <span class="t-key">self</span>._down[<span class="t-fn">id</span>(button)] = pressed
+        <span class="t-key">return</span> actions
+
+    <span class="t-key">def</span> <span class="t-fn">close</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">for</span> button, _ <span class="t-key">in</span> <span class="t-key">self</span>._buttons:
+            closer = <span class="t-fn">getattr</span>(button, <span class="t-str">&#x27;close&#x27;</span>, <span class="t-key">None</span>)
+            <span class="t-key">if</span> closer <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+                <span class="t-key">try</span>:
+                    <span class="t-fn">closer</span>()
+                <span class="t-key">except</span> <span class="t-type">Exception</span>:
+                    <span class="t-key">pass</span>
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

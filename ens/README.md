@@ -154,12 +154,28 @@ firmware/.venv/bin/python -m unittest discover -s ens # the scorekeeper's arithm
 
 `run` follows TickEscrow on Arc from its first block, names every player it has not named yet (TICK key), and writes the stats that changed (scorekeeper key, one multicall per player). Restarting it is safe: it recomputes everything and writes only what differs from ENS.
 
+Nobody has to remember to start it: `firmware/main.py` starts one beside the game ([`firmware/keeper.py`](../firmware/keeper.py)) and stops it on the way out. It is one service, not one per device — it holds the TICK key, so two of them would race to register the same name — so it starts only on the machine whose `contracts/.env` has `ARC_DEPLOYER_KEY`, only for real-money play, and only once per machine (an `flock` on `ens/.tick/scorekeeper.lock`). Its output goes to `ens/.tick/scorekeeper.log`. Set `TICK_SCOREKEEPER=0` to keep the game from starting one and run it by hand instead. Without it the money still works; the leaderboard just has nobody new on it.
+
+### Scoring from the Pi
+
+Two files travel by hand, the same way `firmware/.tick/device.json` does. Both, or neither — `contracts/.env` alone names players and then fails to score them:
+
+```sh
+scp contracts/.env             pi@tick.local:~/ethonline2026/contracts/.env
+scp ens/.tick/scorekeeper.json pi@tick.local:~/ethonline2026/ens/.tick/scorekeeper.json
+```
+
+`ARC_DEPLOYER_KEY` is the escrow's `owner()`: it can `withdraw` the whole house, pause play and change the limits, on top of owning `tick.eth`. On the Pi it is only as safe as the Pi. The handheld does not need it to play — `device.json` alone opens and closes sessions — so copy it only when the Pi is the machine that has to keep score.
+
+The launcher says on startup which of the two it is missing, and plays on without one either way. A missing `scorekeeper.json` is refused rather than created: `load_device` would mint a fresh account with no gas and none of the resolver roles, and every stats write would revert in a retry loop while players still got their names.
+
 ## Files
 
 | Path | What |
 |---|---|
 | [`scorekeeper.py`](scorekeeper.py) | `deploy`, `run` and `board`: everything that writes to ENS |
 | [`test_scorekeeper.py`](test_scorekeeper.py) | The stats arithmetic, without a network |
+| [`../firmware/keeper.py`](../firmware/keeper.py) | Starts one scorekeeper beside the game, on the machine that holds both keys |
 | [`../firmware/names.py`](../firmware/names.py) | The device's side: handles, namehash, and looking a player's name up. It lives in `firmware/` because the device runs it, as `firmware/arc.py` is the device's side of [`contracts/`](../contracts/) |
 
 The device looks names up on the Arc worker thread ([`firmware/arc.py`](../firmware/arc.py), `ArcFunding.names`) and shows them in BOX RUN ([`firmware/games/box.py`](../firmware/games/box.py), `BoxGame.who`). ENS being slow or down never delays the money: the device keeps showing the short address.

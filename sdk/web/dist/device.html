@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The device - TICK SDK</title>
+<meta name="description" content="Screen, dial, buttons, sound, and the Pi.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html" class="on">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="the-device">The device<a class="anchor" href="#the-device" aria-label="Link">#</a></h1>
+<p>480×320 landscape, a rotary dial, two buttons, a speaker. Everything here is handled for you; this page is what to do when it is not.</p>
+<hr>
+<h2 id="the-canvas">The canvas<a class="anchor" href="#the-canvas" aria-label="Link">#</a></h2>
+<p>Your game draws on a <strong>480×320 landscape surface</strong> and never thinks about the display again. If the panel underneath is portrait — a 320×480 SPI screen, say — each finished frame is turned onto it, and touch positions are turned back the other way so a tap lands where the player pointed.</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-type">TICK_ROTATE</span>=auto<span class="t-com">     # turn only when the screen is portrait, and only on Linux</span>
+<span class="t-type">TICK_ROTATE</span>=90<span class="t-com">       # force it</span></code></pre></div>
+<p>That seam earns its keep: a game written against a rotating canvas has rotation maths smeared through its draw code <em>and</em> its input code, and it is wrong in a different way on every device.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick.display <span class="t-key">import</span> <span class="t-type">WIDTH</span>, <span class="t-type">HEIGHT</span>, <span class="t-type">FPS</span>     <span class="t-com"># 480, 320, 30</span></code></pre></div>
+<p>On a desktop the game opens in a plain 480×320 window; only Linux gets the fullscreen panel.</p>
+<hr>
+<h2 id="controls">Controls<a class="anchor" href="#controls" aria-label="Link">#</a></h2>
+<p>Four actions. A dial, two buttons, a keyboard and a touchscreen all collapse into them — which is the only reason a game is testable at all.</p>
+<div class="table"><table><thead><tr><th>Action</th><th>Dial</th><th>Panel</th><th>Keyboard</th><th>Touch</th></tr></thead><tbody><tr><td><code>UP</code> / <code>DOWN</code></td><td>turn</td><td>—</td><td>↑ ↓ / W S (hold to spin)</td><td>tap above / below</td></tr><tr><td><code>A</code></td><td>short click</td><td>yellow</td><td>Enter · Space · → · X</td><td>—</td></tr><tr><td><code>B</code></td><td>long click (0.65 s)</td><td>red</td><td>Backspace · ← · Z</td><td>—</td></tr><tr><td><code>QUIT</code></td><td>—</td><td>—</td><td>Escape</td><td>window close</td></tr></tbody></table></div>
+<h3 id="wiring-bcm-numbering-not-header-position">Wiring (BCM numbering, not header position)<a class="anchor" href="#wiring-bcm-numbering-not-header-position" aria-label="Link">#</a></h3>
+<div class="code"><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>encoder   CLK  GPIO21 (pin 40)
+          DT   GPIO20 (pin 38)
+          SW   GPIO16 (pin 36)
+          VCC  3.3 V      GND  GND
+
+red     GPIO13 (pin 33) ── button ── GND (pin 34 or 39)     back / B
+yellow  GPIO26 (pin 37) ── button ── GND (pin 34 or 39)     go / A</code></pre></div>
+<p>Each button shorts its pin to ground against the internal pull-up; nothing else is needed in hardware. Presses are edge-triggered, so holding repeats nothing, and a button already held when the game starts is ignored rather than firing on the first frame.</p>
+<p>Both readers are <code>try_open()</code>: on a machine with no GPIO they return <code>None</code> and the game plays on the keyboard rather than refusing to start.</p>
+<h3 id="why-the-dial-is-read-two-ways">Why the dial is read two ways<a class="anchor" href="#why-the-dial-is-read-two-ways" aria-label="Link">#</a></h3>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>encoder.<span class="t-fn">poll</span>(continuous=<span class="t-key">True</span>)     <span class="t-com"># in play: this poll&#x27;s motion only</span>
+encoder.<span class="t-fn">poll</span>(continuous=<span class="t-key">False</span>)    <span class="t-com"># in menus: rate-limited</span></code></pre></div>
+<p>In play, every detent counts and a stopped crank must stop moving the box at once — so queued motion is discarded. In a menu, a whip-spin would otherwise wrap the list a dozen times, so it is rate-limited to one step per 50 ms.</p>
+<hr>
+<h2 id="sound">Sound<a class="anchor" href="#sound" aria-label="Link">#</a></h2>
+<p>Everything is synthesized at startup from square waves — no audio assets, no dependencies, about 0.16 s to build. See the cue list in <a href="api.html#tickhud-and-tickui">api.md</a>.</p>
+<p>Sound is optional <strong>by construction</strong>: if the mixer cannot open, every <code>play</code> and <code>music</code> becomes a no-op and the game runs silently. It never raises.</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-type">TICK_SOUND</span>=0<span class="t-com">        # off</span></code></pre></div>
+<h3 id="on-a-raspberry-pi-5">On a Raspberry Pi 5<a class="anchor" href="#on-a-raspberry-pi-5" aria-label="Link">#</a></h3>
+<p>There is no analog jack, so ALSA alone offers only the two HDMI outputs, and opening one fails with nothing connected. Sound works through the <strong>pipewire-pulse</strong> server instead. Do not force <code>SDL_AUDIODRIVER=alsa</code>: it bypasses the sound server and finds only the dead HDMI sinks.</p>
+<p>Bluetooth adds 100–200 ms of latency, so crank clicks trail the dial. A USB audio dongle is tighter. An I²S DAC is tightest, but it wants GPIO18/19/21 — and GPIO21 is the encoder&#x27;s CLK, so the encoder has to move first.</p>
+<hr>
+<h2 id="running-on-the-pi">Running on the Pi<a class="anchor" href="#running-on-the-pi" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick.display <span class="t-key">import</span> bootstrap
+<span class="t-fn">bootstrap</span>()        <span class="t-com"># run() calls this for you, before pygame is imported</span></code></pre></div>
+<p>It does two things, both of which are the difference between a working panel and a black one:</p>
+<ul><li>Sets <code>SDL_VIDEODRIVER=kmsdrm</code> when nothing already owns the display (a running Wayland or X11 session is preferred and left alone).</li><li>Re-execs under the <strong>system</strong> Python if the active pygame came from pip. The pip wheel has no KMSDRM support, so without this the game opens on nothing.</li></ul>
+<p>The panel&#x27;s DRM card index varies by board. Set it for yours rather than trusting a default:</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-type">SDL_VIDEO_KMSDRM_DEVICE_INDEX</span>=2 python mygame.py</code></pre></div>
+<p>Install the distribution&#x27;s <code>python3-pygame</code> on the Pi rather than the wheel.</p>
+<hr>
+<h2 id="headless">Headless<a class="anchor" href="#headless" aria-label="Link">#</a></h2>
+<p>For tests, captures and CI:</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-type">SDL_VIDEODRIVER</span>=dummy SDL_AUDIODRIVER=dummy python <span class="t-key">-m</span> unittest discover <span class="t-key">-s</span> tests <span class="t-key">-t</span> .</code></pre></div>
+<p><code>Harness</code> needs neither; only <code>Harness.draw_once()</code> touches pygame at all.</p></article>
+    <nav class="pager"><a class="prev" href="api.html"><span>Previous</span>API</a><a class="next" href="docs-site.html"><span>Next</span>This site</a></nav>
+  </main>
+  <aside class="toc"><h4>On this page</h4><ul><li class="l2"><a href="#the-canvas">The canvas</a></li><li class="l2"><a href="#controls">Controls</a></li><li class="l3"><a href="#wiring-bcm-numbering-not-header-position">Wiring (BCM numbering, not header position)</a></li><li class="l3"><a href="#why-the-dial-is-read-two-ways">Why the dial is read two ways</a></li><li class="l2"><a href="#sound">Sound</a></li><li class="l3"><a href="#on-a-raspberry-pi-5">On a Raspberry Pi 5</a></li><li class="l2"><a href="#running-on-the-pi">Running on the Pi</a></li><li class="l2"><a href="#headless">Headless</a></li></ul></aside>
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

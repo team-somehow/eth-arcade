@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/testing.py - TICK SDK</title>
+<meta name="description" content="Source of tick/testing.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">testing.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/testing.py &middot; 168 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span><span>128</span><span>129</span><span>130</span><span>131</span><span>132</span><span>133</span><span>134</span><span>135</span><span>136</span><span>137</span><span>138</span><span>139</span><span>140</span><span>141</span><span>142</span><span>143</span><span>144</span><span>145</span><span>146</span><span>147</span><span>148</span><span>149</span><span>150</span><span>151</span><span>152</span><span>153</span><span>154</span><span>155</span><span>156</span><span>157</span><span>158</span><span>159</span><span>160</span><span>161</span><span>162</span><span>163</span><span>164</span><span>165</span><span>166</span><span>167</span><span>168</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;Play a thousand rounds in a second, with no window and no waiting.
+
+A game that settles money has rules -- what it refuses to sell, what it pays,
+what it does when the feed dies -- and rules that are only ever eyeballed are
+rules that are wrong. The harness here runs your real game class against a real
+market and a real wallet, on a clock you control, with no display.
+
+    from tick.testing import Harness
+
+    def test_a_box_on_spot_pays_about_two():
+        h = Harness(MyGame(), source=&#x27;sim&#x27;, seed=7)
+        h.advance(30)                          # 30 seconds of market
+        bet = h.ctx.bet(h.ctx.price - 1, h.ctx.price + 1)
+        assert 1.5 &lt; bet.multiple &lt; 3.0
+        h.advance(20)                          # past two bells
+        assert h.ctx.book.history[0].stake == h.ctx.stake
+
+Time is fake and monotonic, so `advance(600)` is instant and deterministic.
+Seed the simulated feed and the same market comes back every run: that is what
+makes a payout assertion an assertion.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">from</span> .feeds.sim <span class="t-key">import</span> <span class="t-type">SimulatedFeed</span>
+<span class="t-key">from</span> .game <span class="t-key">import</span> <span class="t-type">Game</span>
+<span class="t-key">from</span> .input <span class="t-key">import</span> <span class="t-type">InputAction</span>
+<span class="t-key">from</span> .money <span class="t-key">import</span> <span class="t-type">MICRO</span>, <span class="t-type">DemoFunding</span>, <span class="t-type">Wallet</span>
+<span class="t-key">from</span> .runtime <span class="t-key">import</span> <span class="t-type">Runtime</span>
+
+
+<span class="t-key">class</span> <span class="t-type">FakeClock</span>:
+    <span class="t-doc">&quot;&quot;&quot;A monotonic clock you move by hand.&quot;&quot;&quot;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, start: float = <span class="t-num">1000.0</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.now = start
+
+    <span class="t-key">def</span> <span class="t-fn">__call__</span>(<span class="t-key">self</span>) -&gt; float:
+        <span class="t-key">return</span> <span class="t-key">self</span>.now
+
+    <span class="t-key">def</span> <span class="t-fn">advance</span>(<span class="t-key">self</span>, seconds: float) -&gt; float:
+        <span class="t-key">self</span>.now += seconds
+        <span class="t-key">return</span> <span class="t-key">self</span>.now
+
+
+<span class="t-key">class</span> <span class="t-type">ScriptedFeed</span>:
+    <span class="t-doc">&quot;&quot;&quot;A feed that yields exactly the ticks you list.
+
+        ScriptedFeed([(0.0, 2500.0), (1.0, 2501.0), (2.0, 2501.0)])
+
+    Use it when a test is about a specific shape of market -- a jump, a gap, a
+    dead flat minute -- rather than about a plausible one.
+    &quot;&quot;&quot;</span>
+
+    name = <span class="t-str">&#x27;SCRIPTED&#x27;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, rows, asset=<span class="t-key">None</span>, source_age: float = <span class="t-num">0.0</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">from</span> .ticks <span class="t-key">import</span> <span class="t-type">ASSETS</span>, <span class="t-type">PriceTick</span>
+        <span class="t-key">self</span>.asset = asset <span class="t-key">or</span> <span class="t-type">ASSETS</span>[<span class="t-str">&#x27;eth&#x27;</span>]
+        <span class="t-key">self</span>.status = <span class="t-str">&#x27;Scripted&#x27;</span>
+        <span class="t-key">self</span>._PriceTick = <span class="t-type">PriceTick</span>
+        <span class="t-key">self</span>.rows = <span class="t-fn">sorted</span>(rows)
+        <span class="t-key">self</span>.index = <span class="t-num">0</span>
+        <span class="t-key">self</span>.elapsed = <span class="t-num">0.0</span>
+        <span class="t-key">self</span>.sequence = <span class="t-num">0</span>
+        <span class="t-key">self</span>.source_age = source_age
+
+    <span class="t-key">def</span> <span class="t-fn">poll</span>(<span class="t-key">self</span>, dt: float, now: float):
+        <span class="t-key">self</span>.elapsed += <span class="t-fn">max</span>(<span class="t-num">0.0</span>, dt)
+        out = []
+        <span class="t-key">while</span> <span class="t-key">self</span>.index &lt; <span class="t-fn">len</span>(<span class="t-key">self</span>.rows) <span class="t-key">and</span> <span class="t-key">self</span>.rows[<span class="t-key">self</span>.index][<span class="t-num">0</span>] &lt;= <span class="t-key">self</span>.elapsed:
+            _, price = <span class="t-key">self</span>.rows[<span class="t-key">self</span>.index][:<span class="t-num">2</span>]
+            <span class="t-key">self</span>.index += <span class="t-num">1</span>
+            <span class="t-key">self</span>.sequence += <span class="t-num">1</span>
+            out.<span class="t-fn">append</span>(<span class="t-key">self</span>.<span class="t-fn">_PriceTick</span>(price, <span class="t-key">self</span>.sequence, now, <span class="t-key">self</span>.source_age))
+        <span class="t-key">return</span> out
+
+    <span class="t-key">def</span> <span class="t-fn">close</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">pass</span>
+
+
+<span class="t-key">class</span> <span class="t-type">Harness</span>:
+    <span class="t-doc">&quot;&quot;&quot;A game, running headless, on a clock you control.&quot;&quot;&quot;</span>
+
+    <span class="t-type">FRAME</span> = <span class="t-num">1</span> / <span class="t-num">30</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, game: <span class="t-type">Game</span>, *, feed=<span class="t-key">None</span>, source: str = <span class="t-str">&#x27;sim&#x27;</span>, seed: int | <span class="t-key">None</span> = <span class="t-num">7</span>,
+                 balance: int = <span class="t-num">1000</span> * <span class="t-type">MICRO</span>, stake: int | <span class="t-key">None</span> = <span class="t-key">None</span>,
+                 window_s: float | <span class="t-key">None</span> = <span class="t-key">None</span>, start: float = <span class="t-num">1000.0</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.clock = <span class="t-fn">FakeClock</span>(start)
+        wallet = <span class="t-fn">Wallet</span>(balance, <span class="t-fn">DemoFunding</span>())
+        <span class="t-key">if</span> feed <span class="t-key">is</span> <span class="t-key">None</span> <span class="t-key">and</span> source == <span class="t-str">&#x27;sim&#x27;</span>:
+            <span class="t-key">from</span> .ticks <span class="t-key">import</span> current_asset
+            feed = <span class="t-fn">SimulatedFeed</span>(seed, <span class="t-fn">current_asset</span>())
+        <span class="t-key">self</span>.runtime = <span class="t-fn">Runtime</span>(game, feed=feed, wallet=wallet, source=source, seed=seed,
+                               headless=<span class="t-key">True</span>, clock=<span class="t-key">self</span>.clock, window_s=window_s,
+                               stake=stake, env=<span class="t-key">False</span>)
+        <span class="t-key">self</span>.game = game
+        <span class="t-key">self</span>.ctx = <span class="t-key">self</span>.runtime.ctx
+        <span class="t-key">self</span>.market = <span class="t-key">self</span>.runtime.market
+        <span class="t-key">self</span>.wallet = wallet
+        <span class="t-key">self</span>.rounds = <span class="t-key">self</span>.runtime.rounds
+        <span class="t-key">self</span>.book = <span class="t-key">self</span>.runtime.book
+        game.<span class="t-fn">setup</span>(<span class="t-key">self</span>.ctx)
+        <span class="t-key">self</span>.runtime.started = <span class="t-key">True</span>
+
+    <span class="t-com"># ---- driving ---------------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">frame</span>(<span class="t-key">self</span>, dt: float | <span class="t-key">None</span> = <span class="t-key">None</span>, actions=(), touches=()) -&gt; <span class="t-key">None</span>:
+        dt = <span class="t-key">self</span>.<span class="t-type">FRAME</span> <span class="t-key">if</span> dt <span class="t-key">is</span> <span class="t-key">None</span> <span class="t-key">else</span> dt
+        <span class="t-key">self</span>.clock.<span class="t-fn">advance</span>(dt)
+        <span class="t-key">self</span>.runtime.<span class="t-fn">step</span>(dt, actions, touches)
+
+    <span class="t-key">def</span> <span class="t-fn">advance</span>(<span class="t-key">self</span>, seconds: float, dt: float | <span class="t-key">None</span> = <span class="t-key">None</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;Run `seconds` of game time, one frame at a time.&quot;&quot;&quot;</span>
+        dt = <span class="t-key">self</span>.<span class="t-type">FRAME</span> <span class="t-key">if</span> dt <span class="t-key">is</span> <span class="t-key">None</span> <span class="t-key">else</span> dt
+        steps = <span class="t-fn">max</span>(<span class="t-num">1</span>, <span class="t-fn">int</span>(<span class="t-fn">round</span>(seconds / dt)))
+        <span class="t-key">for</span> _ <span class="t-key">in</span> <span class="t-fn">range</span>(steps):
+            <span class="t-key">self</span>.<span class="t-fn">frame</span>(dt)
+
+    <span class="t-key">def</span> <span class="t-fn">press</span>(<span class="t-key">self</span>, action: <span class="t-type">InputAction</span> | str = <span class="t-type">InputAction</span>.<span class="t-type">A</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">if</span> <span class="t-fn">isinstance</span>(action, str):
+            action = <span class="t-type">InputAction</span>[action.<span class="t-fn">upper</span>()]
+        <span class="t-key">self</span>.<span class="t-fn">frame</span>(actions=[action])
+
+    <span class="t-key">def</span> <span class="t-fn">touch</span>(<span class="t-key">self</span>, pos: tuple[int, int]) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.<span class="t-fn">frame</span>(touches=[pos])
+
+    <span class="t-key">def</span> <span class="t-fn">warm</span>(<span class="t-key">self</span>, seconds: float = <span class="t-num">20.0</span>) -&gt; <span class="t-str">&#x27;Harness&#x27;</span>:
+        <span class="t-doc">&quot;&quot;&quot;Run until the market is readable and the clock is rolling.&quot;&quot;&quot;</span>
+        <span class="t-key">self</span>.<span class="t-fn">advance</span>(seconds)
+        <span class="t-key">return</span> <span class="t-key">self</span>
+
+    <span class="t-key">def</span> <span class="t-fn">close</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.runtime.<span class="t-fn">close</span>()
+
+    <span class="t-key">def</span> <span class="t-fn">__enter__</span>(<span class="t-key">self</span>) -&gt; <span class="t-str">&#x27;Harness&#x27;</span>:
+        <span class="t-key">return</span> <span class="t-key">self</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__exit__</span>(<span class="t-key">self</span>, *_exc) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.<span class="t-fn">close</span>()
+
+    <span class="t-com"># ---- reading ---------------------------------------------------------</span>
+    @property
+    <span class="t-key">def</span> <span class="t-fn">price</span>(<span class="t-key">self</span>) -&gt; float:
+        <span class="t-key">return</span> <span class="t-key">self</span>.market.price
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">balance</span>(<span class="t-key">self</span>) -&gt; int:
+        <span class="t-key">return</span> <span class="t-key">self</span>.wallet.balance
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">settled</span>(<span class="t-key">self</span>):
+        <span class="t-key">return</span> <span class="t-key">self</span>.book.history
+
+    <span class="t-key">def</span> <span class="t-fn">draw_once</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;Render one frame to an off-screen surface: catches a broken `draw`.
+
+        Needs pygame and a dummy video driver:
+        `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python -m unittest`
+        &quot;&quot;&quot;</span>
+        <span class="t-key">import</span> pygame
+        <span class="t-key">from</span> .display <span class="t-key">import</span> <span class="t-type">HEIGHT</span>, <span class="t-type">WIDTH</span>
+        <span class="t-key">if</span> <span class="t-key">not</span> pygame.<span class="t-fn">get_init</span>():
+            pygame.<span class="t-fn">init</span>()
+        <span class="t-key">if</span> pygame.display.<span class="t-fn">get_surface</span>() <span class="t-key">is</span> <span class="t-key">None</span>:
+            pygame.display.<span class="t-fn">set_mode</span>((<span class="t-type">WIDTH</span>, <span class="t-type">HEIGHT</span>))
+        surface = pygame.<span class="t-fn">Surface</span>((<span class="t-type">WIDTH</span>, <span class="t-type">HEIGHT</span>))
+        <span class="t-key">self</span>.ctx.screen = surface
+        <span class="t-key">self</span>.game.<span class="t-fn">draw</span>(<span class="t-key">self</span>.ctx, surface)
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

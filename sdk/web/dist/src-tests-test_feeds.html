@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tests/test_feeds.py - TICK SDK</title>
+<meta name="description" content="Source of tests/test_feeds.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">test_feeds.py<a class="anchor" href="#top">#</a></h1><p class="path">tests/test_feeds.py &middot; 150 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span><span>128</span><span>129</span><span>130</span><span>131</span><span>132</span><span>133</span><span>134</span><span>135</span><span>136</span><span>137</span><span>138</span><span>139</span><span>140</span><span>141</span><span>142</span><span>143</span><span>144</span><span>145</span><span>146</span><span>147</span><span>148</span><span>149</span><span>150</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;Feeds: determinism, pool combination, recording round trips.&quot;&quot;&quot;</span>
+<span class="t-key">import</span> json
+<span class="t-key">import</span> tempfile
+<span class="t-key">import</span> unittest
+<span class="t-key">from</span> pathlib <span class="t-key">import</span> <span class="t-type">Path</span>
+
+<span class="t-key">from</span> tick.feeds <span class="t-key">import</span> (<span class="t-type">PoolBook</span>, <span class="t-type">ReplayFeed</span>, <span class="t-type">Recorder</span>, <span class="t-type">SimulatedFeed</span>, open_feed,
+                        parse_block, weighted_median)
+<span class="t-key">from</span> tick.feeds.coinbase <span class="t-key">import</span> parse_coinbase
+<span class="t-key">from</span> tick.ticks <span class="t-key">import</span> <span class="t-type">ASSETS</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">drive</span>(feed, seconds=<span class="t-num">10.0</span>, dt=<span class="t-num">1</span> / <span class="t-num">30</span>, start=<span class="t-num">1000.0</span>):
+    now, out = start, []
+    <span class="t-key">for</span> _ <span class="t-key">in</span> <span class="t-fn">range</span>(<span class="t-fn">int</span>(seconds / dt)):
+        now += dt
+        out.<span class="t-fn">extend</span>(feed.<span class="t-fn">poll</span>(dt, now))
+    <span class="t-key">return</span> out
+
+
+<span class="t-key">class</span> <span class="t-fn">TestSimulated</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_the_same_seed_is_the_same_market</span>(<span class="t-key">self</span>):
+        a = [t.price <span class="t-key">for</span> t <span class="t-key">in</span> <span class="t-fn">drive</span>(<span class="t-fn">SimulatedFeed</span>(<span class="t-num">7</span>))]
+        b = [t.price <span class="t-key">for</span> t <span class="t-key">in</span> <span class="t-fn">drive</span>(<span class="t-fn">SimulatedFeed</span>(<span class="t-num">7</span>))]
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(a, b)
+        <span class="t-key">self</span>.<span class="t-fn">assertNotEqual</span>(a, [t.price <span class="t-key">for</span> t <span class="t-key">in</span> <span class="t-fn">drive</span>(<span class="t-fn">SimulatedFeed</span>(<span class="t-num">8</span>))])
+
+    <span class="t-key">def</span> <span class="t-fn">test_tick_spacing_does_not_depend_on_the_frame_rate</span>(<span class="t-key">self</span>):
+        slow = <span class="t-fn">len</span>(<span class="t-fn">drive</span>(<span class="t-fn">SimulatedFeed</span>(<span class="t-num">1</span>), <span class="t-num">10.0</span>, dt=<span class="t-num">1</span> / <span class="t-num">10</span>))
+        fast = <span class="t-fn">len</span>(<span class="t-fn">drive</span>(<span class="t-fn">SimulatedFeed</span>(<span class="t-num">1</span>), <span class="t-num">10.0</span>, dt=<span class="t-num">1</span> / <span class="t-num">60</span>))
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(slow, fast)
+
+    <span class="t-key">def</span> <span class="t-fn">test_sequence_numbers_only_rise</span>(<span class="t-key">self</span>):
+        ticks = <span class="t-fn">drive</span>(<span class="t-fn">SimulatedFeed</span>(<span class="t-num">3</span>))
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>([t.sequence <span class="t-key">for</span> t <span class="t-key">in</span> ticks], <span class="t-fn">list</span>(<span class="t-fn">range</span>(<span class="t-num">1</span>, <span class="t-fn">len</span>(ticks) + <span class="t-num">1</span>)))
+
+
+<span class="t-key">class</span> <span class="t-fn">TestPoolBook</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">line</span>(<span class="t-key">self</span>, chain, number, pools, ms=<span class="t-num">1_700_000_000_000</span>):
+        <span class="t-key">return</span> json.<span class="t-fn">dumps</span>({<span class="t-str">&#x27;chain&#x27;</span>: chain, <span class="t-str">&#x27;@block&#x27;</span>: number, <span class="t-str">&#x27;@data&#x27;</span>: {
+            <span class="t-str">&#x27;blockNumber&#x27;</span>: number, <span class="t-str">&#x27;timestampMs&#x27;</span>: ms,
+            <span class="t-str">&#x27;prices&#x27;</span>: [{<span class="t-str">&#x27;pool&#x27;</span>: p, <span class="t-str">&#x27;price&#x27;</span>: v, <span class="t-str">&#x27;liquidity&#x27;</span>: l} <span class="t-key">for</span> p, v, l <span class="t-key">in</span> pools]}})
+
+    <span class="t-key">def</span> <span class="t-fn">test_pools_are_weighted_by_liquidity</span>(<span class="t-key">self</span>):
+        book = <span class="t-fn">PoolBook</span>()
+        now = <span class="t-num">1_700_000_000.0</span>
+        book.<span class="t-fn">apply</span>(<span class="t-key">self</span>.<span class="t-fn">line</span>(<span class="t-str">&#x27;arb&#x27;</span>, <span class="t-num">1</span>, [(<span class="t-str">&#x27;0xa&#x27;</span>, <span class="t-num">2500.0</span>, <span class="t-num">9.0</span>), (<span class="t-str">&#x27;0xb&#x27;</span>, <span class="t-num">2510.0</span>, <span class="t-num">1.0</span>)]), now)
+        <span class="t-key">self</span>.<span class="t-fn">assertAlmostEqual</span>(book.<span class="t-fn">price</span>(now), <span class="t-num">2501.0</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_pool_far_from_the_rest_is_left_out</span>(<span class="t-key">self</span>):
+        book = <span class="t-fn">PoolBook</span>()
+        now = <span class="t-num">1_700_000_000.0</span>
+        book.<span class="t-fn">apply</span>(<span class="t-key">self</span>.<span class="t-fn">line</span>(<span class="t-str">&#x27;arb&#x27;</span>, <span class="t-num">1</span>, [(<span class="t-str">&#x27;0xa&#x27;</span>, <span class="t-num">2500.0</span>, <span class="t-num">9.0</span>), (<span class="t-str">&#x27;0xb&#x27;</span>, <span class="t-num">2500.5</span>, <span class="t-num">8.0</span>),
+                                        (<span class="t-str">&#x27;0xc&#x27;</span>, <span class="t-num">3000.0</span>, <span class="t-num">5.0</span>)]), now)
+        <span class="t-key">self</span>.<span class="t-fn">assertLess</span>(book.<span class="t-fn">price</span>(now), <span class="t-num">2501.0</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_block_already_seen_is_skipped</span>(<span class="t-key">self</span>):
+        book = <span class="t-fn">PoolBook</span>()
+        now = <span class="t-num">1_700_000_000.0</span>
+        line = <span class="t-key">self</span>.<span class="t-fn">line</span>(<span class="t-str">&#x27;arb&#x27;</span>, <span class="t-num">5</span>, [(<span class="t-str">&#x27;0xa&#x27;</span>, <span class="t-num">2500.0</span>, <span class="t-num">1.0</span>)])
+        <span class="t-key">self</span>.<span class="t-fn">assertIsNotNone</span>(book.<span class="t-fn">apply</span>(line, now))
+        <span class="t-key">self</span>.<span class="t-fn">assertIsNone</span>(book.<span class="t-fn">apply</span>(line, now))
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_block_from_the_future_is_refused</span>(<span class="t-key">self</span>):
+        book = <span class="t-fn">PoolBook</span>()
+        <span class="t-key">with</span> <span class="t-key">self</span>.<span class="t-fn">assertRaises</span>(<span class="t-type">ValueError</span>):
+            book.<span class="t-fn">apply</span>(<span class="t-key">self</span>.<span class="t-fn">line</span>(<span class="t-str">&#x27;arb&#x27;</span>, <span class="t-num">1</span>, [(<span class="t-str">&#x27;0xa&#x27;</span>, <span class="t-num">2500.0</span>, <span class="t-num">1.0</span>)], ms=<span class="t-num">2_000_000_000_000</span>),
+                       <span class="t-num">1_700_000_000.0</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_chain_that_stops_streaming_stops_counting</span>(<span class="t-key">self</span>):
+        book = <span class="t-fn">PoolBook</span>()
+        now = <span class="t-num">1_700_000_000.0</span>
+        book.<span class="t-fn">apply</span>(<span class="t-key">self</span>.<span class="t-fn">line</span>(<span class="t-str">&#x27;arb&#x27;</span>, <span class="t-num">1</span>, [(<span class="t-str">&#x27;0xa&#x27;</span>, <span class="t-num">2500.0</span>, <span class="t-num">1.0</span>)], ms=<span class="t-fn">int</span>(now * <span class="t-num">1000</span>)), now)
+        <span class="t-key">self</span>.<span class="t-fn">assertIsNotNone</span>(book.<span class="t-fn">price</span>(now))
+        <span class="t-key">self</span>.<span class="t-fn">assertIsNone</span>(book.<span class="t-fn">price</span>(now + <span class="t-num">60</span>))
+
+    <span class="t-key">def</span> <span class="t-fn">test_broken_pool_numbers_are_dropped_not_averaged</span>(<span class="t-key">self</span>):
+        block = <span class="t-fn">parse_block</span>(<span class="t-key">self</span>.<span class="t-fn">line</span>(<span class="t-str">&#x27;arb&#x27;</span>, <span class="t-num">1</span>, [(<span class="t-str">&#x27;0xa&#x27;</span>, <span class="t-num">2500.0</span>, <span class="t-num">1.0</span>), (<span class="t-str">&#x27;0xb&#x27;</span>, -<span class="t-num">1.0</span>, <span class="t-num">1.0</span>),
+                                                 (<span class="t-str">&#x27;0xc&#x27;</span>, <span class="t-num">2501.0</span>, <span class="t-num">0.0</span>)]))
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>([p.pool <span class="t-key">for</span> p <span class="t-key">in</span> block.prices], [<span class="t-str">&#x27;0xa&#x27;</span>])
+
+    <span class="t-key">def</span> <span class="t-fn">test_weighted_median_splits_the_weight</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">weighted_median</span>([(<span class="t-num">1.0</span>, <span class="t-num">1.0</span>), (<span class="t-num">2.0</span>, <span class="t-num">5.0</span>), (<span class="t-num">3.0</span>, <span class="t-num">1.0</span>)]), <span class="t-num">2.0</span>)
+        <span class="t-key">with</span> <span class="t-key">self</span>.<span class="t-fn">assertRaises</span>(<span class="t-type">ValueError</span>):
+            <span class="t-fn">weighted_median</span>([])
+
+
+<span class="t-key">class</span> <span class="t-fn">TestCoinbaseParsing</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">payload</span>(<span class="t-key">self</span>, **over):
+        data = {<span class="t-str">&#x27;price&#x27;</span>: <span class="t-str">&#x27;2500.12&#x27;</span>, <span class="t-str">&#x27;trade_id&#x27;</span>: <span class="t-num">42</span>, <span class="t-str">&#x27;time&#x27;</span>: <span class="t-str">&#x27;2026-01-01T00:00:00.123456789Z&#x27;</span>}
+        data.<span class="t-fn">update</span>(over)
+        <span class="t-key">return</span> data
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_good_payload_becomes_a_tick</span>(<span class="t-key">self</span>):
+        tick = <span class="t-fn">parse_coinbase</span>(<span class="t-key">self</span>.<span class="t-fn">payload</span>(), <span class="t-num">100.0</span>, <span class="t-num">1_767_225_600.5</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertAlmostEqual</span>(tick.price, <span class="t-num">2500.12</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(tick.sequence, <span class="t-num">42</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_stamp_from_the_future_is_refused</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-key">self</span>.<span class="t-fn">assertRaises</span>(<span class="t-type">ValueError</span>):
+            <span class="t-fn">parse_coinbase</span>(<span class="t-key">self</span>.<span class="t-fn">payload</span>(time=<span class="t-str">&#x27;2030-01-01T00:00:00.000000Z&#x27;</span>), <span class="t-num">100.0</span>, <span class="t-num">1_767_225_600.0</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_stamp_without_a_zone_is_refused</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-key">self</span>.<span class="t-fn">assertRaises</span>(<span class="t-type">ValueError</span>):
+            <span class="t-fn">parse_coinbase</span>(<span class="t-key">self</span>.<span class="t-fn">payload</span>(time=<span class="t-str">&#x27;2026-01-01T00:00:00.000000&#x27;</span>), <span class="t-num">100.0</span>, <span class="t-num">1_767_225_600.0</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_nonsense_price_is_refused</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-key">self</span>.<span class="t-fn">assertRaises</span>(<span class="t-type">ValueError</span>):
+            <span class="t-fn">parse_coinbase</span>(<span class="t-key">self</span>.<span class="t-fn">payload</span>(price=<span class="t-str">&#x27;-1&#x27;</span>), <span class="t-num">100.0</span>, <span class="t-num">1_767_225_600.0</span>)
+
+
+<span class="t-key">class</span> <span class="t-fn">TestReplay</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_a_recording_round_trips</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> tempfile.<span class="t-fn">TemporaryDirectory</span>() <span class="t-key">as</span> folder:
+            path = <span class="t-fn">Path</span>(folder) / <span class="t-str">&#x27;market.ndjson&#x27;</span>
+            <span class="t-key">with</span> <span class="t-fn">Recorder</span>(<span class="t-fn">SimulatedFeed</span>(<span class="t-num">11</span>), path) <span class="t-key">as</span> recorder:
+                original = [t.price <span class="t-key">for</span> t <span class="t-key">in</span> <span class="t-fn">drive</span>(recorder, <span class="t-num">5.0</span>)]
+            replayed = [t.price <span class="t-key">for</span> t <span class="t-key">in</span> <span class="t-fn">drive</span>(<span class="t-fn">ReplayFeed</span>(path), <span class="t-num">6.0</span>)]
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(original, replayed)
+
+    <span class="t-key">def</span> <span class="t-fn">test_speed_compresses_time</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> tempfile.<span class="t-fn">TemporaryDirectory</span>() <span class="t-key">as</span> folder:
+            path = <span class="t-fn">Path</span>(folder) / <span class="t-str">&#x27;market.ndjson&#x27;</span>
+            <span class="t-key">with</span> <span class="t-fn">Recorder</span>(<span class="t-fn">SimulatedFeed</span>(<span class="t-num">11</span>), path) <span class="t-key">as</span> recorder:
+                <span class="t-fn">drive</span>(recorder, <span class="t-num">10.0</span>)
+            fast = <span class="t-fn">drive</span>(<span class="t-fn">ReplayFeed</span>(path, speed=<span class="t-num">10.0</span>), <span class="t-num">1.2</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertGreater</span>(<span class="t-fn">len</span>(fast), <span class="t-num">150</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_an_empty_recording_is_refused</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-key">self</span>.<span class="t-fn">assertRaises</span>(<span class="t-type">ValueError</span>):
+            <span class="t-fn">ReplayFeed</span>(rows=[])
+
+
+<span class="t-key">class</span> <span class="t-fn">TestOpenFeed</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_the_name_picks_the_feed</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">open_feed</span>(<span class="t-str">&#x27;sim&#x27;</span>).name, <span class="t-str">&#x27;SIMULATED&#x27;</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">open_feed</span>(<span class="t-str">&#x27;frozen&#x27;</span>).name, <span class="t-str">&#x27;FROZEN&#x27;</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_an_unknown_source_says_what_is_allowed</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-key">self</span>.<span class="t-fn">assertRaises</span>(<span class="t-type">ValueError</span>) <span class="t-key">as</span> caught:
+            <span class="t-fn">open_feed</span>(<span class="t-str">&#x27;nasdaq&#x27;</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertIn</span>(<span class="t-str">&#x27;substreams&#x27;</span>, <span class="t-fn">str</span>(caught.exception))
+
+    <span class="t-key">def</span> <span class="t-fn">test_substreams_refuses_a_coin_it_does_not_price</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-key">self</span>.<span class="t-fn">assertRaises</span>(<span class="t-type">ValueError</span>):
+            <span class="t-fn">open_feed</span>(<span class="t-str">&#x27;substreams&#x27;</span>, asset=<span class="t-type">ASSETS</span>[<span class="t-str">&#x27;sol&#x27;</span>])
+
+
+<span class="t-key">if</span> __name__ == <span class="t-str">&#x27;__main__&#x27;</span>:
+    unittest.<span class="t-fn">main</span>()
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

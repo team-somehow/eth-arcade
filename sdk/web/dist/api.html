@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The public surface, on one page - TICK SDK</title>
+<meta name="description" content="The whole public surface on one page.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html" class="on">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="the-public-surface-on-one-page">The public surface, on one page<a class="anchor" href="#the-public-surface-on-one-page" aria-label="Link">#</a></h1>
+<p>Everything you can import, what it does, and what it returns. Imports below are what actually works; <code>from tick import X</code> covers the common ones.</p>
+<hr>
+<h2 id="tick-the-top-level"><code>tick</code> — the top level<a class="anchor" href="#tick-the-top-level" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick <span class="t-key">import</span> <span class="t-type">Game</span>, <span class="t-type">GameContext</span>, run, <span class="t-type">Runtime</span>, <span class="t-type">InputAction</span>
+<span class="t-key">from</span> tick <span class="t-key">import</span> <span class="t-type">Market</span>, open_feed, <span class="t-type">PriceTick</span>, <span class="t-type">Asset</span>, <span class="t-type">ASSETS</span>, <span class="t-type">PoolStream</span>
+<span class="t-key">from</span> tick <span class="t-key">import</span> <span class="t-type">Wallet</span>, <span class="t-type">MICRO</span>, parse_usdc, format_usdc, stake_micro
+<span class="t-key">from</span> tick <span class="t-key">import</span> <span class="t-type">RoundClock</span>, <span class="t-type">Round</span>, <span class="t-type">Bet</span>, <span class="t-type">BetBook</span>, <span class="t-type">Settlement</span>
+<span class="t-key">from</span> tick <span class="t-key">import</span> probability, multiple, sigma, scale_to_window</code></pre></div>
+<hr>
+<h2 id="game-what-you-subclass"><code>Game</code> — what you subclass<a class="anchor" href="#game-what-you-subclass" aria-label="Link">#</a></h2>
+<div class="table"><table><thead><tr><th>Attribute</th><th>Default</th><th>Meaning</th></tr></thead><tbody><tr><td><code>title</code></td><td><code>&#x27;TICK GAME&#x27;</code></td><td>window title and HUD label</td></tr><tr><td><code>window_s</code></td><td><code>10.0</code></td><td>round length; <code>TICK_WINDOW_S</code> overrides</td></tr><tr><td><code>stake_usdc</code></td><td><code>None</code></td><td>per bet; <code>None</code> means <code>TICK_STAKE_USDC</code></td></tr><tr><td><code>max_multiple</code></td><td><code>25.0</code></td><td>never quote more than this</td></tr><tr><td><code>min_multiple</code></td><td><code>1.05</code></td><td>never sell under this</td></tr><tr><td><code>house_edge</code></td><td><code>0.0</code></td><td><code>0.03</code> keeps 3%</td></tr><tr><td><code>rounds_ahead</code></td><td><code>1</code></td><td><code>1</code> = the next bell; <code>0</code> = the round already running</td></tr><tr><td><code>arm_s</code></td><td><code>0.0</code></td><td>swallow bets for this long after a bell</td></tr><tr><td><code>sound_cues</code></td><td><code>True</code></td><td>the SDK plays the generic cues</td></tr><tr><td><code>music</code></td><td><code>True</code></td><td>the SDK picks the bed from what is at stake</td></tr></tbody></table></div>
+<div class="table"><table><thead><tr><th>Hook</th><th>Called</th></tr></thead><tbody><tr><td><code>setup(ctx)</code></td><td>once, after everything is up</td></tr><tr><td><code>teardown(ctx)</code></td><td>once, on the way out</td></tr><tr><td><code>on_tick(ctx, tick)</code></td><td>a price arrived and was folded in</td></tr><tr><td><code>on_round_start(ctx, round_)</code></td><td>a round opened</td></tr><tr><td><code>on_round_end(ctx, round_)</code></td><td>a round rang; its bets have settled</td></tr><tr><td><code>on_settle(ctx, settlement)</code></td><td>one of your bets was paid or lost</td></tr><tr><td><code>on_action(ctx, action)</code></td><td>dial or button; return <code>&#x27;quit&#x27;</code> to leave</td></tr><tr><td><code>on_touch(ctx, pos)</code></td><td>a tap, in canvas pixels</td></tr><tr><td><code>update(ctx, dt)</code></td><td>every frame, before drawing</td></tr><tr><td><code>draw(ctx, screen)</code></td><td>every frame</td></tr></tbody></table></div>
+<hr>
+<h2 id="gamecontext-what-every-hook-is-handed"><code>GameContext</code> — what every hook is handed<a class="anchor" href="#gamecontext-what-every-hook-is-handed" aria-label="Link">#</a></h2>
+<p><strong>State</strong></p>
+<div class="table"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><code>ctx.price</code></td><td>last price</td></tr><tr><td><code>ctx.open_price</code></td><td>the round&#x27;s opening price — anchor your view here</td></tr><tr><td><code>ctx.move</code></td><td>how far the price has come since the round opened</td></tr><tr><td><code>ctx.remaining</code></td><td>seconds to the bell</td></tr><tr><td><code>ctx.round</code></td><td>the <code>Round</code> now running</td></tr><tr><td><code>ctx.now</code> / <code>ctx.dt</code> / <code>ctx.frame</code></td><td>monotonic seconds, frame delta, frame count</td></tr><tr><td><code>ctx.armed</code></td><td><code>False</code> for <code>arm_s</code> after a bell</td></tr><tr><td><code>ctx.stake</code></td><td>micro-USDC per bet</td></tr></tbody></table></div>
+<p><strong>Betting</strong></p>
+<div class="table"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><code>ctx.bet(low, high, stake=None, rounds_ahead=None, label=&#x27;&#x27;)</code></td><td>place; <code>None</code> if refused</td></tr><tr><td><code>ctx.quote(low, high, rounds_ahead=None)</code></td><td>the multiple right now</td></tr><tr><td><code>ctx.can_bet()</code> / <code>ctx.why_not()</code></td><td>may I sell, and why not</td></tr><tr><td><code>ctx.refused</code></td><td>why the last <code>bet</code> returned <code>None</code></td></tr><tr><td><code>ctx.horizon()</code></td><td>seconds to the bell a bet placed now settles at</td></tr><tr><td><code>ctx.would_exceed_cap(stake, multiple)</code></td><td>past what the escrow can pay?</td></tr><tr><td><code>ctx.cancel_next()</code></td><td>refund bets on the round that has not started</td></tr></tbody></table></div>
+<p><strong>Your bets</strong></p>
+<div class="table"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><code>ctx.live_bets</code></td><td>settling at the next bell</td></tr><tr><td><code>ctx.next_bets</code></td><td>bought for the bell after that</td></tr><tr><td><code>ctx.inside</code></td><td>is the price inside a live bet? <code>None</code> if none</td></tr><tr><td><code>ctx.staked</code></td><td>money at risk</td></tr></tbody></table></div>
+<p><strong>Objects and output</strong></p>
+<div class="table"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><code>ctx.market</code> <code>ctx.wallet</code> <code>ctx.rounds</code> <code>ctx.book</code> <code>ctx.sounds</code> <code>ctx.game</code> <code>ctx.screen</code></td><td></td></tr><tr><td><code>ctx.play(cue)</code></td><td>one of the cue names below</td></tr><tr><td><code>ctx.note(text, seconds=2.0)</code></td><td>a line for the status bar</td></tr><tr><td><code>ctx.status_line()</code></td><td>the note, else the refusal reason, else <code>&#x27;&#x27;</code></td></tr><tr><td><code>ctx.usdc(micro=None)</code></td><td>format with the decimals this game&#x27;s stake needs</td></tr><tr><td><code>ctx.quit()</code></td><td>leave</td></tr></tbody></table></div>
+<hr>
+<h2 id="tickfeeds"><code>tick.feeds</code><a class="anchor" href="#tickfeeds" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">open_feed</span>(source=<span class="t-key">None</span>, seed=<span class="t-key">None</span>, asset=<span class="t-key">None</span>, **kwargs) -&gt; <span class="t-type">BaseFeed</span></code></pre></div>
+<p><code>source</code>: <code>sim</code> · <code>coinbase</code> · <code>substreams</code> · <code>replay</code> · <code>frozen</code>; defaults to <code>TICK_MARKET_SOURCE</code>.</p>
+<div class="table"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><code>feed.poll(dt, now) -&gt; list[PriceTick]</code></td><td>non-blocking</td></tr><tr><td><code>feed.stream(interval=0.05, limit=None)</code></td><td>blocking generator, for scripts</td></tr><tr><td><code>feed.close()</code> · <code>feed.name</code> · <code>feed.status</code> · <code>feed.asset</code></td><td></td></tr></tbody></table></div>
+<div class="table"><table><thead><tr><th>Class</th><th>Notes</th></tr></thead><tbody><tr><td><code>SimulatedFeed(seed, asset, volatility=None)</code></td><td>20 Hz seeded walk</td></tr><tr><td><code>FrozenFeed(price, asset)</code></td><td>never moves; for testing refusals</td></tr><tr><td><code>CoinbaseFeed(asset)</code></td><td>5 Hz public REST, worker thread</td></tr><tr><td><code>SubstreamsFeed(base_url)</code></td><td>one tick per block, many pools combined</td></tr><tr><td><code>ReplayFeed(path, speed=1.0, loop=False)</code></td><td>a recording</td></tr><tr><td><code>Recorder(feed, path)</code></td><td>wraps any feed and writes every tick</td></tr><tr><td><code>PoolStream(base_url).blocks()</code></td><td>raw per-pool, per-block <code>Block</code> objects</td></tr><tr><td><code>PoolBook()</code></td><td><code>.apply(line, now)</code> · <code>.price(now)</code> · <code>.live_pools(now)</code></td></tr></tbody></table></div>
+<p><code>PriceTick(price, sequence, received_at, source_age)</code> · <code>.age(now)</code></p>
+<hr>
+<h2 id="tickmarket"><code>tick.market</code><a class="anchor" href="#tickmarket" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">Market</span>(feed=<span class="t-key">None</span>, source=<span class="t-key">None</span>, seed=<span class="t-key">None</span>, **kwargs)</code></pre></div>
+<div class="table"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><code>.poll(dt, now=None)</code></td><td>read the feed and fold in; returns accepted ticks</td></tr><tr><td><code>.accept(tick, now) -&gt; bool</code></td><td>validate and fold one tick</td></tr><tr><td><code>.price</code> <code>.tick</code> <code>.history</code> <code>.asset</code> <code>.name</code> <code>.status</code></td><td></td></tr><tr><td><code>.fresh(now)</code> <code>.quiet(now)</code> <code>.ready</code></td><td></td></tr><tr><td><code>.sellable(now)</code> <code>.why_not(now)</code></td><td>may a bet be sold, and why not</td></tr><tr><td><code>.variance</code></td><td>realized variance per second (cached)</td></tr><tr><td><code>.sigma(horizon)</code></td><td>one standard deviation over that horizon</td></tr><tr><td><code>.probability(low, high, horizon)</code></td><td>chance of landing in the range</td></tr><tr><td><code>.quote(low, high, horizon, edge=0, cap=25)</code></td><td>the multiple</td></tr><tr><td><code>.band(sigmas, horizon)</code></td><td>half-width of an N-sigma box</td></tr></tbody></table></div>
+<p>Constants worth knowing: <code>STALE_AFTER=4.0</code>, <code>VOL_WINDOW_S=60.0</code>, <code>QUIET_AFTER=15.0</code>, <code>SPIKE_CAP=4.0</code>, <code>PRIOR_S=10.0</code>.</p>
+<hr>
+<h2 id="tickpricing"><code>tick.pricing</code><a class="anchor" href="#tickpricing" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">normal_cdf</span>(x)
+<span class="t-fn">sigma</span>(price, variance_per_second, horizon)
+<span class="t-fn">probability</span>(price, low, high, variance_per_second, horizon)
+<span class="t-fn">multiple</span>(chance, edge=<span class="t-num">0.0</span>, cap=<span class="t-num">25.0</span>)
+<span class="t-fn">scale_to_window</span>(value_bps, window_s, reference_s=<span class="t-num">20.0</span>)
+<span class="t-fn">annualized</span>(variance_per_second)</code></pre></div>
+<hr>
+<h2 id="tickmoney"><code>tick.money</code><a class="anchor" href="#tickmoney" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">Wallet</span>(balance=<span class="t-num">100</span>*<span class="t-type">MICRO</span>, funding=<span class="t-key">None</span>)</code></pre></div>
+<p><code>.balance</code> <code>.debit(n) -&gt; bool</code> <code>.credit(n)</code> <code>.can_afford(n)</code> <code>.cap</code> <code>.live</code> <code>.onchain</code> <code>.load(usdc)</code> <code>.would_exceed_cap(best)</code></p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-type">MICRO</span>                      <span class="t-com"># 1_000_000</span>
+<span class="t-fn">to_micro</span>(<span class="t-num">1.5</span>)              <span class="t-com"># 1_500_000  (truncates)</span>
+<span class="t-fn">parse_usdc</span>(<span class="t-str">&#x27;0.57&#x27;</span>)         <span class="t-com"># 570000     (exact; raises on &gt;6 decimals)</span>
+<span class="t-fn">format_usdc</span>(<span class="t-num">570000</span>, <span class="t-num">2</span>)     <span class="t-com"># &#x27;0.57&#x27;</span>
+<span class="t-fn">places_for</span>(<span class="t-num">1000</span>)           <span class="t-com"># 3</span>
+<span class="t-fn">stake_micro</span>()              <span class="t-com"># from TICK_STAKE_USDC</span>
+<span class="t-fn">DemoFunding</span>()              <span class="t-com"># paper money</span></code></pre></div>
+<hr>
+<h2 id="tickrounds"><code>tick.rounds</code><a class="anchor" href="#tickrounds" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">RoundClock</span>(window_s=<span class="t-num">10.0</span>, void_after=<span class="t-key">None</span>)</code></pre></div>
+<p><code>.start(price, now)</code> · <code>.update(now, price, settleable) -&gt; list[Round]</code> <code>.remaining(now)</code> <code>.progress(now)</code> <code>.horizon(now, rounds_ahead)</code> <code>.move(price)</code> <code>.index</code> <code>.open_price</code> <code>.ends_at</code> <code>.settling</code> <code>.current</code> <code>.closed</code></p>
+<p><code>Round(index, open_price, opened_at, ends_at)</code> → <code>.close_price</code> <code>.voided</code> <code>.move</code> <code>.remaining(now)</code> <code>.progress(now)</code></p>
+<hr>
+<h2 id="tickbets"><code>tick.bets</code><a class="anchor" href="#tickbets" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">BetBook</span>(wallet)</code></pre></div>
+<p><code>.place(round_index, low, high, stake, multiple, label=&#x27;&#x27;) -&gt; Bet | None</code> <code>.settle(round_) -&gt; list[Settlement]</code> · <code>.refund(round_index)</code> · <code>.refund_all()</code> · <code>.for_round(i)</code> · <code>.staked()</code> · <code>.best_case()</code> · <code>.last</code> · <code>.streak</code> · <code>.history</code> · <code>.open</code></p>
+<p><code>Bet</code> → <code>.low</code> <code>.high</code> <code>.level</code> <code>.half</code> <code>.stake</code> <code>.payout</code> <code>.multiple</code> <code>.presses</code> <code>.label</code> <code>.contains(price)</code></p>
+<p><code>Settlement</code> → <code>.hit</code> <code>.price</code> <code>.stake</code> <code>.payout</code> <code>.multiple</code> <code>.voided</code> <code>.net</code></p>
+<hr>
+<h2 id="tickescrow-and-tickchain"><code>tick.escrow</code> and <code>tick.chain</code><a class="anchor" href="#tickescrow-and-tickchain" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">build_wallet</span>(kind=<span class="t-key">None</span>)        <span class="t-com"># TICK_FUNDING: &#x27;demo&#x27; or &#x27;arc-testnet&#x27;</span>
+<span class="t-fn">EscrowFunding</span>(kind, chain=<span class="t-key">None</span>, state_dir=<span class="t-str">&#x27;.tick&#x27;</span>, gas_fee=<span class="t-key">None</span>, start=<span class="t-key">True</span>)</code></pre></div>
+<p><code>.qr_text</code> <code>.in_session</code> <code>.cap</code> <code>.player</code> <code>.status</code> <code>.busy</code> <code>.error</code> <code>.sync(wallet)</code> <code>.cash_out(wallet)</code> <code>.step()</code> <code>.stop()</code> <code>.tx_url(tx)</code></p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">Chain</span>(<span class="t-fn">network</span>(kind), <span class="t-fn">load_device</span>())     <span class="t-com"># block, incoming, house, open_for, close, transfer</span>
+<span class="t-fn">Rpc</span>(url)(method, *params)
+<span class="t-type">NETWORKS</span>[<span class="t-str">&#x27;arc-testnet&#x27;</span>]</code></pre></div>
+<hr>
+<h2 id="tickidentity"><code>tick.identity</code><a class="anchor" href="#tickidentity" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">handle</span>(address, attempt=<span class="t-num">0</span>)              <span class="t-com"># &#x27;amber-otter&#x27;</span>
+<span class="t-fn">name_of</span>(address, net=<span class="t-key">None</span>, rpc=<span class="t-key">None</span>)    <span class="t-com"># &#x27;amber-otter.tick.eth&#x27; | None</span>
+<span class="t-fn">records_of</span>(rpc, name, keys=<span class="t-type">STATS</span>)       <span class="t-com"># one Universal Resolver call</span>
+<span class="t-fn">Standings</span>(net=<span class="t-key">None</span>, rpc=<span class="t-key">None</span>, keys=<span class="t-type">STATS</span>).<span class="t-fn">read</span>() -&gt; list[<span class="t-type">Standing</span>]
+<span class="t-fn">Leaderboard</span>(read=<span class="t-key">None</span>)                  <span class="t-com"># threaded: .want() .rows .error .showing</span>
+<span class="t-fn">namehash</span>(name) · <span class="t-fn">dns_encode</span>(name) · <span class="t-fn">coin_type</span>(chain_id) · <span class="t-fn">ens</span>()</code></pre></div>
+<hr>
+<h2 id="tickhud-and-tickui"><code>tick.hud</code> and <code>tick.ui</code><a class="anchor" href="#tickhud-and-tickui" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">clear</span>(s) · <span class="t-fn">draw_hud</span>(ctx, s, back, go) · <span class="t-fn">draw_clock</span>(ctx, s, x, y)
+<span class="t-fn">Ladder</span>(centre, half, top=<span class="t-num">34</span>, bottom=<span class="t-num">268</span>)     <span class="t-com"># .y_of .price_at .rect .clamped_y</span>
+draw_grid · draw_open_line · draw_bet · draw_cursor · draw_price_line</code></pre></div>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-type">NAVY</span> <span class="t-type">PANEL</span> <span class="t-type">GRID</span> <span class="t-type">CREAM</span> <span class="t-type">MUTED</span> <span class="t-type">YELLOW</span> <span class="t-type">MINT</span> <span class="t-type">RED</span>
+<span class="t-fn">font</span>(size) · <span class="t-fn">label</span>(...) · <span class="t-fn">say</span>(...) · <span class="t-fn">say_right</span>(...) · <span class="t-fn">footer</span>(...) · <span class="t-fn">dashed_rect</span>(...)
+<span class="t-fn">Sounds</span>()      <span class="t-com"># .play(cue) .music(mode) .detent(fraction) .ok</span></code></pre></div>
+<p><strong>Cues:</strong> <code>bell</code> <code>hot</code> <code>cold</code> <code>tick_in</code> <code>tick_out</code> <code>buy1</code> <code>buy2</code> <code>buy3</code> <code>win_small</code> <code>win_big</code> <code>jackpot</code> <code>hattrick</code> <code>fizzle</code> <code>void</code> <code>warn</code> <code>stale</code> <code>crossline</code> <code>nav</code> <code>enter</code> <code>back</code> <code>coin</code> <code>move</code> <code>select</code> <code>lock</code> <code>tick</code> <code>hit</code> <code>miss</code> <code>detent0</code>–<code>detent7</code>. <strong>Beds:</strong> <code>idle</code> <code>live</code> <code>final</code> <code>off</code>.</p>
+<hr>
+<h2 id="tickinput-and-tickdisplay"><code>tick.input</code> and <code>tick.display</code><a class="anchor" href="#tickinput-and-tickdisplay" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-type">InputAction</span>.<span class="t-type">UP</span> / <span class="t-type">DOWN</span> / <span class="t-type">A</span> / <span class="t-type">B</span> / <span class="t-type">QUIT</span>
+<span class="t-fn">actions_from_event</span>(event) · <span class="t-fn">event_position</span>(event) · <span class="t-fn">HeldKeys</span>()
+<span class="t-type">EncoderInput</span>.<span class="t-fn">try_open</span>(clk=<span class="t-num">21</span>, dt=<span class="t-num">20</span>, sw=<span class="t-num">16</span>, invert=<span class="t-key">False</span>)   <span class="t-com"># None off-Pi</span>
+<span class="t-type">ButtonPad</span>.<span class="t-fn">try_open</span>(red=<span class="t-num">13</span>, yellow=<span class="t-num">26</span>)                       <span class="t-com"># None off-Pi</span></code></pre></div>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-type">WIDTH</span>, <span class="t-type">HEIGHT</span> = <span class="t-num">480</span>, <span class="t-num">320</span> ; <span class="t-type">FPS</span> = <span class="t-num">30</span>
+<span class="t-fn">bootstrap</span>() · <span class="t-fn">init_display</span>(title) · <span class="t-fn">present</span>() · <span class="t-fn">to_canvas</span>(fx, fy)
+<span class="t-fn">display_to_canvas</span>(pos) · <span class="t-fn">rotation</span>()</code></pre></div>
+<hr>
+<h2 id="ticktesting"><code>tick.testing</code><a class="anchor" href="#ticktesting" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">Harness</span>(game, feed=<span class="t-key">None</span>, source=<span class="t-str">&#x27;sim&#x27;</span>, seed=<span class="t-num">7</span>, balance=<span class="t-num">1000</span>*<span class="t-type">MICRO</span>,
+        stake=<span class="t-key">None</span>, window_s=<span class="t-key">None</span>, start=<span class="t-num">1000.0</span>)</code></pre></div>
+<p><code>.warm(25)</code> <code>.advance(seconds)</code> <code>.frame(dt, actions, touches)</code> <code>.press(action)</code> <code>.touch(pos)</code> <code>.draw_once()</code> <code>.close()</code> · <code>.ctx</code> <code>.market</code> <code>.wallet</code> <code>.rounds</code> <code>.book</code> <code>.price</code> <code>.balance</code> <code>.settled</code></p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">FakeClock</span>(start=<span class="t-num">1000.0</span>)          <span class="t-com"># a monotonic clock you move by hand</span>
+<span class="t-fn">ScriptedFeed</span>([(t, price), ...])  <span class="t-com"># exactly the ticks you list</span></code></pre></div>
+<hr>
+<h2 id="tickenv"><code>tick.env</code><a class="anchor" href="#tickenv" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">load_env_file</span>(path=<span class="t-key">None</span>) · <span class="t-fn">load_env_near</span>(start) · <span class="t-fn">flag</span>(name, default)
+<span class="t-fn">number</span>(name, default) · <span class="t-fn">text</span>(name, default)</code></pre></div></article>
+    <nav class="pager"><a class="prev" href="identity-ens.html"><span>Previous</span>Player names</a><a class="next" href="device.html"><span>Next</span>The device</a></nav>
+  </main>
+  <aside class="toc"><h4>On this page</h4><ul><li class="l2"><a href="#tick-the-top-level">tick — the top level</a></li><li class="l2"><a href="#game-what-you-subclass">Game — what you subclass</a></li><li class="l2"><a href="#gamecontext-what-every-hook-is-handed">GameContext — what every hook is handed</a></li><li class="l2"><a href="#tickfeeds">tick.feeds</a></li><li class="l2"><a href="#tickmarket">tick.market</a></li><li class="l2"><a href="#tickpricing">tick.pricing</a></li><li class="l2"><a href="#tickmoney">tick.money</a></li><li class="l2"><a href="#tickrounds">tick.rounds</a></li><li class="l2"><a href="#tickbets">tick.bets</a></li><li class="l2"><a href="#tickescrow-and-tickchain">tick.escrow and tick.chain</a></li><li class="l2"><a href="#tickidentity">tick.identity</a></li><li class="l2"><a href="#tickhud-and-tickui">tick.hud and tick.ui</a></li><li class="l2"><a href="#tickinput-and-tickdisplay">tick.input and tick.display</a></li><li class="l2"><a href="#ticktesting">tick.testing</a></li><li class="l2"><a href="#tickenv">tick.env</a></li></ul></aside>
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

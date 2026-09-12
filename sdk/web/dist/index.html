@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TICK SDK</title>
+<meta name="description" content="What the SDK is, and a game in thirty lines.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html" class="on">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="tick-sdk">TICK SDK<a class="anchor" href="#tick-sdk" aria-label="Link">#</a></h1>
+<p>Build a crypto arcade game for the TICK handheld in one file.</p>
+<p>The device is a 480×320 landscape screen, a rotary dial, two buttons and a speaker. A game on it is always the same shape: <strong>a claim about where a price will be at a known moment, backed by money</strong>. This SDK owns everything around that claim — the live price, the clock, the odds, the wallet, the settlement, the input and the noise — so your game only has to say what a bet <em>is</em>, what wins, and what it looks like.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick <span class="t-key">import</span> <span class="t-type">Game</span>, run
+<span class="t-key">from</span> tick.hud <span class="t-key">import</span> clear, draw_clock, draw_hud
+<span class="t-key">from</span> tick.ui <span class="t-key">import</span> <span class="t-type">YELLOW</span>, say
+
+<span class="t-key">class</span> <span class="t-fn">Coinflip</span>(<span class="t-type">Game</span>):
+    title = <span class="t-str">&#x27;COINFLIP&#x27;</span>
+    window_s = <span class="t-num">10.0</span>
+
+    <span class="t-key">def</span> <span class="t-fn">setup</span>(<span class="t-key">self</span>, ctx):
+        <span class="t-key">self</span>.pick = <span class="t-str">&#x27;UP&#x27;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">on_action</span>(<span class="t-key">self</span>, ctx, action):
+        <span class="t-key">if</span> action.name <span class="t-key">in</span> (<span class="t-str">&#x27;UP&#x27;</span>, <span class="t-str">&#x27;DOWN&#x27;</span>):
+            <span class="t-key">self</span>.pick = action.name
+        <span class="t-key">elif</span> action.name == <span class="t-str">&#x27;A&#x27;</span>:
+            anchor = ctx.open_price
+            ctx.<span class="t-fn">bet</span>(anchor, <span class="t-num">1e9</span>) <span class="t-key">if</span> <span class="t-key">self</span>.pick == <span class="t-str">&#x27;UP&#x27;</span> <span class="t-key">else</span> ctx.<span class="t-fn">bet</span>(<span class="t-num">0.0</span>, anchor)
+
+    <span class="t-key">def</span> <span class="t-fn">draw</span>(<span class="t-key">self</span>, ctx, screen):
+        <span class="t-fn">clear</span>(screen)
+        <span class="t-fn">say</span>(screen, <span class="t-key">self</span>.pick, <span class="t-num">240</span>, <span class="t-num">120</span>, <span class="t-num">32</span>, <span class="t-type">YELLOW</span>, center=<span class="t-key">True</span>)
+        <span class="t-fn">draw_clock</span>(ctx, screen)
+        <span class="t-fn">draw_hud</span>(ctx, screen)
+
+<span class="t-fn">run</span>(<span class="t-fn">Coinflip</span>())</code></pre></div>
+<p>That is a complete, playable game with live prices, fair odds computed from measured volatility, a round clock that never stops, an integer-USDC wallet, dial and button input, and a full set of arcade sound cues.</p>
+<h2 id="install">Install<a class="anchor" href="#install" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>cd sdk
+<span class="t-fn">python3</span> <span class="t-key">-m</span> venv .venv &amp;&amp; source .venv/bin/activate
+<span class="t-fn">pip</span> install <span class="t-key">-e</span> .<span class="t-com">                 # demo play: only pygame</span>
+<span class="t-fn">pip</span> install <span class="t-key">-e</span> <span class="t-str">&quot;.[chain]&quot;</span><span class="t-com">        # + real USDC settlement and ENS names</span>
+<span class="t-fn">pip</span> install <span class="t-key">-e</span> <span class="t-str">&quot;.[pi]&quot;</span><span class="t-com">           # + the dial and the panel buttons</span>
+<span class="t-fn">tick</span> doctor<span class="t-com">                      # what is installed, and whether the feed answers</span></code></pre></div>
+<p>Python 3.11 or newer.</p>
+<h2 id="sixty-seconds">Sixty seconds<a class="anchor" href="#sixty-seconds" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">tick</span> new mygame<span class="t-com">          # scaffold a playable game</span>
+<span class="t-fn">python</span> mygame.py<span class="t-com">         # play it on simulated prices</span>
+<span class="t-fn">tick</span> prices <span class="t-key">--source</span> coinbase <span class="t-key">--limit</span> 10<span class="t-com">       # watch a live feed in the terminal</span>
+<span class="t-fn">tick</span> run mygame.py <span class="t-key">--source</span> coinbase<span class="t-com">           # play it on real prices</span></code></pre></div>
+<h2 id="what-you-get">What you get<a class="anchor" href="#what-you-get" aria-label="Link">#</a></h2>
+<div class="table"><table><thead><tr><th>Layer</th><th>Module</th><th>What it owns</th></tr></thead><tbody><tr><td>Ticks</td><td><code>tick.feeds</code></td><td>one validated <code>PriceTick</code>; simulated, exchange, on-chain and recorded feeds</td></tr><tr><td>Market</td><td><code>tick.market</code></td><td>history, realized volatility, fresh / quiet / ready, probability of a range</td></tr><tr><td>Odds</td><td><code>tick.pricing</code></td><td>chance → fair multiple, with a cap, a floor and a house edge you set</td></tr><tr><td>Money</td><td><code>tick.money</code></td><td>integer micro-USDC wallet; nothing here is a float</td></tr><tr><td>Settlement</td><td><code>tick.escrow</code></td><td>deposits, sessions and payouts on-chain, on a worker thread</td></tr><tr><td>Identity</td><td><code>tick.identity</code></td><td>a readable name per wallet, and a leaderboard read from ENS</td></tr><tr><td>Rounds</td><td><code>tick.rounds</code></td><td>the clock that never stops, and refuses to settle on the wrong price</td></tr><tr><td>Bets</td><td><code>tick.bets</code></td><td>place, top up, settle, refund — the only code that moves money</td></tr><tr><td>Your game</td><td><code>tick.game</code></td><td><code>Game</code> and <code>GameContext</code></td></tr><tr><td>Loop</td><td><code>tick.runtime</code></td><td><code>run()</code>: 30 FPS, input, cues, shutdown</td></tr><tr><td>Screen</td><td><code>tick.hud</code>, <code>tick.ui</code></td><td>price ladder, HUD, palette, synthesized sound</td></tr></tbody></table></div>
+<h2 id="documentation">Documentation<a class="anchor" href="#documentation" aria-label="Link">#</a></h2>
+<p>All of it is also a <strong>browsable site</strong> with search, built from these same Markdown files — open <a href="index.html"><code>web/dist/index.html</code></a> straight from disk, or:</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">tick</span> docs<span class="t-com">                # build it and open a browser</span>
+<span class="t-fn">python</span> web/build.py<span class="t-com">      # build only, into web/dist/</span></code></pre></div>
+<ul><li><strong><a href="plan.html">PLAN.md</a></strong> — the system from first principles, with examples, and the increment-by-increment plan to build or extend it.</li><li><a href="writing-a-game.html">docs/writing-a-game.md</a> — the tutorial, start here.</li><li><a href="prices-substreams.html">docs/prices-substreams.md</a> — putting an on-chain price under your game: Substreams, the relay, and how many pools become one number you can settle on.</li><li><a href="money-arc.html">docs/money-arc.md</a> — real USDC: the escrow session model, why there is no transaction per bet, and how a player cashes out.</li><li><a href="identity-ens.html">docs/identity-ens.md</a> — giving every wallet a name and a public record with ENS, and reading a leaderboard back out of it.</li><li><a href="device.html">docs/device.md</a> — the screen, the dial, the buttons, the Pi.</li><li><a href="api.html">docs/api.md</a> — the whole public surface on one page.</li><li><a href="docs-site.html">web/README.md</a> — how the docs site is generated, and how to add a page to it.</li></ul>
+<h2 id="the-command-line">The command line<a class="anchor" href="#the-command-line" aria-label="Link">#</a></h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>tick doctor                          what is installed, configured and reachable
+tick new mygame                      scaffold a game
+tick run mygame.py [--source ...]    play it
+tick prices [--source coinbase]      print the feed
+tick pools [-v]                      print every pool in the on-chain stream
+tick record -o eth.ndjson --seconds 300      save a real market
+tick replay eth.ndjson --speed 10            play it back
+tick board                           the leaderboard, read from ENS
+tick docs [--port 8000]              build the documentation site and open it</code></pre></div>
+<h2 id="testing-a-game">Testing a game<a class="anchor" href="#testing-a-game" aria-label="Link">#</a></h2>
+<p>Games that hold money need tests, and a game loop is testable only if it can run without a window. <code>tick.testing.Harness</code> runs your real game class against a real market on a clock you control:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick.testing <span class="t-key">import</span> <span class="t-type">Harness</span>
+<span class="t-key">from</span> mygame <span class="t-key">import</span> <span class="t-type">MyGame</span>
+
+<span class="t-key">def</span> <span class="t-fn">test_a_wide_bet_is_never_sold</span>():
+    h = <span class="t-fn">Harness</span>(<span class="t-fn">MyGame</span>(), seed=<span class="t-num">7</span>).<span class="t-fn">warm</span>(<span class="t-num">25</span>)
+    <span class="t-key">assert</span> h.ctx.<span class="t-fn">bet</span>(h.price * <span class="t-num">0.5</span>, h.price * <span class="t-num">1.5</span>) <span class="t-key">is</span> <span class="t-key">None</span>
+    <span class="t-key">assert</span> h.ctx.refused == <span class="t-str">&#x27;TOO SURE TO SELL&#x27;</span></code></pre></div>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-type">SDL_VIDEODRIVER</span>=dummy SDL_AUDIODRIVER=dummy python <span class="t-key">-m</span> unittest discover <span class="t-key">-s</span> tests <span class="t-key">-t</span> .</code></pre></div>
+<h2 id="settings">Settings<a class="anchor" href="#settings" aria-label="Link">#</a></h2>
+<p>Everything is configured by environment, read from a <code>.env</code> beside your game (copy <code>.env.example</code>). Anything set in the shell wins, so a one-off run is <code>TICK_MARKET_SOURCE=coinbase python mygame.py</code>.</p>
+<div class="table"><table><thead><tr><th>Setting</th><th>Values</th></tr></thead><tbody><tr><td><code>TICK_MARKET_SOURCE</code></td><td><code>sim</code> · <code>coinbase</code> · <code>substreams</code> · <code>replay</code> · <code>frozen</code></td></tr><tr><td><code>TICK_ASSET</code></td><td><code>eth</code> · <code>btc</code> · <code>sol</code> · <code>hbar</code></td></tr><tr><td><code>TICK_FUNDING</code></td><td><code>demo</code> · <code>arc-testnet</code></td></tr><tr><td><code>TICK_STAKE_USDC</code></td><td>money per bet, e.g. <code>10</code> or <code>0.001</code></td></tr><tr><td><code>TICK_WINDOW_S</code></td><td>round length, if the game does not fix it</td></tr><tr><td><code>TICK_ROTATE</code></td><td><code>auto</code> · <code>0</code> · <code>90</code> · <code>180</code> · <code>270</code></td></tr><tr><td><code>TICK_SOUND</code></td><td><code>1</code> · <code>0</code></td></tr></tbody></table></div>
+<h2 id="examples">Examples<a class="anchor" href="#examples" aria-label="Link">#</a></h2>
+<div class="table"><table><thead><tr><th>File</th><th>What it shows</th></tr></thead><tbody><tr><td><a href="src-examples-coinflip.html"><code>examples/coinflip.py</code></a></td><td>the smallest real game: up or down at the bell</td></tr><tr><td><a href="src-examples-ladder.html"><code>examples/ladder.py</code></a></td><td>park a box on the price — the shape most games take</td></tr><tr><td><a href="src-examples-ticker.html"><code>examples/ticker.py</code></a></td><td>the data layer with no game and no pygame</td></tr><tr><td><a href="src-examples-pools.html"><code>examples/pools.py</code></a></td><td>every pool in the on-chain stream, block by block</td></tr></tbody></table></div></article>
+    <nav class="pager"><a class="next" href="plan.html"><span>Next</span>The plan</a></nav>
+  </main>
+  <aside class="toc"><h4>On this page</h4><ul><li class="l2"><a href="#install">Install</a></li><li class="l2"><a href="#sixty-seconds">Sixty seconds</a></li><li class="l2"><a href="#what-you-get">What you get</a></li><li class="l2"><a href="#documentation">Documentation</a></li><li class="l2"><a href="#the-command-line">The command line</a></li><li class="l2"><a href="#testing-a-game">Testing a game</a></li><li class="l2"><a href="#settings">Settings</a></li><li class="l2"><a href="#examples">Examples</a></li></ul></aside>
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

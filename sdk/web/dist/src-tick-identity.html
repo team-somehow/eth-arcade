@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/identity.py - TICK SDK</title>
+<meta name="description" content="Source of tick/identity.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">identity.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/identity.py &middot; 299 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span><span>128</span><span>129</span><span>130</span><span>131</span><span>132</span><span>133</span><span>134</span><span>135</span><span>136</span><span>137</span><span>138</span><span>139</span><span>140</span><span>141</span><span>142</span><span>143</span><span>144</span><span>145</span><span>146</span><span>147</span><span>148</span><span>149</span><span>150</span><span>151</span><span>152</span><span>153</span><span>154</span><span>155</span><span>156</span><span>157</span><span>158</span><span>159</span><span>160</span><span>161</span><span>162</span><span>163</span><span>164</span><span>165</span><span>166</span><span>167</span><span>168</span><span>169</span><span>170</span><span>171</span><span>172</span><span>173</span><span>174</span><span>175</span><span>176</span><span>177</span><span>178</span><span>179</span><span>180</span><span>181</span><span>182</span><span>183</span><span>184</span><span>185</span><span>186</span><span>187</span><span>188</span><span>189</span><span>190</span><span>191</span><span>192</span><span>193</span><span>194</span><span>195</span><span>196</span><span>197</span><span>198</span><span>199</span><span>200</span><span>201</span><span>202</span><span>203</span><span>204</span><span>205</span><span>206</span><span>207</span><span>208</span><span>209</span><span>210</span><span>211</span><span>212</span><span>213</span><span>214</span><span>215</span><span>216</span><span>217</span><span>218</span><span>219</span><span>220</span><span>221</span><span>222</span><span>223</span><span>224</span><span>225</span><span>226</span><span>227</span><span>228</span><span>229</span><span>230</span><span>231</span><span>232</span><span>233</span><span>234</span><span>235</span><span>236</span><span>237</span><span>238</span><span>239</span><span>240</span><span>241</span><span>242</span><span>243</span><span>244</span><span>245</span><span>246</span><span>247</span><span>248</span><span>249</span><span>250</span><span>251</span><span>252</span><span>253</span><span>254</span><span>255</span><span>256</span><span>257</span><span>258</span><span>259</span><span>260</span><span>261</span><span>262</span><span>263</span><span>264</span><span>265</span><span>266</span><span>267</span><span>268</span><span>269</span><span>270</span><span>271</span><span>272</span><span>273</span><span>274</span><span>275</span><span>276</span><span>277</span><span>278</span><span>279</span><span>280</span><span>281</span><span>282</span><span>283</span><span>284</span><span>285</span><span>286</span><span>287</span><span>288</span><span>289</span><span>290</span><span>291</span><span>292</span><span>293</span><span>294</span><span>295</span><span>296</span><span>297</span><span>298</span><span>299</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;Players have names, and the names carry their record.
+
+A wallet address is not an identity a person can read, remember, or be proud
+of. `0x7ee8...CCac` on a leaderboard is noise. So the SDK gives every wallet
+that plays a **subname under a parent ENS name** -- `amber-otter.tick.eth` --
+and writes that player&#x27;s record into the name&#x27;s own text records.
+
+Why the record lives on the name
+--------------------------------
+
+The alternative is a database, which means a server, which means your game&#x27;s
+leaderboard dies when you stop paying for it and cannot be read by anything
+else. Text records on an ENS name are read by any ENS client, survive the
+game, and belong to the name rather than to your backend. The leaderboard here
+is *derived*, not stored: it is a read of the registry plus one resolver call
+per player.
+
+The handle is derived from the address
+--------------------------------------
+
+`handle(address)` hashes the wallet into `adjective-noun`. That means a device
+can work out which name to look for **without an index and without a lookup
+service** -- it computes the candidate and asks the resolver whether that name
+points back at this wallet. Collisions fall through to `-2`, `-3`; a name is
+trusted only when its `addr` record resolves back to the wallet, so squatting
+a handle gains nothing.
+
+Who may write what
+------------------
+
+Two sets of records, split by who can write them:
+
+    tick.*      sessions, wins, pnl, best, last_tx -- written only by the
+                scorekeeper, because a player who could write their own
+                score has no score
+    avatar,
+    description,
+    url, ...    the player&#x27;s own, written by the player
+
+Everything in this module is **read-only**. Writing stats is a privileged,
+single-instance job (see `docs/identity-ens.md`) and deliberately does not
+live on the device.
+
+Names and stats sit on their own chain, independent of wherever your money
+settles -- keeping identity cheap and public while settlement stays fast.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">from</span> dataclasses <span class="t-key">import</span> dataclass, replace
+<span class="t-key">from</span> decimal <span class="t-key">import</span> <span class="t-type">Decimal</span>
+<span class="t-key">import</span> os
+<span class="t-key">import</span> threading
+<span class="t-key">import</span> time
+
+<span class="t-key">from</span> .chain <span class="t-key">import</span> <span class="t-type">Rpc</span>, <span class="t-type">RpcError</span>, _abi, calldata, topic
+
+<span class="t-com"># ENSIP-11: an EVM chain&#x27;s coin type is 0x80000000 | its chain id.</span>
+<span class="t-type">COIN_TYPE_BASE</span> = <span class="t-num">0x80000000</span>
+<span class="t-com"># ENS&#x27;s Universal Resolver reads any name&#x27;s records the way ENS apps do.</span>
+<span class="t-type">UNIVERSAL_RESOLVER</span> = <span class="t-str">&#x27;0xeeeeeeee14d718c2b47d9923deab1335e144eeee&#x27;</span>
+<span class="t-type">LOG_RANGE</span> = <span class="t-num">10_000</span>
+<span class="t-type">ATTEMPTS</span> = <span class="t-num">4</span>                 <span class="t-com"># handles tried per wallet before giving up</span>
+<span class="t-type">ZERO</span> = <span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;00&#x27;</span> * <span class="t-num">20</span>
+
+<span class="t-com"># Records the scorekeeper writes. Rename the prefix for your own game.</span>
+<span class="t-type">STATS</span> = (<span class="t-str">&#x27;tick.sessions&#x27;</span>, <span class="t-str">&#x27;tick.wins&#x27;</span>, <span class="t-str">&#x27;tick.deposited&#x27;</span>, <span class="t-str">&#x27;tick.paid&#x27;</span>,
+         <span class="t-str">&#x27;tick.pnl&#x27;</span>, <span class="t-str">&#x27;tick.best&#x27;</span>, <span class="t-str">&#x27;tick.last_tx&#x27;</span>)
+<span class="t-com"># Records the player owns.</span>
+<span class="t-type">PROFILE</span> = (<span class="t-str">&#x27;avatar&#x27;</span>, <span class="t-str">&#x27;description&#x27;</span>, <span class="t-str">&#x27;url&#x27;</span>, <span class="t-str">&#x27;com.twitter&#x27;</span>)
+
+<span class="t-type">ADJECTIVES</span> = (
+    <span class="t-str">&#x27;amber&#x27;</span>, <span class="t-str">&#x27;bold&#x27;</span>, <span class="t-str">&#x27;brisk&#x27;</span>, <span class="t-str">&#x27;calm&#x27;</span>, <span class="t-str">&#x27;cheeky&#x27;</span>, <span class="t-str">&#x27;clever&#x27;</span>, <span class="t-str">&#x27;cosmic&#x27;</span>, <span class="t-str">&#x27;crafty&#x27;</span>, <span class="t-str">&#x27;crisp&#x27;</span>, <span class="t-str">&#x27;dusty&#x27;</span>,
+    <span class="t-str">&#x27;eager&#x27;</span>, <span class="t-str">&#x27;electric&#x27;</span>, <span class="t-str">&#x27;fancy&#x27;</span>, <span class="t-str">&#x27;fierce&#x27;</span>, <span class="t-str">&#x27;frosty&#x27;</span>, <span class="t-str">&#x27;gentle&#x27;</span>, <span class="t-str">&#x27;glossy&#x27;</span>, <span class="t-str">&#x27;golden&#x27;</span>, <span class="t-str">&#x27;grand&#x27;</span>,
+    <span class="t-str">&#x27;happy&#x27;</span>, <span class="t-str">&#x27;hazy&#x27;</span>, <span class="t-str">&#x27;jolly&#x27;</span>, <span class="t-str">&#x27;keen&#x27;</span>, <span class="t-str">&#x27;lucky&#x27;</span>, <span class="t-str">&#x27;lunar&#x27;</span>, <span class="t-str">&#x27;mellow&#x27;</span>, <span class="t-str">&#x27;mighty&#x27;</span>, <span class="t-str">&#x27;misty&#x27;</span>, <span class="t-str">&#x27;neon&#x27;</span>,
+    <span class="t-str">&#x27;nimble&#x27;</span>, <span class="t-str">&#x27;noble&#x27;</span>, <span class="t-str">&#x27;plucky&#x27;</span>, <span class="t-str">&#x27;polar&#x27;</span>, <span class="t-str">&#x27;proud&#x27;</span>, <span class="t-str">&#x27;quick&#x27;</span>, <span class="t-str">&#x27;quiet&#x27;</span>, <span class="t-str">&#x27;rapid&#x27;</span>, <span class="t-str">&#x27;rusty&#x27;</span>, <span class="t-str">&#x27;salty&#x27;</span>,
+    <span class="t-str">&#x27;shiny&#x27;</span>, <span class="t-str">&#x27;silent&#x27;</span>, <span class="t-str">&#x27;silver&#x27;</span>, <span class="t-str">&#x27;sleek&#x27;</span>, <span class="t-str">&#x27;sly&#x27;</span>, <span class="t-str">&#x27;smooth&#x27;</span>, <span class="t-str">&#x27;snappy&#x27;</span>, <span class="t-str">&#x27;solar&#x27;</span>, <span class="t-str">&#x27;sonic&#x27;</span>, <span class="t-str">&#x27;spicy&#x27;</span>,
+    <span class="t-str">&#x27;steady&#x27;</span>, <span class="t-str">&#x27;stormy&#x27;</span>, <span class="t-str">&#x27;sunny&#x27;</span>, <span class="t-str">&#x27;swift&#x27;</span>, <span class="t-str">&#x27;tidy&#x27;</span>, <span class="t-str">&#x27;turbo&#x27;</span>, <span class="t-str">&#x27;velvet&#x27;</span>, <span class="t-str">&#x27;vivid&#x27;</span>, <span class="t-str">&#x27;wild&#x27;</span>, <span class="t-str">&#x27;windy&#x27;</span>,
+    <span class="t-str">&#x27;witty&#x27;</span>, <span class="t-str">&#x27;zany&#x27;</span>, <span class="t-str">&#x27;zesty&#x27;</span>,
+)
+<span class="t-type">NOUNS</span> = (
+    <span class="t-str">&#x27;badger&#x27;</span>, <span class="t-str">&#x27;bison&#x27;</span>, <span class="t-str">&#x27;cobra&#x27;</span>, <span class="t-str">&#x27;comet&#x27;</span>, <span class="t-str">&#x27;crab&#x27;</span>, <span class="t-str">&#x27;crane&#x27;</span>, <span class="t-str">&#x27;dingo&#x27;</span>, <span class="t-str">&#x27;eagle&#x27;</span>, <span class="t-str">&#x27;falcon&#x27;</span>, <span class="t-str">&#x27;ferret&#x27;</span>,
+    <span class="t-str">&#x27;fox&#x27;</span>, <span class="t-str">&#x27;gecko&#x27;</span>, <span class="t-str">&#x27;hawk&#x27;</span>, <span class="t-str">&#x27;heron&#x27;</span>, <span class="t-str">&#x27;hornet&#x27;</span>, <span class="t-str">&#x27;ibis&#x27;</span>, <span class="t-str">&#x27;jackal&#x27;</span>, <span class="t-str">&#x27;kiwi&#x27;</span>, <span class="t-str">&#x27;koala&#x27;</span>, <span class="t-str">&#x27;lark&#x27;</span>, <span class="t-str">&#x27;lemur&#x27;</span>,
+    <span class="t-str">&#x27;lynx&#x27;</span>, <span class="t-str">&#x27;mantis&#x27;</span>, <span class="t-str">&#x27;marmot&#x27;</span>, <span class="t-str">&#x27;mink&#x27;</span>, <span class="t-str">&#x27;mole&#x27;</span>, <span class="t-str">&#x27;moose&#x27;</span>, <span class="t-str">&#x27;moth&#x27;</span>, <span class="t-str">&#x27;narwhal&#x27;</span>, <span class="t-str">&#x27;newt&#x27;</span>, <span class="t-str">&#x27;ocelot&#x27;</span>,
+    <span class="t-str">&#x27;orca&#x27;</span>, <span class="t-str">&#x27;otter&#x27;</span>, <span class="t-str">&#x27;owl&#x27;</span>, <span class="t-str">&#x27;panda&#x27;</span>, <span class="t-str">&#x27;pelican&#x27;</span>, <span class="t-str">&#x27;pony&#x27;</span>, <span class="t-str">&#x27;puffin&#x27;</span>, <span class="t-str">&#x27;quokka&#x27;</span>, <span class="t-str">&#x27;raven&#x27;</span>, <span class="t-str">&#x27;rhino&#x27;</span>,
+    <span class="t-str">&#x27;robin&#x27;</span>, <span class="t-str">&#x27;seal&#x27;</span>, <span class="t-str">&#x27;shark&#x27;</span>, <span class="t-str">&#x27;sloth&#x27;</span>, <span class="t-str">&#x27;squid&#x27;</span>, <span class="t-str">&#x27;swan&#x27;</span>, <span class="t-str">&#x27;tapir&#x27;</span>, <span class="t-str">&#x27;tiger&#x27;</span>, <span class="t-str">&#x27;toad&#x27;</span>, <span class="t-str">&#x27;toucan&#x27;</span>,
+    <span class="t-str">&#x27;turtle&#x27;</span>, <span class="t-str">&#x27;viper&#x27;</span>, <span class="t-str">&#x27;vole&#x27;</span>, <span class="t-str">&#x27;walrus&#x27;</span>, <span class="t-str">&#x27;weasel&#x27;</span>, <span class="t-str">&#x27;whale&#x27;</span>, <span class="t-str">&#x27;wolf&#x27;</span>, <span class="t-str">&#x27;wombat&#x27;</span>, <span class="t-str">&#x27;yak&#x27;</span>, <span class="t-str">&#x27;zebra&#x27;</span>,
+)
+
+
+@<span class="t-fn">dataclass</span>(frozen=<span class="t-key">True</span>)
+<span class="t-key">class</span> <span class="t-type">Ens</span>:
+    <span class="t-doc">&quot;&quot;&quot;Where your game&#x27;s names live. Point it at your own parent and registry.&quot;&quot;&quot;</span>
+    parent: str        <span class="t-com"># the parent name, e.g. &#x27;tick.eth&#x27;</span>
+    rpc: str
+    chain_id: int
+    registry: str      <span class="t-com"># the parent&#x27;s own subname registry</span>
+    resolver: str      <span class="t-com"># the one resolver every subname uses</span>
+    since: int         <span class="t-com"># the registry&#x27;s first block: where a leaderboard starts reading</span>
+
+
+<span class="t-type">SEPOLIA</span> = <span class="t-fn">Ens</span>(<span class="t-str">&#x27;tick.eth&#x27;</span>, <span class="t-str">&#x27;https://ethereum-sepolia-rpc.publicnode.com&#x27;</span>, <span class="t-num">11155111</span>,
+              <span class="t-str">&#x27;0xD25ACD4eB42A40D8145E3A7F1feFB17D09649cAa&#x27;</span>,
+              <span class="t-str">&#x27;0xDBe98b10176aBf0BD2DFEE86fD3ee59A7630FAa8&#x27;</span>, <span class="t-num">11684278</span>)
+
+
+<span class="t-key">def</span> <span class="t-fn">ens</span>() -&gt; <span class="t-type">Ens</span>:
+    <span class="t-doc">&quot;&quot;&quot;The configured names, with TICK_ENS_* overrides so a fork needs no code change.&quot;&quot;&quot;</span>
+    env = os.environ.get
+    <span class="t-key">return</span> <span class="t-fn">replace</span>(<span class="t-type">SEPOLIA</span>,
+                   parent=<span class="t-fn">env</span>(<span class="t-str">&#x27;TICK_ENS_PARENT&#x27;</span>, <span class="t-type">SEPOLIA</span>.parent),
+                   rpc=<span class="t-fn">env</span>(<span class="t-str">&#x27;TICK_ENS_RPC&#x27;</span>, <span class="t-type">SEPOLIA</span>.rpc),
+                   registry=<span class="t-fn">env</span>(<span class="t-str">&#x27;TICK_ENS_REGISTRY&#x27;</span>, <span class="t-type">SEPOLIA</span>.registry),
+                   resolver=<span class="t-fn">env</span>(<span class="t-str">&#x27;TICK_ENS_RESOLVER&#x27;</span>, <span class="t-type">SEPOLIA</span>.resolver),
+                   since=<span class="t-fn">int</span>(<span class="t-fn">env</span>(<span class="t-str">&#x27;TICK_ENS_SINCE&#x27;</span>, <span class="t-type">SEPOLIA</span>.since)))
+
+
+<span class="t-key">def</span> <span class="t-fn">coin_type</span>(chain_id: int) -&gt; int:
+    <span class="t-doc">&quot;&quot;&quot;ENSIP-11 coin type for an EVM chain, for an address record on that chain.&quot;&quot;&quot;</span>
+    <span class="t-key">return</span> <span class="t-type">COIN_TYPE_BASE</span> | chain_id
+
+
+<span class="t-key">def</span> <span class="t-fn">namehash</span>(name: str) -&gt; bytes:
+    _, _, _, keccak, _ = <span class="t-fn">_abi</span>()
+    node = <span class="t-fn">bytes</span>(<span class="t-num">32</span>)
+    <span class="t-key">for</span> label <span class="t-key">in</span> <span class="t-fn">reversed</span>(name.<span class="t-fn">split</span>(<span class="t-str">&#x27;.&#x27;</span>) <span class="t-key">if</span> name <span class="t-key">else</span> []):
+        node = <span class="t-fn">keccak</span>(node + <span class="t-fn">keccak</span>(text=label))
+    <span class="t-key">return</span> node
+
+
+<span class="t-key">def</span> <span class="t-fn">dns_encode</span>(name: str) -&gt; bytes:
+    <span class="t-doc">&quot;&quot;&quot;A name in DNS wire format, as ENSv2 takes it.&quot;&quot;&quot;</span>
+    out = b<span class="t-str">&#x27;&#x27;</span>
+    <span class="t-key">for</span> part <span class="t-key">in</span> name.<span class="t-fn">split</span>(<span class="t-str">&#x27;.&#x27;</span>) <span class="t-key">if</span> name <span class="t-key">else</span> []:
+        out += <span class="t-fn">bytes</span>([<span class="t-fn">len</span>(part)]) + part.<span class="t-fn">encode</span>()
+    <span class="t-key">return</span> out + b<span class="t-str">&#x27;\0&#x27;</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">labelhash</span>(label: str) -&gt; int:
+    _, _, _, keccak, _ = <span class="t-fn">_abi</span>()
+    <span class="t-key">return</span> int.<span class="t-fn">from_bytes</span>(<span class="t-fn">keccak</span>(text=label), <span class="t-str">&#x27;big&#x27;</span>)
+
+
+<span class="t-key">def</span> <span class="t-fn">handle</span>(address: str, attempt: int = <span class="t-num">0</span>) -&gt; str:
+    <span class="t-doc">&quot;&quot;&quot;The wallet&#x27;s handle: `amber-otter`, then `amber-otter-2` if that is taken.&quot;&quot;&quot;</span>
+    _, _, _, keccak, _ = <span class="t-fn">_abi</span>()
+    h = <span class="t-fn">keccak</span>(bytes.<span class="t-fn">fromhex</span>(address[<span class="t-num">2</span>:]))
+    adjective = <span class="t-type">ADJECTIVES</span>[int.<span class="t-fn">from_bytes</span>(h[:<span class="t-num">4</span>], <span class="t-str">&#x27;big&#x27;</span>) % <span class="t-fn">len</span>(<span class="t-type">ADJECTIVES</span>)]
+    noun = <span class="t-type">NOUNS</span>[int.<span class="t-fn">from_bytes</span>(h[<span class="t-num">4</span>:<span class="t-num">8</span>], <span class="t-str">&#x27;big&#x27;</span>) % <span class="t-fn">len</span>(<span class="t-type">NOUNS</span>)]
+    <span class="t-key">return</span> f<span class="t-str">&#x27;{adjective}-{noun}&#x27;</span> <span class="t-key">if</span> attempt == <span class="t-num">0</span> <span class="t-key">else</span> f<span class="t-str">&#x27;{adjective}-{noun}-{attempt + 1}&#x27;</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">addr_of</span>(rpc: <span class="t-type">Rpc</span>, resolver: str, name: str) -&gt; str:
+    <span class="t-doc">&quot;&quot;&quot;The name&#x27;s address record, or ZERO if it has none.&quot;&quot;&quot;</span>
+    decode, _, _, _, to_checksum_address = <span class="t-fn">_abi</span>()
+    data = <span class="t-fn">rpc</span>(<span class="t-str">&#x27;eth_call&#x27;</span>, {<span class="t-str">&#x27;to&#x27;</span>: resolver,
+                            <span class="t-str">&#x27;data&#x27;</span>: <span class="t-fn">calldata</span>(<span class="t-str">&#x27;addr(bytes32)&#x27;</span>, <span class="t-fn">namehash</span>(name))}, <span class="t-str">&#x27;latest&#x27;</span>)
+    <span class="t-key">return</span> <span class="t-fn">to_checksum_address</span>(<span class="t-fn">decode</span>([<span class="t-str">&#x27;address&#x27;</span>], bytes.<span class="t-fn">fromhex</span>(data[<span class="t-num">2</span>:]))[<span class="t-num">0</span>])
+
+
+<span class="t-key">def</span> <span class="t-fn">name_of</span>(address: str, net: <span class="t-type">Ens</span> | <span class="t-key">None</span> = <span class="t-key">None</span>, rpc: <span class="t-type">Rpc</span> | <span class="t-key">None</span> = <span class="t-key">None</span>) -&gt; str | <span class="t-key">None</span>:
+    <span class="t-doc">&quot;&quot;&quot;The wallet&#x27;s name, or None while nothing has named it.
+
+    No index, no API: compute the candidate handle, ask the resolver, and
+    accept it only if it points back at this wallet.
+    &quot;&quot;&quot;</span>
+    net = net <span class="t-key">or</span> <span class="t-fn">ens</span>()
+    <span class="t-key">if</span> <span class="t-key">not</span> net.resolver:
+        <span class="t-key">return</span> <span class="t-key">None</span>
+    rpc = rpc <span class="t-key">or</span> <span class="t-fn">Rpc</span>(net.rpc)
+    <span class="t-key">for</span> attempt <span class="t-key">in</span> <span class="t-fn">range</span>(<span class="t-type">ATTEMPTS</span>):
+        name = f<span class="t-str">&#x27;{handle(address, attempt)}.{net.parent}&#x27;</span>
+        owner = <span class="t-fn">addr_of</span>(rpc, net.resolver, name)
+        <span class="t-key">if</span> owner.<span class="t-fn">lower</span>() == address.<span class="t-fn">lower</span>():
+            <span class="t-key">return</span> name
+        <span class="t-key">if</span> owner == <span class="t-type">ZERO</span>:
+            <span class="t-key">return</span> <span class="t-key">None</span>    <span class="t-com"># handles are taken in order: no later one is this wallet&#x27;s</span>
+    <span class="t-key">return</span> <span class="t-key">None</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">records_of</span>(rpc: <span class="t-type">Rpc</span>, name: str, keys=<span class="t-type">STATS</span>,
+               resolver: str = <span class="t-type">UNIVERSAL_RESOLVER</span>) -&gt; dict[str, str]:
+    <span class="t-doc">&quot;&quot;&quot;Several text records of one name, in a single Universal Resolver call.
+
+    One round trip for every key, rather than one per key: on a handheld
+    reading a dozen players, that is the difference between a leaderboard and
+    a spinner.
+    &quot;&quot;&quot;</span>
+    decode, _, _, _, _ = <span class="t-fn">_abi</span>()
+    node = <span class="t-fn">namehash</span>(name)
+    batch = [bytes.<span class="t-fn">fromhex</span>(<span class="t-fn">calldata</span>(<span class="t-str">&#x27;text(bytes32,string)&#x27;</span>, node, key)[<span class="t-num">2</span>:]) <span class="t-key">for</span> key <span class="t-key">in</span> keys]
+    data = <span class="t-fn">rpc</span>(<span class="t-str">&#x27;eth_call&#x27;</span>, {<span class="t-str">&#x27;to&#x27;</span>: resolver, <span class="t-str">&#x27;data&#x27;</span>: <span class="t-fn">calldata</span>(
+        <span class="t-str">&#x27;resolve(bytes,bytes)&#x27;</span>, <span class="t-fn">dns_encode</span>(name),
+        bytes.<span class="t-fn">fromhex</span>(<span class="t-fn">calldata</span>(<span class="t-str">&#x27;multicall(bytes[])&#x27;</span>, batch)[<span class="t-num">2</span>:]))}, <span class="t-str">&#x27;latest&#x27;</span>)
+    result, _ = <span class="t-fn">decode</span>([<span class="t-str">&#x27;bytes&#x27;</span>, <span class="t-str">&#x27;address&#x27;</span>], bytes.<span class="t-fn">fromhex</span>(data[<span class="t-num">2</span>:]))
+    answers = <span class="t-fn">decode</span>([<span class="t-str">&#x27;bytes[]&#x27;</span>], result)[<span class="t-num">0</span>]
+    <span class="t-key">return</span> {key: <span class="t-fn">decode</span>([<span class="t-str">&#x27;string&#x27;</span>], answer)[<span class="t-num">0</span>] <span class="t-key">for</span> key, answer <span class="t-key">in</span> <span class="t-fn">zip</span>(keys, answers)}
+
+
+@<span class="t-fn">dataclass</span>(frozen=<span class="t-key">True</span>)
+<span class="t-key">class</span> <span class="t-type">Standing</span>:
+    name: str
+    player: str        <span class="t-com"># the wallet the name was registered to</span>
+    sessions: int
+    wins: int
+    pnl: <span class="t-type">Decimal</span>       <span class="t-com"># USDC</span>
+    best: <span class="t-type">Decimal</span>      <span class="t-com"># best single session, USDC</span>
+
+
+<span class="t-key">class</span> <span class="t-type">Standings</span>:
+    <span class="t-doc">&quot;&quot;&quot;The leaderboard, read from ENS alone.
+
+    Registered names come from the registry&#x27;s own `LabelRegistered` logs, and
+    each name&#x27;s stats from one resolver call. The block cursor is remembered,
+    so a refresh asks only for blocks it has not read.
+    &quot;&quot;&quot;</span>
+
+    <span class="t-type">LABEL_REGISTERED</span> = <span class="t-str">&#x27;LabelRegistered(uint256,bytes32,string,address,uint64,address)&#x27;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, net: <span class="t-type">Ens</span> | <span class="t-key">None</span> = <span class="t-key">None</span>, rpc: <span class="t-type">Rpc</span> | <span class="t-key">None</span> = <span class="t-key">None</span>, keys=<span class="t-type">STATS</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.net = net <span class="t-key">or</span> <span class="t-fn">ens</span>()
+        <span class="t-key">self</span>.rpc = rpc <span class="t-key">or</span> <span class="t-fn">Rpc</span>(<span class="t-key">self</span>.net.rpc)
+        <span class="t-key">self</span>.keys = keys
+        <span class="t-key">self</span>.players: dict[str, str] = {}     <span class="t-com"># label -&gt; the wallet it was registered to</span>
+        <span class="t-key">self</span>.next_block = <span class="t-key">self</span>.net.since
+
+    <span class="t-key">def</span> <span class="t-fn">read</span>(<span class="t-key">self</span>) -&gt; list[<span class="t-type">Standing</span>]:
+        decode, _, _, _, to_checksum_address = <span class="t-fn">_abi</span>()
+        head = <span class="t-fn">int</span>(<span class="t-key">self</span>.<span class="t-fn">rpc</span>(<span class="t-str">&#x27;eth_blockNumber&#x27;</span>), <span class="t-num">16</span>)
+        <span class="t-key">while</span> <span class="t-key">self</span>.next_block &lt;= head:
+            last = <span class="t-fn">min</span>(head, <span class="t-key">self</span>.next_block + <span class="t-type">LOG_RANGE</span> - <span class="t-num">1</span>)
+            <span class="t-key">for</span> log <span class="t-key">in</span> <span class="t-key">self</span>.<span class="t-fn">rpc</span>(<span class="t-str">&#x27;eth_getLogs&#x27;</span>, {
+                    <span class="t-str">&#x27;fromBlock&#x27;</span>: <span class="t-fn">hex</span>(<span class="t-key">self</span>.next_block), <span class="t-str">&#x27;toBlock&#x27;</span>: <span class="t-fn">hex</span>(last),
+                    <span class="t-str">&#x27;address&#x27;</span>: <span class="t-key">self</span>.net.registry, <span class="t-str">&#x27;topics&#x27;</span>: [<span class="t-fn">topic</span>(<span class="t-key">self</span>.<span class="t-type">LABEL_REGISTERED</span>)]}):
+                label, owner, _ = <span class="t-fn">decode</span>([<span class="t-str">&#x27;string&#x27;</span>, <span class="t-str">&#x27;address&#x27;</span>, <span class="t-str">&#x27;uint64&#x27;</span>],
+                                         bytes.<span class="t-fn">fromhex</span>(log[<span class="t-str">&#x27;data&#x27;</span>][<span class="t-num">2</span>:]))
+                <span class="t-key">self</span>.players[label] = <span class="t-fn">to_checksum_address</span>(owner)
+            <span class="t-key">self</span>.next_block = last + <span class="t-num">1</span>
+        rows: list[<span class="t-type">Standing</span>] = []
+        <span class="t-key">for</span> label, player <span class="t-key">in</span> <span class="t-key">self</span>.players.<span class="t-fn">items</span>():
+            name = f<span class="t-str">&#x27;{label}.{self.net.parent}&#x27;</span>
+            <span class="t-key">try</span>:
+                stats = <span class="t-fn">records_of</span>(<span class="t-key">self</span>.rpc, name, <span class="t-key">self</span>.keys)
+            <span class="t-key">except</span> <span class="t-type">RpcError</span>:      <span class="t-com"># a name the resolver no longer answers for</span>
+                <span class="t-key">continue</span>
+            <span class="t-key">if</span> stats.<span class="t-fn">get</span>(<span class="t-str">&#x27;tick.sessions&#x27;</span>):
+                rows.<span class="t-fn">append</span>(<span class="t-fn">Standing</span>(name, player, <span class="t-fn">int</span>(stats[<span class="t-str">&#x27;tick.sessions&#x27;</span>]),
+                                     <span class="t-fn">int</span>(stats.<span class="t-fn">get</span>(<span class="t-str">&#x27;tick.wins&#x27;</span>) <span class="t-key">or</span> <span class="t-num">0</span>),
+                                     <span class="t-fn">Decimal</span>(stats.<span class="t-fn">get</span>(<span class="t-str">&#x27;tick.pnl&#x27;</span>) <span class="t-key">or</span> <span class="t-num">0</span>),
+                                     <span class="t-fn">Decimal</span>(stats.<span class="t-fn">get</span>(<span class="t-str">&#x27;tick.best&#x27;</span>) <span class="t-key">or</span> <span class="t-num">0</span>)))
+        rows.<span class="t-fn">sort</span>(key=<span class="t-key">lambda</span> row: (-row.pnl, -row.wins, row.name))
+        <span class="t-key">return</span> rows
+
+
+<span class="t-key">class</span> <span class="t-type">Leaderboard</span>:
+    <span class="t-doc">&quot;&quot;&quot;`Standings` on a worker thread, so a slow RPC never costs a frame.
+
+        board = Leaderboard()
+        board.want()                # start reading
+        ...
+        for row in board.rows or []:
+            draw(row)
+
+    Nothing is read until it is first wanted, and it sleeps whenever the board
+    is not on screen.
+    &quot;&quot;&quot;</span>
+
+    <span class="t-type">REFRESH_S</span> = <span class="t-num">20.0</span>
+    <span class="t-type">RETRY_S</span> = <span class="t-num">5.0</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, read=<span class="t-key">None</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.read = read
+        <span class="t-key">self</span>.rows: list[<span class="t-type">Standing</span>] | <span class="t-key">None</span> = <span class="t-key">None</span>    <span class="t-com"># None until the first read lands</span>
+        <span class="t-key">self</span>.error = <span class="t-str">&#x27;&#x27;</span>
+        <span class="t-key">self</span>.updated = <span class="t-num">0.0</span>
+        <span class="t-key">self</span>.showing = <span class="t-key">False</span>
+        <span class="t-key">self</span>._wake = threading.<span class="t-fn">Event</span>()
+        <span class="t-key">self</span>._thread: threading.<span class="t-type">Thread</span> | <span class="t-key">None</span> = <span class="t-key">None</span>
+
+    <span class="t-key">def</span> <span class="t-fn">want</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">if</span> <span class="t-key">self</span>._thread <span class="t-key">is</span> <span class="t-key">None</span>:
+            <span class="t-key">if</span> <span class="t-key">self</span>.read <span class="t-key">is</span> <span class="t-key">None</span>:
+                <span class="t-key">self</span>.read = <span class="t-fn">Standings</span>().read
+            <span class="t-key">self</span>._thread = threading.<span class="t-fn">Thread</span>(target=<span class="t-key">self</span>._run, name=<span class="t-str">&#x27;ens-board&#x27;</span>, daemon=<span class="t-key">True</span>)
+            <span class="t-key">self</span>._thread.<span class="t-fn">start</span>()
+        <span class="t-key">self</span>._wake.<span class="t-fn">set</span>()
+
+    <span class="t-key">def</span> <span class="t-fn">refresh</span>(<span class="t-key">self</span>) -&gt; bool:
+        <span class="t-key">try</span>:
+            <span class="t-key">self</span>.rows, <span class="t-key">self</span>.error, <span class="t-key">self</span>.updated = <span class="t-key">self</span>.<span class="t-fn">read</span>(), <span class="t-str">&#x27;&#x27;</span>, time.<span class="t-fn">monotonic</span>()
+            <span class="t-key">return</span> <span class="t-key">True</span>
+        <span class="t-key">except</span> <span class="t-type">Exception</span> <span class="t-key">as</span> exc:      <span class="t-com"># unreachable RPC: keep the last rows, say so</span>
+            <span class="t-key">self</span>.error = <span class="t-fn">str</span>(exc)[:<span class="t-num">80</span>] <span class="t-key">or</span> <span class="t-str">&#x27;ENS UNREACHABLE&#x27;</span>
+            <span class="t-key">return</span> <span class="t-key">False</span>
+
+    <span class="t-key">def</span> <span class="t-fn">_run</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">while</span> <span class="t-key">True</span>:
+            <span class="t-key">self</span>._wake.<span class="t-fn">clear</span>()
+            ok = <span class="t-key">self</span>.<span class="t-fn">refresh</span>()
+            <span class="t-key">self</span>._wake.<span class="t-fn">wait</span>((<span class="t-key">self</span>.<span class="t-type">REFRESH_S</span> <span class="t-key">if</span> ok <span class="t-key">else</span> <span class="t-key">self</span>.<span class="t-type">RETRY_S</span>) <span class="t-key">if</span> <span class="t-key">self</span>.showing <span class="t-key">else</span> <span class="t-key">None</span>)
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

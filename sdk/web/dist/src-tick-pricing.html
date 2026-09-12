@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/pricing.py - TICK SDK</title>
+<meta name="description" content="Source of tick/pricing.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">pricing.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/pricing.py &middot; 76 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;Odds, from first principles, in about fifty lines.
+
+The question every game on this device asks is the same one:
+
+    the price is P now. What is the chance it is between LOW and HIGH in
+    H seconds -- and what multiple should I pay someone who calls it?
+
+**Chance.** Over a short horizon a price is a random walk in log space. The
+distance it travels grows with the *square root* of time, not with time. So one
+standard deviation over H seconds is `P * sqrt(variance_per_second * H)`, and
+the chance of landing in a range is the normal CDF at the top minus the CDF at
+the bottom. That is `probability()` below, and it is the whole model.
+
+**Multiple.** Fair odds are `1 / chance`: a one-in-four shot pays 4x, and over
+many rounds the book breaks even. A house edge is one multiplication -- pass
+`edge=0.05` and the book keeps 5%. This SDK defaults to **zero edge and says
+so**, because a demo that hides a margin teaches the player the wrong thing
+about what they just played.
+
+Three guards, each of which was a real bug before it was a rule:
+
+* `cap` -- an unbounded multiple is a promise you cannot fund. Cap it.
+* `floor` -- anything quoting near 1.0x is a near-certain win. Do not sell it;
+  it is not a bet, it is a withdrawal.
+* variance floor -- a feed printing one price repeatedly must not collapse the
+  spread to zero and quote infinity.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">import</span> math
+
+<span class="t-type">SECONDS_PER_YEAR</span> = <span class="t-num">31_536_000</span>
+<span class="t-com"># Fallback volatility until enough ticks have arrived to measure any:</span>
+<span class="t-com"># ~55% annualized, as variance per second of relative return.</span>
+<span class="t-type">DEFAULT_VARIANCE</span> = (<span class="t-num">0.55</span> ** <span class="t-num">2</span>) / <span class="t-type">SECONDS_PER_YEAR</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">normal_cdf</span>(x: float) -&gt; float:
+    <span class="t-key">return</span> <span class="t-num">0.5</span> * (<span class="t-num">1</span> + math.<span class="t-fn">erf</span>(x / math.<span class="t-fn">sqrt</span>(<span class="t-num">2</span>)))
+
+
+<span class="t-key">def</span> <span class="t-fn">sigma</span>(price: float, variance_per_second: float, horizon: float) -&gt; float:
+    <span class="t-doc">&quot;&quot;&quot;One standard deviation of price movement over `horizon` seconds.&quot;&quot;&quot;</span>
+    <span class="t-key">return</span> price * math.<span class="t-fn">sqrt</span>(<span class="t-fn">max</span>(variance_per_second, <span class="t-num">0.0</span>) * <span class="t-fn">max</span>(horizon, <span class="t-num">0.001</span>))
+
+
+<span class="t-key">def</span> <span class="t-fn">probability</span>(price: float, low: float, high: float,
+                variance_per_second: float, horizon: float) -&gt; float:
+    <span class="t-doc">&quot;&quot;&quot;Chance the price sits in [low, high] after `horizon` seconds.&quot;&quot;&quot;</span>
+    spread = <span class="t-fn">sigma</span>(price, variance_per_second, horizon)
+    <span class="t-key">if</span> spread &lt;= <span class="t-num">0</span> <span class="t-key">or</span> price &lt;= <span class="t-num">0</span> <span class="t-key">or</span> high &lt; low:
+        <span class="t-key">return</span> <span class="t-num">0.0</span>
+    <span class="t-key">return</span> <span class="t-fn">max</span>(<span class="t-num">0.0</span>, <span class="t-fn">normal_cdf</span>((high - price) / spread) - <span class="t-fn">normal_cdf</span>((low - price) / spread))
+
+
+<span class="t-key">def</span> <span class="t-fn">multiple</span>(chance: float, edge: float = <span class="t-num">0.0</span>, cap: float = <span class="t-num">25.0</span>) -&gt; float:
+    <span class="t-doc">&quot;&quot;&quot;Fair return multiple (stake included) for a bet with this chance.&quot;&quot;&quot;</span>
+    <span class="t-key">if</span> chance &lt;= <span class="t-num">0</span>:
+        <span class="t-key">return</span> cap
+    <span class="t-key">return</span> <span class="t-fn">min</span>(cap, (<span class="t-num">1.0</span> - edge) / chance)
+
+
+<span class="t-key">def</span> <span class="t-fn">scale_to_window</span>(value_bps: float, window_s: float, reference_s: float = <span class="t-num">20.0</span>) -&gt; float:
+    <span class="t-doc">&quot;&quot;&quot;Restate a geometry quoted for `reference_s` at a different window length.
+
+    Prices travel with the square root of time, so a box that was a fair 2x
+    over twenty seconds is a near-certainty over ten. Scale the *geometry* by
+    sqrt(window / reference) and the ladder of odds holds at any window length:
+    `WINDOW_S` becomes a knob you can turn without redesigning the game.
+    &quot;&quot;&quot;</span>
+    <span class="t-key">return</span> value_bps * math.<span class="t-fn">sqrt</span>(<span class="t-fn">max</span>(window_s, <span class="t-num">0.001</span>) / <span class="t-fn">max</span>(reference_s, <span class="t-num">0.001</span>))
+
+
+<span class="t-key">def</span> <span class="t-fn">annualized</span>(variance_per_second: float) -&gt; float:
+    <span class="t-doc">&quot;&quot;&quot;Variance per second as an annualized volatility, for putting on screen.&quot;&quot;&quot;</span>
+    <span class="t-key">return</span> math.<span class="t-fn">sqrt</span>(<span class="t-fn">max</span>(variance_per_second, <span class="t-num">0.0</span>) * <span class="t-type">SECONDS_PER_YEAR</span>)
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

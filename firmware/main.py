@@ -7,10 +7,12 @@ from envfile import load_env_file
 load_env_file()
 ensure_system_pygame()
 
+import keeper  # noqa: E402
 from app import App  # noqa: E402
 
 
 def main() -> None:
+    keeper.start()    # names and scores the players; the game runs with or without it
     App().run()
 
 

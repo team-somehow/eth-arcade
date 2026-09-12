@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/feeds/substreams.py - TICK SDK</title>
+<meta name="description" content="Source of tick/feeds/substreams.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">substreams.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/feeds/substreams.py &middot; 242 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span><span>128</span><span>129</span><span>130</span><span>131</span><span>132</span><span>133</span><span>134</span><span>135</span><span>136</span><span>137</span><span>138</span><span>139</span><span>140</span><span>141</span><span>142</span><span>143</span><span>144</span><span>145</span><span>146</span><span>147</span><span>148</span><span>149</span><span>150</span><span>151</span><span>152</span><span>153</span><span>154</span><span>155</span><span>156</span><span>157</span><span>158</span><span>159</span><span>160</span><span>161</span><span>162</span><span>163</span><span>164</span><span>165</span><span>166</span><span>167</span><span>168</span><span>169</span><span>170</span><span>171</span><span>172</span><span>173</span><span>174</span><span>175</span><span>176</span><span>177</span><span>178</span><span>179</span><span>180</span><span>181</span><span>182</span><span>183</span><span>184</span><span>185</span><span>186</span><span>187</span><span>188</span><span>189</span><span>190</span><span>191</span><span>192</span><span>193</span><span>194</span><span>195</span><span>196</span><span>197</span><span>198</span><span>199</span><span>200</span><span>201</span><span>202</span><span>203</span><span>204</span><span>205</span><span>206</span><span>207</span><span>208</span><span>209</span><span>210</span><span>211</span><span>212</span><span>213</span><span>214</span><span>215</span><span>216</span><span>217</span><span>218</span><span>219</span><span>220</span><span>221</span><span>222</span><span>223</span><span>224</span><span>225</span><span>226</span><span>227</span><span>228</span><span>229</span><span>230</span><span>231</span><span>232</span><span>233</span><span>234</span><span>235</span><span>236</span><span>237</span><span>238</span><span>239</span><span>240</span><span>241</span><span>242</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;On-chain prices: every swap in every watched ETH/USDC pool, block by block.
+
+The shape of it
+---------------
+
+    The Graph  -&gt;  substreams run (one per chain)  -&gt;  relay.py  -&gt;  your game
+                   JSON lines on stdout             HTTP ndjson    PriceTick
+
+The relay runs on a laptop or a server, because the Substreams key must not
+live on a handheld somebody can pick up. The device holds one long-lived HTTP
+connection to `GET /stream` and reads newline-delimited JSON: one line per
+block per chain. Each line looks like
+
+    {&quot;chain&quot;: &quot;arbitrum&quot;, &quot;@block&quot;: 21, &quot;@data&quot;: {
+        &quot;blockNumber&quot;: 3103, &quot;timestampMs&quot;: 1757000000000,
+        &quot;prices&quot;: [{&quot;pool&quot;: &quot;0x...&quot;, &quot;price&quot;: 2500.1, &quot;liquidity&quot;: 9.1e21}, ...]}}
+
+Two classes here, at two altitudes:
+
+* `PoolStream` -- the raw stream. Iterate `blocks()` and you get every pool&#x27;s
+  own price, per block, per chain. Use it for a dashboard, an arb bot, a
+  logger: anything that wants more than one number.
+* `SubstreamsFeed` -- a `Feed`. Combines those pools into a single price and
+  hands your game `PriceTick`s. Use it to play.
+
+Why one price out of many pools, and why *this* way
+---------------------------------------------------
+
+Weighted average by in-range liquidity, after discarding any pool too far from
+the weighted median. A plain median is harder to push but pins the price to a
+single pool -- usually the biggest, which can go a minute without a trade, so
+the number stops moving. A plain average moves on every trade anywhere, but one
+broken or pushed pool drags it. Outlier-trim first, then weight: a trade in any
+pool moves the price by that pool&#x27;s share, and a pool 0.5% away from the rest
+is not a view of the market.
+
+A pool that did not trade in a block is still *at* its last price, so every
+block -- traded or not -- is a fresh reading. That is why a repeated price from
+this feed is real information and is counted as a calm market, not skipped.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">from</span> dataclasses <span class="t-key">import</span> dataclass, field
+<span class="t-key">import</span> json
+<span class="t-key">import</span> math
+<span class="t-key">import</span> queue
+<span class="t-key">import</span> threading
+<span class="t-key">import</span> time
+<span class="t-key">import</span> urllib.request
+
+<span class="t-key">from</span> ..ticks <span class="t-key">import</span> <span class="t-type">ASSETS</span>, <span class="t-type">PriceTick</span>
+<span class="t-key">from</span> .base <span class="t-key">import</span> <span class="t-type">BaseFeed</span>
+<span class="t-key">from</span> .coinbase <span class="t-key">import</span> <span class="t-type">USER_AGENT</span>, _drain, _offer
+
+
+@<span class="t-fn">dataclass</span>(frozen=<span class="t-key">True</span>)
+<span class="t-key">class</span> <span class="t-type">PoolPrice</span>:
+    pool: str
+    price: float
+    liquidity: float
+
+
+@<span class="t-fn">dataclass</span>(frozen=<span class="t-key">True</span>)
+<span class="t-key">class</span> <span class="t-type">Block</span>:
+    <span class="t-doc">&quot;&quot;&quot;One block on one chain, as the stream reports it.&quot;&quot;&quot;</span>
+    chain: str
+    number: int
+    time: float                       <span class="t-com"># unix seconds</span>
+    prices: list[<span class="t-type">PoolPrice</span>] = <span class="t-fn">field</span>(default_factory=list)
+
+    <span class="t-key">def</span> <span class="t-fn">age</span>(<span class="t-key">self</span>, wall_now: float) -&gt; float:
+        <span class="t-key">return</span> <span class="t-fn">max</span>(<span class="t-num">0.0</span>, wall_now - <span class="t-key">self</span>.time)
+
+
+<span class="t-key">def</span> <span class="t-fn">parse_block</span>(line: str | bytes) -&gt; <span class="t-type">Block</span> | <span class="t-key">None</span>:
+    <span class="t-doc">&quot;&quot;&quot;One stream line to a Block, or None if the line is not one.&quot;&quot;&quot;</span>
+    message = json.<span class="t-fn">loads</span>(line)
+    data = message.<span class="t-fn">get</span>(<span class="t-str">&#x27;@data&#x27;</span>) <span class="t-key">if</span> <span class="t-fn">isinstance</span>(message, dict) <span class="t-key">else</span> <span class="t-key">None</span>
+    <span class="t-key">if</span> <span class="t-key">not</span> <span class="t-fn">isinstance</span>(data, dict):
+        <span class="t-key">return</span> <span class="t-key">None</span>
+    prices = []
+    <span class="t-key">for</span> entry <span class="t-key">in</span> data.<span class="t-fn">get</span>(<span class="t-str">&#x27;prices&#x27;</span>, []):
+        price, liquidity = <span class="t-fn">float</span>(entry[<span class="t-str">&#x27;price&#x27;</span>]), <span class="t-fn">float</span>(entry[<span class="t-str">&#x27;liquidity&#x27;</span>])
+        <span class="t-key">if</span> math.<span class="t-fn">isfinite</span>(price) <span class="t-key">and</span> price &gt; <span class="t-num">0</span> <span class="t-key">and</span> math.<span class="t-fn">isfinite</span>(liquidity) <span class="t-key">and</span> liquidity &gt; <span class="t-num">0</span>:
+            prices.<span class="t-fn">append</span>(<span class="t-fn">PoolPrice</span>(<span class="t-fn">str</span>(entry[<span class="t-str">&#x27;pool&#x27;</span>]), price, liquidity))
+    <span class="t-key">return</span> <span class="t-fn">Block</span>(<span class="t-fn">str</span>(message.<span class="t-fn">get</span>(<span class="t-str">&#x27;chain&#x27;</span>, <span class="t-str">&#x27;&#x27;</span>)), <span class="t-fn">int</span>(data[<span class="t-str">&#x27;blockNumber&#x27;</span>]),
+                 <span class="t-fn">int</span>(data[<span class="t-str">&#x27;timestampMs&#x27;</span>]) / <span class="t-num">1000</span>, prices)
+
+
+<span class="t-key">def</span> <span class="t-fn">weighted_median</span>(points: list[tuple[float, float]]) -&gt; float:
+    <span class="t-doc">&quot;&quot;&quot;The value with half the weight on either side; points are (value, weight).&quot;&quot;&quot;</span>
+    points = <span class="t-fn">sorted</span>((value, weight) <span class="t-key">for</span> value, weight <span class="t-key">in</span> points <span class="t-key">if</span> weight &gt; <span class="t-num">0</span>)
+    <span class="t-key">if</span> <span class="t-key">not</span> points:
+        <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(<span class="t-str">&#x27;No weighted points&#x27;</span>)
+    half = <span class="t-fn">sum</span>(weight <span class="t-key">for</span> _, weight <span class="t-key">in</span> points) / <span class="t-num">2</span>
+    running = <span class="t-num">0.0</span>
+    <span class="t-key">for</span> value, weight <span class="t-key">in</span> points:
+        running += weight
+        <span class="t-key">if</span> running &gt;= half:
+            <span class="t-key">return</span> value
+    <span class="t-key">return</span> points[-<span class="t-num">1</span>][<span class="t-num">0</span>]
+
+
+<span class="t-key">class</span> <span class="t-type">PoolBook</span>:
+    <span class="t-doc">&quot;&quot;&quot;Latest price of every watched pool, across chains, as one number.&quot;&quot;&quot;</span>
+
+    <span class="t-com"># Stop counting a chain&#x27;s pools if its stream falls this far behind: their</span>
+    <span class="t-com"># last prices are then no longer that chain&#x27;s current ones.</span>
+    <span class="t-type">CHAIN_STALE_AFTER</span> = <span class="t-num">10.0</span>
+    <span class="t-com"># A pool this far from the weighted median is broken or being pushed.</span>
+    <span class="t-com"># 0.5% is wider than any watched pool&#x27;s fee.</span>
+    <span class="t-type">OUTLIER_BPS</span> = <span class="t-num">50</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.pools: dict[str, tuple[float, float]] = {}   <span class="t-com"># chain:pool -&gt; price, liquidity</span>
+        <span class="t-key">self</span>.heads: dict[str, tuple[int, float]] = {}     <span class="t-com"># chain -&gt; block, block time</span>
+
+    <span class="t-key">def</span> <span class="t-fn">apply</span>(<span class="t-key">self</span>, line: str | bytes, wall_now: float) -&gt; float | <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;Take one stream line; return its block time, or None to skip it.&quot;&quot;&quot;</span>
+        block = <span class="t-fn">parse_block</span>(line)
+        <span class="t-key">if</span> block <span class="t-key">is</span> <span class="t-key">None</span>:
+            <span class="t-key">return</span> <span class="t-key">None</span>
+        <span class="t-key">if</span> block.time &gt; wall_now + <span class="t-num">5</span>:
+            <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(<span class="t-str">&#x27;Block from the future&#x27;</span>)
+        <span class="t-com"># Already seen: a replay after reconnecting, or a duplicate.</span>
+        <span class="t-key">if</span> block.number &lt;= <span class="t-key">self</span>.heads.<span class="t-fn">get</span>(block.chain, (-<span class="t-num">1</span>, <span class="t-num">0.0</span>))[<span class="t-num">0</span>]:
+            <span class="t-key">return</span> <span class="t-key">None</span>
+        <span class="t-key">self</span>.heads[block.chain] = (block.number, block.time)
+        <span class="t-key">for</span> entry <span class="t-key">in</span> block.prices:
+            <span class="t-key">self</span>.pools[f<span class="t-str">&#x27;{block.chain}:{entry.pool}&#x27;</span>] = (entry.price, entry.liquidity)
+        <span class="t-key">return</span> block.time
+
+    <span class="t-key">def</span> <span class="t-fn">live_pools</span>(<span class="t-key">self</span>, wall_now: float) -&gt; list[tuple[float, float]]:
+        <span class="t-key">return</span> [value <span class="t-key">for</span> key, value <span class="t-key">in</span> <span class="t-key">self</span>.pools.<span class="t-fn">items</span>()
+                <span class="t-key">if</span> wall_now - <span class="t-key">self</span>.heads[key.<span class="t-fn">split</span>(<span class="t-str">&#x27;:&#x27;</span>, <span class="t-num">1</span>)[<span class="t-num">0</span>]][<span class="t-num">1</span>] &lt;= <span class="t-key">self</span>.<span class="t-type">CHAIN_STALE_AFTER</span>]
+
+    <span class="t-key">def</span> <span class="t-fn">price</span>(<span class="t-key">self</span>, wall_now: float) -&gt; float | <span class="t-key">None</span>:
+        live = <span class="t-key">self</span>.<span class="t-fn">live_pools</span>(wall_now)
+        <span class="t-key">if</span> <span class="t-key">not</span> live:
+            <span class="t-key">return</span> <span class="t-key">None</span>
+        middle = <span class="t-fn">weighted_median</span>(live)
+        <span class="t-com"># Never empty: the pool at the median is always kept.</span>
+        kept = [(p, w) <span class="t-key">for</span> p, w <span class="t-key">in</span> live <span class="t-key">if</span> <span class="t-fn">abs</span>(p / middle - <span class="t-num">1</span>) * <span class="t-num">10_000</span> &lt;= <span class="t-key">self</span>.<span class="t-type">OUTLIER_BPS</span>]
+        <span class="t-key">return</span> <span class="t-fn">sum</span>(p * w <span class="t-key">for</span> p, w <span class="t-key">in</span> kept) / <span class="t-fn">sum</span>(w <span class="t-key">for</span> _, w <span class="t-key">in</span> kept)
+
+
+<span class="t-key">class</span> <span class="t-type">PoolStream</span>:
+    <span class="t-doc">&quot;&quot;&quot;The raw relay stream, as an iterator of `Block`. No game loop needed.
+
+        for block in PoolStream(&#x27;http://localhost:8787&#x27;).blocks():
+            for p in block.prices:
+                print(block.chain, p.pool[:8], p.price)
+
+    Reconnects on its own; stops when you break out of the loop.
+    &quot;&quot;&quot;</span>
+
+    <span class="t-type">READ_TIMEOUT</span> = <span class="t-num">5.0</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, base_url: str = <span class="t-str">&#x27;http://localhost:8787&#x27;</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.url = base_url.<span class="t-fn">rstrip</span>(<span class="t-str">&#x27;/&#x27;</span>) + <span class="t-str">&#x27;/stream&#x27;</span>
+        <span class="t-key">self</span>.connected = <span class="t-key">False</span>
+
+    <span class="t-key">def</span> <span class="t-fn">blocks</span>(<span class="t-key">self</span>, reconnect: bool = <span class="t-key">True</span>):
+        retry = <span class="t-num">1.0</span>
+        <span class="t-key">while</span> <span class="t-key">True</span>:
+            <span class="t-key">try</span>:
+                request = urllib.request.<span class="t-fn">Request</span>(<span class="t-key">self</span>.url, headers={<span class="t-str">&#x27;User-Agent&#x27;</span>: <span class="t-type">USER_AGENT</span>})
+                <span class="t-key">with</span> urllib.request.<span class="t-fn">urlopen</span>(request, timeout=<span class="t-key">self</span>.<span class="t-type">READ_TIMEOUT</span>) <span class="t-key">as</span> response:
+                    <span class="t-key">self</span>.connected = <span class="t-key">True</span>
+                    <span class="t-key">for</span> line <span class="t-key">in</span> response:
+                        block = <span class="t-fn">parse_block</span>(line)
+                        <span class="t-key">if</span> block <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+                            <span class="t-key">yield</span> block
+                    retry = <span class="t-num">1.0</span>
+            <span class="t-key">except</span> (<span class="t-type">OSError</span>, <span class="t-type">ValueError</span>, <span class="t-type">KeyError</span>, <span class="t-type">TypeError</span>):
+                <span class="t-key">pass</span>
+            <span class="t-key">self</span>.connected = <span class="t-key">False</span>
+            <span class="t-key">if</span> <span class="t-key">not</span> reconnect:
+                <span class="t-key">return</span>
+            time.<span class="t-fn">sleep</span>(retry)
+            retry = <span class="t-fn">min</span>(<span class="t-num">10.0</span>, retry * <span class="t-num">2</span>)
+
+
+<span class="t-key">class</span> <span class="t-fn">SubstreamsFeed</span>(<span class="t-type">BaseFeed</span>):
+    <span class="t-doc">&quot;&quot;&quot;One price out of many pools, as `PriceTick`s a game can settle on.
+
+    Ticks carry the block&#x27;s own time as their `source_age`, so the chain&#x27;s
+    delay counts against staleness exactly as it should: a relay that falls
+    behind stops the betting instead of settling on old blocks.
+    &quot;&quot;&quot;</span>
+
+    name = <span class="t-str">&#x27;SUBSTREAMS LIVE&#x27;</span>
+    <span class="t-com"># No block for this long means the relay or its stream is gone. Arbitrum</span>
+    <span class="t-com"># makes four blocks a second and Base one every two.</span>
+    <span class="t-type">READ_TIMEOUT</span> = <span class="t-num">5.0</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, base_url: str = <span class="t-str">&#x27;http://localhost:8787&#x27;</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.asset = <span class="t-type">ASSETS</span>[<span class="t-str">&#x27;eth&#x27;</span>]     <span class="t-com"># the module watches ETH pools only</span>
+        <span class="t-key">self</span>.url = base_url.<span class="t-fn">rstrip</span>(<span class="t-str">&#x27;/&#x27;</span>) + <span class="t-str">&#x27;/stream&#x27;</span>
+        <span class="t-key">self</span>.status = <span class="t-str">&#x27;Connecting to Substreams relay&#x27;</span>
+        <span class="t-key">self</span>.pools = <span class="t-num">0</span>
+        <span class="t-key">self</span>.items: queue.<span class="t-type">Queue</span>[<span class="t-type">PriceTick</span>] = queue.<span class="t-fn">Queue</span>(maxsize=<span class="t-num">32</span>)
+        <span class="t-key">self</span>.stop = threading.<span class="t-fn">Event</span>()
+        <span class="t-key">self</span>.worker = threading.<span class="t-fn">Thread</span>(target=<span class="t-key">self</span>._run, name=<span class="t-str">&#x27;substreams-prices&#x27;</span>, daemon=<span class="t-key">True</span>)
+        <span class="t-key">self</span>.worker.<span class="t-fn">start</span>()
+
+    <span class="t-key">def</span> <span class="t-fn">_run</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        sequence = <span class="t-num">0</span>
+        retry = <span class="t-num">1.0</span>
+        <span class="t-key">while</span> <span class="t-key">not</span> <span class="t-key">self</span>.stop.<span class="t-fn">is_set</span>():
+            <span class="t-com"># A fresh book per connection: whatever the old one held is stale.</span>
+            book = <span class="t-fn">PoolBook</span>()
+            <span class="t-key">try</span>:
+                request = urllib.request.<span class="t-fn">Request</span>(<span class="t-key">self</span>.url, headers={<span class="t-str">&#x27;User-Agent&#x27;</span>: <span class="t-type">USER_AGENT</span>})
+                <span class="t-key">with</span> urllib.request.<span class="t-fn">urlopen</span>(request, timeout=<span class="t-key">self</span>.<span class="t-type">READ_TIMEOUT</span>) <span class="t-key">as</span> response:
+                    <span class="t-key">self</span>.status = <span class="t-str">&#x27;Substreams / waiting for a block&#x27;</span>
+                    <span class="t-key">for</span> line <span class="t-key">in</span> response:
+                        <span class="t-key">if</span> <span class="t-key">self</span>.stop.<span class="t-fn">is_set</span>():
+                            <span class="t-key">return</span>
+                        wall_now = time.<span class="t-fn">time</span>()
+                        block_time = book.<span class="t-fn">apply</span>(line, wall_now)
+                        price = book.<span class="t-fn">price</span>(wall_now) <span class="t-key">if</span> block_time <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span> <span class="t-key">else</span> <span class="t-key">None</span>
+                        <span class="t-key">if</span> price <span class="t-key">is</span> <span class="t-key">None</span>:
+                            <span class="t-key">continue</span>
+                        sequence += <span class="t-num">1</span>
+                        <span class="t-fn">_offer</span>(<span class="t-key">self</span>.items, <span class="t-fn">PriceTick</span>(price, sequence, time.<span class="t-fn">monotonic</span>(),
+                                                     <span class="t-fn">max</span>(<span class="t-num">0.0</span>, wall_now - block_time)))
+                        <span class="t-key">self</span>.pools = <span class="t-fn">len</span>(book.<span class="t-fn">live_pools</span>(wall_now))
+                        <span class="t-key">self</span>.status = f<span class="t-str">&#x27;Substreams ETH/USD / {self.pools} pools&#x27;</span>
+                        retry = <span class="t-num">1.0</span>
+                <span class="t-key">self</span>.status = <span class="t-str">&#x27;Relay closed the stream / retrying&#x27;</span>
+            <span class="t-key">except</span> (<span class="t-type">OSError</span>, <span class="t-type">ValueError</span>, <span class="t-type">KeyError</span>, <span class="t-type">TypeError</span>, queue.<span class="t-type">Full</span>):
+                <span class="t-key">self</span>.status = <span class="t-str">&#x27;Relay unavailable / retrying&#x27;</span>
+            <span class="t-key">self</span>.stop.<span class="t-fn">wait</span>(retry)
+            retry = <span class="t-fn">min</span>(<span class="t-num">10.0</span>, retry * <span class="t-num">2</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">poll</span>(<span class="t-key">self</span>, _dt: float = <span class="t-num">0.0</span>, _now: float = <span class="t-num">0.0</span>) -&gt; list[<span class="t-type">PriceTick</span>]:
+        <span class="t-key">return</span> <span class="t-fn">_drain</span>(<span class="t-key">self</span>.items)
+
+    <span class="t-key">def</span> <span class="t-fn">close</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.stop.<span class="t-fn">set</span>()
+        <span class="t-key">self</span>.worker.<span class="t-fn">join</span>(timeout=<span class="t-num">0.1</span>)
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

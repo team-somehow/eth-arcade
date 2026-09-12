@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>examples/ladder.py - TICK SDK</title>
+<meta name="description" content="Source of examples/ladder.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html" class="on">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">ladder.py<a class="anchor" href="#top">#</a></h1><p class="path">examples/ladder.py &middot; 127 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;LADDER -- park a box on the price and be inside it at the bell.
+
+Run:  python examples/ladder.py
+
+This is the shape most games on this device end up being, so it is worth
+reading as the reference:
+
+* The box is **always the same size**, fixed in basis points of the round&#x27;s
+  opening price. It never changes under a bet already placed. Sizing it in
+  volatility instead means the market redraws a box you already bought, which
+  is both confusing and dishonest about what you paid for.
+* **Only the payout reacts to the market.** A wild market makes the same box
+  genuinely harder to hit, and the multiple rises to match. That is the honest
+  response; quietly making the target bigger is not.
+* Once a box is bought, the dial is **locked out** for that round. No
+  repositioning, no early exit. Money can still be added -- each press priced
+  at that press&#x27;s odds, not the first press&#x27;s.
+
+Everything above is four rules and about eighty lines, because the SDK owns
+the feed, the clock, the odds, the wallet and the sound.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> tick <span class="t-key">import</span> <span class="t-type">Game</span>, run
+<span class="t-key">from</span> tick.hud <span class="t-key">import</span> (<span class="t-type">Ladder</span>, clear, draw_bet, draw_clock, draw_cursor, draw_hud,
+                      draw_open_line, draw_price_line)
+<span class="t-key">from</span> tick.ui <span class="t-key">import</span> <span class="t-type">CREAM</span>, <span class="t-type">MINT</span>, <span class="t-type">MUTED</span>, <span class="t-type">RED</span>, <span class="t-type">YELLOW</span>, say, say_right
+
+<span class="t-type">STEP_BPS</span> = <span class="t-num">1.0</span>       <span class="t-com"># one detent</span>
+<span class="t-type">BOX_BPS</span> = <span class="t-num">8.0</span>        <span class="t-com"># box height</span>
+<span class="t-type">REACH_BPS</span> = <span class="t-num">12.0</span>     <span class="t-com"># how far from the anchor the box may be cranked</span>
+
+
+<span class="t-key">class</span> <span class="t-fn">LadderGame</span>(<span class="t-type">Game</span>):
+    title = <span class="t-str">&#x27;LADDER&#x27;</span>
+    window_s = <span class="t-num">10.0</span>
+    arm_s = <span class="t-num">1.5</span>
+    min_multiple = <span class="t-num">1.05</span>
+    max_multiple = <span class="t-num">25.0</span>
+
+    <span class="t-key">def</span> <span class="t-fn">setup</span>(<span class="t-key">self</span>, ctx):
+        <span class="t-key">self</span>.offset = <span class="t-num">0</span>
+
+    <span class="t-com"># ---- geometry --------------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">unit</span>(<span class="t-key">self</span>, ctx) -&gt; float:
+        <span class="t-key">return</span> <span class="t-fn">max</span>(ctx.open_price <span class="t-key">or</span> ctx.price, <span class="t-num">1.0</span>) / <span class="t-num">10_000</span>
+
+    <span class="t-key">def</span> <span class="t-fn">aim</span>(<span class="t-key">self</span>, ctx) -&gt; tuple[float, float]:
+        centre = ctx.open_price + <span class="t-key">self</span>.offset * <span class="t-type">STEP_BPS</span> * <span class="t-key">self</span>.<span class="t-fn">unit</span>(ctx)
+        half = <span class="t-type">BOX_BPS</span> / <span class="t-num">2</span> * <span class="t-key">self</span>.<span class="t-fn">unit</span>(ctx)
+        <span class="t-key">return</span> centre - half, centre + half
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">reach_steps</span>(<span class="t-key">self</span>) -&gt; int:
+        <span class="t-key">return</span> <span class="t-fn">int</span>(<span class="t-type">REACH_BPS</span> / <span class="t-type">STEP_BPS</span>)
+
+    <span class="t-com"># ---- input -----------------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">on_action</span>(<span class="t-key">self</span>, ctx, action):
+        <span class="t-key">if</span> action.name == <span class="t-str">&#x27;B&#x27;</span>:
+            <span class="t-key">return</span> <span class="t-str">&#x27;quit&#x27;</span>
+        <span class="t-key">if</span> action.name <span class="t-key">in</span> (<span class="t-str">&#x27;UP&#x27;</span>, <span class="t-str">&#x27;DOWN&#x27;</span>):
+            <span class="t-key">if</span> ctx.next_bets:
+                <span class="t-com"># Locked: the first press fixed this box&#x27;s level. Say so, in</span>
+                <span class="t-com"># sound, rather than silently ignoring the dial.</span>
+                ctx.<span class="t-fn">note</span>(<span class="t-str">&#x27;LOCKED / A ADDS &#x27;</span> + ctx.<span class="t-fn">usdc</span>())
+                ctx.<span class="t-fn">play</span>(<span class="t-str">&#x27;lock&#x27;</span>)
+                <span class="t-key">return</span>
+            before = <span class="t-key">self</span>.offset
+            step = <span class="t-num">1</span> <span class="t-key">if</span> action.name == <span class="t-str">&#x27;UP&#x27;</span> <span class="t-key">else</span> -<span class="t-num">1</span>
+            <span class="t-key">self</span>.offset = <span class="t-fn">max</span>(-<span class="t-key">self</span>.reach_steps, <span class="t-fn">min</span>(<span class="t-key">self</span>.reach_steps, <span class="t-key">self</span>.offset + step))
+            <span class="t-key">if</span> <span class="t-key">self</span>.offset != before:
+                <span class="t-key">if</span> <span class="t-key">self</span>.offset == <span class="t-num">0</span>:
+                    ctx.<span class="t-fn">play</span>(<span class="t-str">&#x27;crossline&#x27;</span>)     <span class="t-com"># passing back over spot</span>
+                <span class="t-key">elif</span> ctx.sounds:
+                    ctx.<span class="t-fn">play</span>(ctx.sounds.<span class="t-fn">detent</span>(<span class="t-fn">abs</span>(<span class="t-key">self</span>.offset) / <span class="t-key">self</span>.reach_steps))
+        <span class="t-key">elif</span> action.name == <span class="t-str">&#x27;A&#x27;</span>:
+            bets = ctx.next_bets
+            low, high = (bets[<span class="t-num">0</span>].low, bets[<span class="t-num">0</span>].high) <span class="t-key">if</span> bets <span class="t-key">else</span> <span class="t-key">self</span>.<span class="t-fn">aim</span>(ctx)
+            placed = ctx.<span class="t-fn">bet</span>(low, high)
+            <span class="t-key">if</span> placed <span class="t-key">is</span> <span class="t-key">None</span>:
+                ctx.<span class="t-fn">note</span>(ctx.refused <span class="t-key">or</span> <span class="t-str">&#x27;NO BET&#x27;</span>)
+                ctx.<span class="t-fn">play</span>(<span class="t-str">&#x27;warn&#x27;</span>)
+            <span class="t-key">else</span>:
+                ctx.<span class="t-fn">play</span>(f<span class="t-str">&#x27;buy{min(3, placed.presses)}&#x27;</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">on_round_end</span>(<span class="t-key">self</span>, ctx, round_):
+        <span class="t-key">self</span>.offset = <span class="t-num">0</span>      <span class="t-com"># the cursor follows the new anchor</span>
+
+    <span class="t-com"># ---- screen ----------------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">draw</span>(<span class="t-key">self</span>, ctx, screen):
+        <span class="t-fn">clear</span>(screen)
+        anchor = ctx.open_price <span class="t-key">or</span> ctx.price
+        unit = <span class="t-key">self</span>.<span class="t-fn">unit</span>(ctx)
+        ladder = <span class="t-fn">Ladder</span>(anchor, (<span class="t-type">REACH_BPS</span> + <span class="t-type">BOX_BPS</span>) * unit)
+        <span class="t-fn">draw_open_line</span>(screen, ladder, anchor)
+        <span class="t-fn">draw_price_line</span>(screen, ladder, ctx.market.history, ctx.now, right_x=<span class="t-num">170</span>)
+
+        <span class="t-key">for</span> bet <span class="t-key">in</span> ctx.live_bets:
+            inside = bet.<span class="t-fn">contains</span>(ctx.price)
+            rect = <span class="t-fn">draw_bet</span>(screen, ladder, bet, <span class="t-num">200</span>, <span class="t-num">96</span>, <span class="t-type">YELLOW</span>, solid=<span class="t-key">True</span>, glow=inside)
+            <span class="t-fn">say</span>(screen, f<span class="t-str">&#x27;{ctx.usdc(bet.stake)} @ {bet.multiple:.1f}x&#x27;</span>,
+                rect.left, rect.top - <span class="t-num">17</span>, <span class="t-num">14</span>, <span class="t-type">YELLOW</span>)
+        <span class="t-key">for</span> bet <span class="t-key">in</span> ctx.next_bets:
+            rect = <span class="t-fn">draw_bet</span>(screen, ladder, bet, <span class="t-num">320</span>, <span class="t-num">84</span>, <span class="t-type">CREAM</span>, solid=<span class="t-key">True</span>)
+            <span class="t-fn">say</span>(screen, f<span class="t-str">&#x27;{ctx.usdc(bet.stake)} @ {bet.multiple:.1f}x&#x27;</span>,
+                rect.left, rect.top - <span class="t-num">17</span>, <span class="t-num">14</span>, <span class="t-type">CREAM</span>)
+        <span class="t-key">if</span> <span class="t-key">not</span> ctx.next_bets:
+            low, high = <span class="t-key">self</span>.<span class="t-fn">aim</span>(ctx)
+            rect = <span class="t-fn">draw_cursor</span>(screen, ladder, low, high, <span class="t-num">320</span>, <span class="t-num">84</span>)
+            quote = ctx.<span class="t-fn">quote</span>(low, high)
+            <span class="t-fn">say</span>(screen, f<span class="t-str">&#x27;{quote:.1f}x&#x27;</span> <span class="t-key">if</span> quote &gt;= ctx.game.min_multiple <span class="t-key">else</span> <span class="t-str">&#x27;QUIET&#x27;</span>,
+                rect.left, rect.top - <span class="t-num">17</span>, <span class="t-num">14</span>, <span class="t-type">YELLOW</span>)
+
+        <span class="t-fn">say</span>(screen, f<span class="t-str">&#x27;MOVE {ctx.move:+.2f}&#x27;</span>, <span class="t-num">8</span>, <span class="t-num">38</span>, <span class="t-num">15</span>, <span class="t-type">MINT</span> <span class="t-key">if</span> ctx.move &gt;= <span class="t-num">0</span> <span class="t-key">else</span> <span class="t-type">RED</span>)
+        <span class="t-fn">say_right</span>(screen, f<span class="t-str">&#x27;{len(ctx.market.history)} TICKS / {ctx.market.name}&#x27;</span>,
+                  <span class="t-num">472</span>, <span class="t-num">38</span>, <span class="t-num">13</span>, <span class="t-type">MUTED</span>)
+        <span class="t-fn">draw_clock</span>(ctx, screen, x=<span class="t-num">240</span>, y=<span class="t-num">34</span>)
+
+        last = ctx.book.last
+        <span class="t-key">if</span> last <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span> <span class="t-key">and</span> ctx.now - ctx.rounds.opened_at &lt; <span class="t-num">2.5</span>:
+            word = <span class="t-str">&#x27;VOID&#x27;</span> <span class="t-key">if</span> last.voided <span class="t-key">else</span> (<span class="t-str">&#x27;HIT&#x27;</span> <span class="t-key">if</span> last.hit <span class="t-key">else</span> <span class="t-str">&#x27;MISS&#x27;</span>)
+            colour = <span class="t-type">MUTED</span> <span class="t-key">if</span> last.voided <span class="t-key">else</span> (<span class="t-type">MINT</span> <span class="t-key">if</span> last.hit <span class="t-key">else</span> <span class="t-type">RED</span>)
+            <span class="t-fn">say</span>(screen, f<span class="t-str">&#x27;{word}  {ctx.usdc(last.net)}&#x27;</span>, <span class="t-num">240</span>, <span class="t-num">246</span>, <span class="t-num">18</span>, colour, center=<span class="t-key">True</span>)
+
+        <span class="t-fn">draw_hud</span>(ctx, screen, back=<span class="t-str">&#x27;QUIT&#x27;</span>, go=<span class="t-str">&#x27;BUY &#x27;</span> + ctx.<span class="t-fn">usdc</span>())
+
+
+<span class="t-key">if</span> __name__ == <span class="t-str">&#x27;__main__&#x27;</span>:
+    <span class="t-fn">run</span>(<span class="t-fn">LadderGame</span>())
+</code></pre></div></div></article>
+    <nav class="pager"><a class="prev" href="src-examples-coinflip.html"><span>Previous</span>Coinflip</a><a class="next" href="src-examples-ticker.html"><span>Next</span>Ticker</a></nav>
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -86,12 +86,17 @@ def ease_out(p: float) -> float:
 
 
 class BoxGame:
-    # A fresh cursor is not armed the moment it slides in. Presses meant as one
-    # more stake on the box that just went live keep arriving for a beat after
-    # the bell, and with nothing pending they would buy the *new* window and
-    # lock it wherever the cursor happened to sit. For this long after each
-    # bell the first press is swallowed; topping up a box already bought is
-    # never held back.
+    # A fresh cursor is not armed the moment it slides in. Pumping money into a
+    # box is a run of presses, and the bell lands in the middle of one: the box
+    # goes live, the dial frees up, and the next press of that same run would
+    # buy the *new* window and lock it wherever the cursor happened to sit —
+    # somewhere the player never aimed.
+    #
+    # So the new box stays unarmed until the player says something about it:
+    # either a turn of the dial (an aim is a decision) or this long with no
+    # press at all (the run is over). Every swallowed press pushes the wait out
+    # again, so a finger that keeps going never locks anything by accident.
+    # Topping up a box already bought is never held back.
     ARM_S = 2.0
 
     def __init__(self, seed: int | None = None, sound: bool = True,
@@ -128,9 +133,12 @@ class BoxGame:
         self.settled: deque[tuple[Result, float]] = deque(maxlen=4)
         self.ghost: tuple[float, float, float, float] | None = None
         self.aim_in_at = -99.0
+        self.arm_at = -99.0        # when the free cursor may be locked; see ARM_S
         self.pop_at = -99.0
         self.shake_at = -99.0
-        self.streak = 0            # hits in a row; three sets the rider on fire
+        self.streak = 0            # hits in a row; three sets the rider on fire.
+        # A miss breaks it, and so does the end of a session: the next player to
+        # pay in starts from nothing, whoever they are.
         # Real funds only.
         self.cashing = False       # cash-out asked for; waiting for the live box to land
         self.money_note: tuple[str, float] | None = None   # shown on the launcher too
@@ -227,10 +235,12 @@ class BoxGame:
                 paid = sum(payout for payout, _, _ in event[1])
                 self.announce(f'SENT {format_usdc(paid)} TO {self.who(event[1][-1][1])}', 8)
                 self.play('coin')
+                self.streak = 0
             elif kind == 'refunded':
                 self.announce(f'SENT BACK {format_usdc(event[1])} / {event[3]}', 6)
             elif kind == 'ended':
                 self.announce('SESSION ENDED ON CHAIN', 4)
+                self.streak = 0
         if self.cashing and (m.live is None or not m.live.stake):
             self.cashing = False
             funding.cash_out(m.wallet)
@@ -267,6 +277,9 @@ class BoxGame:
             return
         above = m.aim - m.price
         moved = m.crank(steps)
+        if moved:
+            # Turning the dial is the player speaking about this box: armed.
+            self.arm_at = -99.0
         if moved and above * (m.aim - m.price) < 0:
             self.play('crossline')       # the box just passed over spot
         if moved and self.clock - self.last_sound_at > .04:
@@ -283,9 +296,15 @@ class BoxGame:
         if not m.can_buy():
             self.open_wallet()
             return
-        if m.pending is None and self.clock - self.aim_in_at < self.ARM_S:
-            # Still settling in from the last bell: aim it, then buy it.
-            self.note('NEW BOX / AIM IT FIRST', 1.2)
+        if m.pending is None and self.clock < self.arm_at:
+            # A press left over from pumping the box that just went live. Hold
+            # the new one, and hold it again for every press that follows, so a
+            # run of presses can never end on a box nobody aimed.
+            self.arm_at = self.clock + self.ARM_S
+            if self.clock - self.last_sound_at > .25:
+                self.play('warn')
+                self.last_sound_at = self.clock
+            self.note('BOX IS LIVE / AIM THE NEXT ONE', 1.2)
             return
         if m.buy(self.clock):
             # Each stacked press on the same box answers a note higher.
@@ -383,6 +402,7 @@ class BoxGame:
                 # while a fresh one slides in from the right for the next bell.
                 self.ghost = (self.aim_price, m.half, m.window_end, self.clock)
             self.aim_in_at = self.clock
+            self.arm_at = self.clock + self.ARM_S
 
         # Crossing into or out of a live box is the whole tension of a window,
         # so it gets a sound of its own in each direction.
@@ -659,7 +679,10 @@ class BoxGame:
             # A fresh cursor slides in from the right edge after each bell.
             next_x += 60 * (1 - ease_out((now - self.aim_in_at) / .45))
             half = m.half
-            rect = self.draw_box(s, next_x, self.aim_price - half, self.aim_price + half, YELLOW,
+            # Grey while it is still arming, so the box that cannot be bought
+            # yet never looks like the one that can.
+            rect = self.draw_box(s, next_x, self.aim_price - half, self.aim_price + half,
+                                 MUTED if now < self.arm_at else YELLOW,
                                  alpha=18, dashed=True)
             if m.quiet(now) or not m.measured:
                 # No quote on offer: a flat line is not a 2x bet.

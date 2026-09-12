@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/feeds/base.py - TICK SDK</title>
+<meta name="description" content="Source of tick/feeds/base.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">base.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/feeds/base.py &middot; 82 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;What every feed is, and the two ways to read one.
+
+A feed is a source of `PriceTick`. It has exactly three methods:
+
+    poll(dt, now) -&gt; list[PriceTick]     non-blocking; returns what has arrived
+    close()                              stop threads, drop sockets
+    .name / .status                      words for the screen
+
+`poll` is non-blocking on purpose. A game runs a frame loop at 30 FPS; a feed
+that blocks waiting for the next block drops frames, and a dropped frame on a
+handheld is felt immediately. Live feeds therefore do their waiting on a worker
+thread and hand finished ticks over a queue.
+
+For anything that is not a game -- a script, a bot, a terminal ticker -- the
+blocking generator `stream()` is there instead, so you never write a poll loop
+by hand just to print prices.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">import</span> time
+<span class="t-key">from</span> typing <span class="t-key">import</span> <span class="t-type">Iterator</span>, <span class="t-type">Protocol</span>, runtime_checkable
+
+<span class="t-key">from</span> ..ticks <span class="t-key">import</span> <span class="t-type">Asset</span>, <span class="t-type">PriceTick</span>
+
+
+@runtime_checkable
+<span class="t-key">class</span> <span class="t-fn">Feed</span>(<span class="t-type">Protocol</span>):
+    name: str
+    status: str
+    asset: <span class="t-type">Asset</span>
+
+    <span class="t-key">def</span> <span class="t-fn">poll</span>(<span class="t-key">self</span>, dt: float, now: float) -&gt; list[<span class="t-type">PriceTick</span>]: ...
+    <span class="t-key">def</span> <span class="t-fn">close</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>: ...
+
+
+<span class="t-key">class</span> <span class="t-type">BaseFeed</span>:
+    <span class="t-doc">&quot;&quot;&quot;Shared plumbing. Subclasses implement `poll` and `close`.&quot;&quot;&quot;</span>
+
+    name = <span class="t-str">&#x27;FEED&#x27;</span>
+    status = <span class="t-str">&#x27;&#x27;</span>
+    asset: <span class="t-type">Asset</span>
+
+    <span class="t-key">def</span> <span class="t-fn">poll</span>(<span class="t-key">self</span>, dt: float, now: float) -&gt; list[<span class="t-type">PriceTick</span>]:
+        <span class="t-key">raise</span> <span class="t-type">NotImplementedError</span>
+
+    <span class="t-key">def</span> <span class="t-fn">close</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">pass</span>
+
+    <span class="t-com"># ---- reading a feed without a game loop ------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">stream</span>(<span class="t-key">self</span>, interval: float = <span class="t-num">0.05</span>, limit: int | <span class="t-key">None</span> = <span class="t-key">None</span>) -&gt; <span class="t-type">Iterator</span>[<span class="t-type">PriceTick</span>]:
+        <span class="t-doc">&quot;&quot;&quot;Blocking generator of ticks. For scripts, bots and terminal tickers.
+
+        `interval` is how long to sleep when nothing has arrived, not the tick
+        rate: a block or a trade is handed over the moment it lands.
+        &quot;&quot;&quot;</span>
+        sent = <span class="t-num">0</span>
+        last = time.<span class="t-fn">monotonic</span>()
+        <span class="t-key">try</span>:
+            <span class="t-key">while</span> limit <span class="t-key">is</span> <span class="t-key">None</span> <span class="t-key">or</span> sent &lt; limit:
+                now = time.<span class="t-fn">monotonic</span>()
+                dt, last = now - last, now
+                got = <span class="t-key">self</span>.<span class="t-fn">poll</span>(dt, now)
+                <span class="t-key">if</span> <span class="t-key">not</span> got:
+                    <span class="t-com"># A finite feed (a replay) ends the generator rather than</span>
+                    <span class="t-com"># sleeping forever on a file that has run out.</span>
+                    <span class="t-key">if</span> <span class="t-fn">getattr</span>(<span class="t-key">self</span>, <span class="t-str">&#x27;done&#x27;</span>, <span class="t-key">False</span>):
+                        <span class="t-key">return</span>
+                    time.<span class="t-fn">sleep</span>(interval)
+                    <span class="t-key">continue</span>
+                <span class="t-key">for</span> tick <span class="t-key">in</span> got:
+                    <span class="t-key">yield</span> tick
+                    sent += <span class="t-num">1</span>
+                    <span class="t-key">if</span> limit <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span> <span class="t-key">and</span> sent &gt;= limit:
+                        <span class="t-key">return</span>
+        <span class="t-key">finally</span>:
+            <span class="t-key">pass</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__enter__</span>(<span class="t-key">self</span>):
+        <span class="t-key">return</span> <span class="t-key">self</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__exit__</span>(<span class="t-key">self</span>, *_exc) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.<span class="t-fn">close</span>()
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

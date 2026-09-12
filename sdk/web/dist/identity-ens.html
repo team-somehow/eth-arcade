@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Giving your players a name - TICK SDK</title>
+<meta name="description" content="ENS subnames, records, and a leaderboard with no server.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html" class="on">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="giving-your-players-a-name">Giving your players a name<a class="anchor" href="#giving-your-players-a-name" aria-label="Link">#</a></h1>
+<p>A leaderboard of <code>0x7ee8…CCac</code> is a leaderboard nobody reads. A player cannot recognise themselves on it, cannot point at it, and cannot show it to anyone.</p>
+<p>The usual fix is an account system: a sign-up, a database, a server. For a handheld you hand to a stranger at a table, that is three things too many — and all three die the day you stop paying for them.</p>
+<p>The SDK does it with ENS instead. Every wallet that plays gets a readable subname, and that player&#x27;s record lives in the name&#x27;s own text records. The leaderboard is then <strong>derived, not stored</strong>: read the registry, read each name, sort.</p>
+<hr>
+<h2 id="what-a-player-gets">What a player gets<a class="anchor" href="#what-a-player-gets" aria-label="Link">#</a></h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>0x7ee85B080701330bf53Be62B7E72fcDD034eCCac
+        ▼
+amber-otter.tick.eth
+        ├── addr                 0x7ee8…CCac        (points back at the wallet)
+        ├── tick.sessions        7
+        ├── tick.wins            4
+        ├── tick.pnl             12.4
+        ├── tick.best            8.1
+        ├── tick.last_tx         0x97c9…bfaf
+        ├── avatar               (theirs to set)
+        └── description          (theirs to set)</code></pre></div>
+<p>The name is a real ENS name. It resolves in any ENS client, it outlives the game, and the record belongs to the name rather than to your backend.</p>
+<hr>
+<h2 id="the-handle-is-derived-from-the-address">The handle is derived from the address<a class="anchor" href="#the-handle-is-derived-from-the-address" aria-label="Link">#</a></h2>
+<p>This is the part worth stealing.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick.identity <span class="t-key">import</span> handle, name_of
+
+<span class="t-fn">handle</span>(<span class="t-str">&#x27;0x7ee85B08...&#x27;</span>)        <span class="t-com"># &#x27;amber-otter&#x27;</span>
+<span class="t-fn">name_of</span>(<span class="t-str">&#x27;0x7ee85B08...&#x27;</span>)       <span class="t-com"># &#x27;amber-otter.tick.eth&#x27;, or None</span></code></pre></div>
+<p><code>handle()</code> hashes the wallet and indexes two word lists. It is deterministic, so <strong>the device can work out which name to look for without an index, an API, or a lookup service</strong> — it computes the candidate and asks the resolver whether that name points back at this wallet:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">for</span> attempt <span class="t-key">in</span> <span class="t-fn">range</span>(<span class="t-num">4</span>):
+    name = f<span class="t-str">&#x27;{handle(address, attempt)}.{parent}&#x27;</span>
+    <span class="t-key">if</span> <span class="t-fn">addr_of</span>(resolver, name).<span class="t-fn">lower</span>() == address.<span class="t-fn">lower</span>():
+        <span class="t-key">return</span> name          <span class="t-com"># trusted: the name points back</span>
+    <span class="t-key">if</span> <span class="t-fn">addr_of</span>(resolver, name) == <span class="t-type">ZERO</span>:
+        <span class="t-key">return</span> <span class="t-key">None</span>          <span class="t-com"># unregistered, so no later attempt is this wallet&#x27;s</span></code></pre></div>
+<p>Collisions fall through to <code>-2</code>, <code>-3</code>. And because a name is trusted <strong>only</strong> when its <code>addr</code> record resolves back to the wallet, squatting a handle gains nothing: the device simply moves to the next one.</p>
+<p>That &quot;points back&quot; check is the whole trust model, and it is two lines.</p>
+<hr>
+<h2 id="who-may-write-what">Who may write what<a class="anchor" href="#who-may-write-what" aria-label="Link">#</a></h2>
+<p>Two sets of records, split by who can write them:</p>
+<div class="table"><table><thead><tr><th>Records</th><th>Written by</th><th>Why</th></tr></thead><tbody><tr><td><code>tick.sessions</code>, <code>tick.wins</code>, <code>tick.pnl</code>, <code>tick.best</code>, <code>tick.last_tx</code></td><td>the scorekeeper only</td><td>a player who can write their own score has no score</td></tr><tr><td><code>avatar</code>, <code>description</code>, <code>url</code>, <code>com.twitter</code></td><td>the player</td><td>it is their name</td></tr></tbody></table></div>
+<p>Enforced by resolver roles, not by convention. The scorekeeper holds the key with permission to write the <code>tick.*</code> keys; a player holds their name and can write the profile keys.</p>
+<p><strong>Everything in <code>tick.identity</code> is read-only.</strong> Writing stats is a privileged, single-instance job — one scorekeeper per deployment, not one per device, or two of them race to register the same name — and deliberately does not live on the handheld.</p>
+<hr>
+<h2 id="reading-it-back">Reading it back<a class="anchor" href="#reading-it-back" aria-label="Link">#</a></h2>
+<p>One name&#x27;s records, in <strong>one call</strong>:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick.chain <span class="t-key">import</span> <span class="t-type">Rpc</span>
+<span class="t-key">from</span> tick.identity <span class="t-key">import</span> ens, records_of
+
+rpc = <span class="t-fn">Rpc</span>(<span class="t-fn">ens</span>().rpc)
+<span class="t-fn">records_of</span>(rpc, <span class="t-str">&#x27;amber-otter.tick.eth&#x27;</span>)
+<span class="t-com"># {&#x27;tick.sessions&#x27;: &#x27;7&#x27;, &#x27;tick.wins&#x27;: &#x27;4&#x27;, &#x27;tick.pnl&#x27;: &#x27;12.4&#x27;, ...}</span></code></pre></div>
+<p>That goes through ENS&#x27;s Universal Resolver with a <code>multicall</code>, so seven records cost one round trip rather than seven. On a handheld drawing a leaderboard of a dozen players, that is the difference between a board and a spinner.</p>
+<p>The whole board:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick.identity <span class="t-key">import</span> <span class="t-type">Standings</span>
+
+<span class="t-key">for</span> row <span class="t-key">in</span> <span class="t-fn">Standings</span>().<span class="t-fn">read</span>():
+    <span class="t-fn">print</span>(row.name, row.pnl, row.wins, row.sessions)</code></pre></div>
+<p><code>Standings</code> finds registered names from the registry&#x27;s own <code>LabelRegistered</code> logs and remembers its block cursor, so a refresh asks only for blocks it has not read.</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">tick</span> board</code></pre></div>
+<h2 id="on-a-device-without-stalling-a-frame">On a device, without stalling a frame<a class="anchor" href="#on-a-device-without-stalling-a-frame" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick.identity <span class="t-key">import</span> <span class="t-type">Leaderboard</span>
+
+<span class="t-key">class</span> <span class="t-fn">MyGame</span>(<span class="t-type">Game</span>):
+    <span class="t-key">def</span> <span class="t-fn">setup</span>(<span class="t-key">self</span>, ctx):
+        <span class="t-key">self</span>.board = <span class="t-fn">Leaderboard</span>()
+
+    <span class="t-key">def</span> <span class="t-fn">on_action</span>(<span class="t-key">self</span>, ctx, action):
+        <span class="t-key">if</span> action.name == <span class="t-str">&#x27;B&#x27;</span>:
+            <span class="t-key">self</span>.board.showing = <span class="t-key">True</span>
+            <span class="t-key">self</span>.board.<span class="t-fn">want</span>()          <span class="t-com"># starts the reader thread on first use</span>
+
+    <span class="t-key">def</span> <span class="t-fn">draw</span>(<span class="t-key">self</span>, ctx, screen):
+        <span class="t-key">for</span> row <span class="t-key">in</span> <span class="t-key">self</span>.board.rows <span class="t-key">or</span> []:
+            ...
+        <span class="t-key">if</span> <span class="t-key">self</span>.board.rows <span class="t-key">is</span> <span class="t-key">None</span>:
+            <span class="t-fn">say</span>(screen, <span class="t-key">self</span>.board.error <span class="t-key">or</span> <span class="t-str">&#x27;READING ENS...&#x27;</span>, <span class="t-num">240</span>, <span class="t-num">150</span>, <span class="t-num">16</span>, <span class="t-type">MUTED</span>)</code></pre></div>
+<p>Nothing is read until it is first wanted; it refreshes while the board is on screen and sleeps while it is not; and when the RPC is unreachable it <strong>keeps the last rows and says so</strong> rather than blanking a board that was fine a second ago.</p>
+<hr>
+<h2 id="pointing-it-at-your-own-name">Pointing it at your own name<a class="anchor" href="#pointing-it-at-your-own-name" aria-label="Link">#</a></h2>
+<p>Nothing in <code>tick.identity</code> is hardcoded to one parent:</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-type">TICK_ENS_PARENT</span>=mygame.eth
+<span class="t-type">TICK_ENS_RPC</span>=https://ethereum-sepolia-rpc.publicnode.com
+<span class="t-type">TICK_ENS_REGISTRY</span>=0x...<span class="t-com">        # your parent&#x27;s subname registry</span>
+<span class="t-type">TICK_ENS_RESOLVER</span>=0x...<span class="t-com">        # the one resolver every subname uses</span>
+<span class="t-type">TICK_ENS_SINCE</span>=11684278<span class="t-com">        # first block: where a leaderboard starts reading</span></code></pre></div>
+<p>or in code:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick.identity <span class="t-key">import</span> <span class="t-type">Ens</span>, <span class="t-type">Standings</span>
+mine = <span class="t-fn">Ens</span>(<span class="t-str">&#x27;mygame.eth&#x27;</span>, rpc, chain_id, registry, resolver, since)
+<span class="t-fn">Standings</span>(net=mine).<span class="t-fn">read</span>()</code></pre></div>
+<p>You can change the stat keys too — <code>Standings(keys=(&#x27;mygame.score&#x27;, ...))</code> — since <code>records_of</code> takes whatever list you give it.</p>
+<hr>
+<h2 id="why-names-live-on-their-own-chain">Why names live on their own chain<a class="anchor" href="#why-names-live-on-their-own-chain" aria-label="Link">#</a></h2>
+<p>Names and records sit on a cheap public chain; the money settles wherever your escrow is. They are deliberately independent:</p>
+<ul><li>Identity is <strong>public and permanent</strong> and wants to be read by things that are not your game. Settlement is <strong>fast and private to a session</strong> and wants to be cheap.</li><li>A leaderboard being briefly unreachable must never stop a player cashing out, and a settlement chain being busy must never stop a name resolving.</li></ul>
+<p>ENSIP-11 gives you the crossing point when you want one: an EVM chain&#x27;s coin type is <code>0x80000000 | chain_id</code>, so a name can carry an address record for the chain the money is actually on.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick.identity <span class="t-key">import</span> coin_type
+<span class="t-fn">coin_type</span>(<span class="t-num">5042002</span>)      <span class="t-com"># the settlement chain&#x27;s coin type for an addr record</span></code></pre></div>
+<hr>
+<h2 id="the-one-rule">The one rule<a class="anchor" href="#the-one-rule" aria-label="Link">#</a></h2>
+<p><strong>Never let the device write a score.</strong> Read names on the device, write them from one service that holds the key. The device is a thing you hand to strangers; treat anything it can sign as public.</p></article>
+    <nav class="pager"><a class="prev" href="money-arc.html"><span>Previous</span>Real money</a><a class="next" href="api.html"><span>Next</span>API</a></nav>
+  </main>
+  <aside class="toc"><h4>On this page</h4><ul><li class="l2"><a href="#what-a-player-gets">What a player gets</a></li><li class="l2"><a href="#the-handle-is-derived-from-the-address">The handle is derived from the address</a></li><li class="l2"><a href="#who-may-write-what">Who may write what</a></li><li class="l2"><a href="#reading-it-back">Reading it back</a></li><li class="l2"><a href="#on-a-device-without-stalling-a-frame">On a device, without stalling a frame</a></li><li class="l2"><a href="#pointing-it-at-your-own-name">Pointing it at your own name</a></li><li class="l2"><a href="#why-names-live-on-their-own-chain">Why names live on their own chain</a></li><li class="l2"><a href="#the-one-rule">The one rule</a></li></ul></aside>
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>examples/ticker.py - TICK SDK</title>
+<meta name="description" content="Source of examples/ticker.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html" class="on">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">ticker.py<a class="anchor" href="#top">#</a></h1><p class="path">examples/ticker.py &middot; 38 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;The data layer with no game attached: prices in a terminal.
+
+    python examples/ticker.py                    simulated
+    python examples/ticker.py coinbase           live exchange
+    python examples/ticker.py substreams         on-chain pools via the relay
+
+Proof that the SDK is a data library first and a game engine second. There is
+no pygame import anywhere in this file.
+&quot;&quot;&quot;</span>
+<span class="t-key">import</span> sys
+<span class="t-key">import</span> time
+
+<span class="t-key">from</span> tick <span class="t-key">import</span> <span class="t-type">Market</span>, open_feed
+<span class="t-key">from</span> tick.pricing <span class="t-key">import</span> annualized
+
+source = sys.argv[<span class="t-num">1</span>] <span class="t-key">if</span> <span class="t-fn">len</span>(sys.argv) &gt; <span class="t-num">1</span> <span class="t-key">else</span> <span class="t-str">&#x27;sim&#x27;</span>
+market = <span class="t-fn">Market</span>(feed=<span class="t-fn">open_feed</span>(source))
+
+<span class="t-fn">print</span>(f<span class="t-str">&#x27;{market.name}: {market.status}&#x27;</span>)
+<span class="t-fn">print</span>(f<span class="t-str">&quot;{&#x27;time&#x27;:&gt;8}  {&#x27;price&#x27;:&gt;12}  {&#x27;age&#x27;:&gt;6}  {&#x27;vol&#x27;:&gt;7}  {&#x27;P(+-0.05%, 10s)&#x27;:&gt;16}&quot;</span>)
+
+last = time.<span class="t-fn">monotonic</span>()
+<span class="t-key">try</span>:
+    <span class="t-key">while</span> <span class="t-key">True</span>:
+        now = time.<span class="t-fn">monotonic</span>()
+        <span class="t-key">for</span> tick <span class="t-key">in</span> market.<span class="t-fn">poll</span>(now - last, now):
+            band = market.price * <span class="t-num">0.0005</span>
+            chance = market.<span class="t-fn">probability</span>(market.price - band, market.price + band, <span class="t-num">10.0</span>)
+            <span class="t-fn">print</span>(f<span class="t-str">&#x27;{time.strftime(&quot;%H:%M:%S&quot;):&gt;8}  {tick.price:&gt;12,.4f}  &#x27;</span>
+                  f<span class="t-str">&#x27;{tick.age(now):&gt;5.1f}s  {annualized(market.variance):&gt;6.1%}  &#x27;</span>
+                  f<span class="t-str">&#x27;{chance:&gt;15.1%}&#x27;</span>
+                  f<span class="t-str">&#x27;{&quot;&quot; if market.ready else &quot;   (still reading)&quot;}&#x27;</span>, flush=<span class="t-key">True</span>)
+        last = now
+        time.<span class="t-fn">sleep</span>(<span class="t-num">0.05</span>)
+<span class="t-key">except</span> <span class="t-type">KeyboardInterrupt</span>:
+    <span class="t-key">pass</span>
+<span class="t-key">finally</span>:
+    market.<span class="t-fn">close</span>()
+</code></pre></div></div></article>
+    <nav class="pager"><a class="prev" href="src-examples-ladder.html"><span>Previous</span>Ladder</a><a class="next" href="src-examples-pools.html"><span>Next</span>Pools</a></nav>
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

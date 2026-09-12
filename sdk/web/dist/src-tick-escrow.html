@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/escrow.py - TICK SDK</title>
+<meta name="description" content="Source of tick/escrow.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">escrow.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/escrow.py &middot; 349 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span><span>128</span><span>129</span><span>130</span><span>131</span><span>132</span><span>133</span><span>134</span><span>135</span><span>136</span><span>137</span><span>138</span><span>139</span><span>140</span><span>141</span><span>142</span><span>143</span><span>144</span><span>145</span><span>146</span><span>147</span><span>148</span><span>149</span><span>150</span><span>151</span><span>152</span><span>153</span><span>154</span><span>155</span><span>156</span><span>157</span><span>158</span><span>159</span><span>160</span><span>161</span><span>162</span><span>163</span><span>164</span><span>165</span><span>166</span><span>167</span><span>168</span><span>169</span><span>170</span><span>171</span><span>172</span><span>173</span><span>174</span><span>175</span><span>176</span><span>177</span><span>178</span><span>179</span><span>180</span><span>181</span><span>182</span><span>183</span><span>184</span><span>185</span><span>186</span><span>187</span><span>188</span><span>189</span><span>190</span><span>191</span><span>192</span><span>193</span><span>194</span><span>195</span><span>196</span><span>197</span><span>198</span><span>199</span><span>200</span><span>201</span><span>202</span><span>203</span><span>204</span><span>205</span><span>206</span><span>207</span><span>208</span><span>209</span><span>210</span><span>211</span><span>212</span><span>213</span><span>214</span><span>215</span><span>216</span><span>217</span><span>218</span><span>219</span><span>220</span><span>221</span><span>222</span><span>223</span><span>224</span><span>225</span><span>226</span><span>227</span><span>228</span><span>229</span><span>230</span><span>231</span><span>232</span><span>233</span><span>234</span><span>235</span><span>236</span><span>237</span><span>238</span><span>239</span><span>240</span><span>241</span><span>242</span><span>243</span><span>244</span><span>245</span><span>246</span><span>247</span><span>248</span><span>249</span><span>250</span><span>251</span><span>252</span><span>253</span><span>254</span><span>255</span><span>256</span><span>257</span><span>258</span><span>259</span><span>260</span><span>261</span><span>262</span><span>263</span><span>264</span><span>265</span><span>266</span><span>267</span><span>268</span><span>269</span><span>270</span><span>271</span><span>272</span><span>273</span><span>274</span><span>275</span><span>276</span><span>277</span><span>278</span><span>279</span><span>280</span><span>281</span><span>282</span><span>283</span><span>284</span><span>285</span><span>286</span><span>287</span><span>288</span><span>289</span><span>290</span><span>291</span><span>292</span><span>293</span><span>294</span><span>295</span><span>296</span><span>297</span><span>298</span><span>299</span><span>300</span><span>301</span><span>302</span><span>303</span><span>304</span><span>305</span><span>306</span><span>307</span><span>308</span><span>309</span><span>310</span><span>311</span><span>312</span><span>313</span><span>314</span><span>315</span><span>316</span><span>317</span><span>318</span><span>319</span><span>320</span><span>321</span><span>322</span><span>323</span><span>324</span><span>325</span><span>326</span><span>327</span><span>328</span><span>329</span><span>330</span><span>331</span><span>332</span><span>333</span><span>334</span><span>335</span><span>336</span><span>337</span><span>338</span><span>339</span><span>340</span><span>341</span><span>342</span><span>343</span><span>344</span><span>345</span><span>346</span><span>347</span><span>348</span><span>349</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;Real money, without asking the player to trust the handheld.
+
+The flow, and why each step exists
+----------------------------------
+
+1. The device shows **its own address** as a QR code. The player sends USDC
+   from their own wallet -- a plain send from MetaMask works, no dApp, no
+   connect, no signature prompt on a 480x320 screen.
+2. The device watches the chain for that transfer, keeps a small fixed gas fee
+   (USDC is the gas token on Arc, so the device never needs a second coin), and
+   locks the rest in `TickEscrow` with `openFor`, **in the sender&#x27;s name**.
+3. Bets run on the device against that balance, exactly as in demo play. No
+   transaction per bet: a 10-second round cannot wait for a block, and a player
+   will not approve forty transactions an hour.
+4. Cashing out closes the session at the final balance, and the escrow pays it
+   **straight back to the address the USDC came from** -- not to the device, not
+   to an operator. The device cannot send it anywhere else.
+
+So the device never custodies anything it could run away with: one deposit in,
+one settlement out, and the contract decides the payout.
+
+The cap
+-------
+
+The escrow can only pay what it holds, so every session has a ceiling
+(`deposit + reserve`). The wallet exposes it as `wallet.cap`, and a game must
+refuse a bet whose best case would win past it -- otherwise the screen promises
+a payout the contract will refuse. That check is one line; see
+`Wallet.would_exceed_cap` and `GameContext.bet`.
+
+Threading
+---------
+
+All chain work runs on one worker thread. The game thread calls `sync(wallet)`
+every frame -- which only drains a queue -- and `cash_out(wallet)` on request. A
+slow RPC can never stall a frame. State (open sessions, balance, last block
+read) is saved under `.tick/`, so a restart resumes play and finishes an
+interrupted cash-out rather than losing a session.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">from</span> dataclasses <span class="t-key">import</span> asdict, dataclass
+<span class="t-key">import</span> json
+<span class="t-key">import</span> os
+<span class="t-key">from</span> pathlib <span class="t-key">import</span> <span class="t-type">Path</span>
+<span class="t-key">import</span> queue
+<span class="t-key">import</span> threading
+<span class="t-key">import</span> time
+
+<span class="t-key">from</span> .chain <span class="t-key">import</span> <span class="t-type">Chain</span>, <span class="t-type">Incoming</span>, load_device, network, short
+<span class="t-key">from</span> .money <span class="t-key">import</span> <span class="t-type">Deposit</span>, parse_usdc
+
+
+@dataclass
+<span class="t-key">class</span> <span class="t-type">Session</span>:
+    id: int
+    player: str
+    deposit: int
+    reserve: int
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">cap</span>(<span class="t-key">self</span>) -&gt; int:
+        <span class="t-doc">&quot;&quot;&quot;The most the escrow will pay out for this session.&quot;&quot;&quot;</span>
+        <span class="t-key">return</span> <span class="t-key">self</span>.deposit + <span class="t-key">self</span>.reserve
+
+
+<span class="t-key">class</span> <span class="t-type">EscrowFunding</span>:
+    <span class="t-doc">&quot;&quot;&quot;A `Wallet` funding backend backed by a real escrow contract.
+
+    Swap it in with TICK_FUNDING=arc-testnet; a game never imports it.
+    &quot;&quot;&quot;</span>
+
+    name = <span class="t-str">&#x27;USDC&#x27;</span>
+    live = <span class="t-key">True</span>
+    onchain = <span class="t-key">True</span>
+    <span class="t-type">POLL_S</span> = <span class="t-num">1.5</span>
+    <span class="t-type">RETRY_S</span> = <span class="t-num">4.0</span>
+    <span class="t-type">MAX_RANGE</span> = <span class="t-num">5_000</span>     <span class="t-com"># blocks per log query when catching up after downtime</span>
+    <span class="t-type">MAX_TRIES</span> = <span class="t-num">3</span>         <span class="t-com"># a deposit failing this often is set aside, not retried forever</span>
+    <span class="t-type">SEEN</span> = <span class="t-num">200</span>            <span class="t-com"># transfers remembered, so a retried range never opens one twice</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, kind: str = <span class="t-str">&#x27;arc-testnet&#x27;</span>, chain=<span class="t-key">None</span>, state_dir: str | <span class="t-type">Path</span> = <span class="t-str">&#x27;.tick&#x27;</span>,
+                 gas_fee: int | <span class="t-key">None</span> = <span class="t-key">None</span>, start: bool = <span class="t-key">True</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.kind = kind
+        <span class="t-key">self</span>.net = <span class="t-fn">network</span>(kind)
+        <span class="t-key">if</span> <span class="t-key">not</span> <span class="t-key">self</span>.net.escrow:
+            <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(f<span class="t-str">&#x27;No escrow address for {kind}; set TICK_ESCROW_ADDRESS&#x27;</span>)
+        <span class="t-key">self</span>.state_dir = <span class="t-fn">Path</span>(state_dir)
+        <span class="t-key">self</span>.chain = chain <span class="t-key">or</span> <span class="t-fn">Chain</span>(<span class="t-key">self</span>.net, <span class="t-fn">load_device</span>(<span class="t-key">self</span>.state_dir / <span class="t-str">&#x27;device.json&#x27;</span>))
+        <span class="t-key">self</span>.address = <span class="t-key">self</span>.chain.address
+        <span class="t-key">self</span>.gas_fee = (<span class="t-fn">parse_usdc</span>(os.environ.<span class="t-fn">get</span>(<span class="t-str">&#x27;TICK_GAS_FEE_USDC&#x27;</span>, <span class="t-str">&#x27;0.01&#x27;</span>))
+                        <span class="t-key">if</span> gas_fee <span class="t-key">is</span> <span class="t-key">None</span> <span class="t-key">else</span> gas_fee)
+        <span class="t-key">self</span>.state_path = <span class="t-key">self</span>.state_dir / f<span class="t-str">&#x27;{kind}.json&#x27;</span>
+        <span class="t-key">self</span>.lock = threading.<span class="t-fn">Lock</span>()
+        <span class="t-key">self</span>.events: queue.<span class="t-type">Queue</span>[tuple] = queue.<span class="t-fn">Queue</span>()
+        <span class="t-com"># Saved across restarts.</span>
+        <span class="t-key">self</span>.sessions: list[<span class="t-type">Session</span>] = []
+        <span class="t-key">self</span>.balance = <span class="t-num">0</span>
+        <span class="t-key">self</span>.last_block: int | <span class="t-key">None</span> = <span class="t-key">None</span>
+        <span class="t-key">self</span>.pending_cashout: int | <span class="t-key">None</span> = <span class="t-key">None</span>
+        <span class="t-key">self</span>.seen: list[str] = []
+        <span class="t-com"># Shown on screen.</span>
+        <span class="t-key">self</span>.status = <span class="t-str">&#x27;CONNECTING&#x27;</span>
+        <span class="t-key">self</span>.busy = <span class="t-key">False</span>
+        <span class="t-key">self</span>.error = <span class="t-str">&#x27;&#x27;</span>
+        <span class="t-key">self</span>.last_deposit: tuple[int, str] | <span class="t-key">None</span> = <span class="t-key">None</span>
+        <span class="t-key">self</span>.last_cashout: tuple[int, str, str] | <span class="t-key">None</span> = <span class="t-key">None</span>
+        <span class="t-key">self</span>.tries: dict[str, int] = {}
+        <span class="t-key">self</span>.checked = <span class="t-key">False</span>
+        <span class="t-key">self</span>.<span class="t-fn">_load</span>()
+        <span class="t-key">self</span>._stop = threading.<span class="t-fn">Event</span>()
+        <span class="t-key">self</span>._wake = threading.<span class="t-fn">Event</span>()
+        <span class="t-key">self</span>._worker: threading.<span class="t-type">Thread</span> | <span class="t-key">None</span> = <span class="t-key">None</span>
+        <span class="t-key">if</span> start:
+            <span class="t-key">self</span>._worker = threading.<span class="t-fn">Thread</span>(target=<span class="t-key">self</span>._run, name=<span class="t-str">&#x27;escrow&#x27;</span>, daemon=<span class="t-key">True</span>)
+            <span class="t-key">self</span>._worker.<span class="t-fn">start</span>()
+
+    <span class="t-com"># ---- read by the game ------------------------------------------------</span>
+    @property
+    <span class="t-key">def</span> <span class="t-fn">qr_text</span>(<span class="t-key">self</span>) -&gt; str:
+        <span class="t-doc">&quot;&quot;&quot;EIP-681: scanned in a wallet, it opens a send to the device on this chain.&quot;&quot;&quot;</span>
+        <span class="t-key">return</span> f<span class="t-str">&#x27;ethereum:{self.address}@{self.net.chain_id}&#x27;</span>
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">in_session</span>(<span class="t-key">self</span>) -&gt; bool:
+        <span class="t-key">return</span> <span class="t-fn">bool</span>(<span class="t-key">self</span>.sessions) <span class="t-key">and</span> <span class="t-key">self</span>.pending_cashout <span class="t-key">is</span> <span class="t-key">None</span>
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">cap</span>(<span class="t-key">self</span>) -&gt; int | <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;The most the open sessions will pay out; the game never bets past it.&quot;&quot;&quot;</span>
+        sessions = <span class="t-fn">list</span>(<span class="t-key">self</span>.sessions)
+        <span class="t-key">return</span> <span class="t-fn">sum</span>(s.cap <span class="t-key">for</span> s <span class="t-key">in</span> sessions) <span class="t-key">if</span> sessions <span class="t-key">else</span> <span class="t-key">None</span>
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">player</span>(<span class="t-key">self</span>) -&gt; str:
+        sessions = <span class="t-fn">list</span>(<span class="t-key">self</span>.sessions)
+        <span class="t-key">return</span> sessions[-<span class="t-num">1</span>].player <span class="t-key">if</span> sessions <span class="t-key">else</span> <span class="t-str">&#x27;&#x27;</span>
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">player_short</span>(<span class="t-key">self</span>) -&gt; str:
+        <span class="t-key">return</span> <span class="t-fn">short</span>(<span class="t-key">self</span>.player)
+
+    <span class="t-key">def</span> <span class="t-fn">tx_url</span>(<span class="t-key">self</span>, tx: str) -&gt; str:
+        <span class="t-key">return</span> f<span class="t-str">&#x27;{self.net.explorer}/tx/{tx}&#x27;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">load</span>(<span class="t-key">self</span>, amount: int) -&gt; <span class="t-type">Deposit</span>:
+        <span class="t-doc">&quot;&quot;&quot;Real USDC is sent to the device, never minted by a button.&quot;&quot;&quot;</span>
+        <span class="t-key">return</span> <span class="t-fn">Deposit</span>(amount, <span class="t-str">&#x27;failed&#x27;</span>, <span class="t-str">&#x27;send-usdc-to-the-device&#x27;</span>)
+
+    <span class="t-com"># ---- called by the game ----------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">sync</span>(<span class="t-key">self</span>, wallet) -&gt; list[tuple]:
+        <span class="t-doc">&quot;&quot;&quot;Apply the worker&#x27;s news to the wallet and save. Cheap; call every frame.&quot;&quot;&quot;</span>
+        news = []
+        <span class="t-key">with</span> <span class="t-key">self</span>.lock:
+            <span class="t-key">while</span> <span class="t-key">True</span>:
+                <span class="t-key">try</span>:
+                    event = <span class="t-key">self</span>.events.<span class="t-fn">get_nowait</span>()
+                <span class="t-key">except</span> queue.<span class="t-type">Empty</span>:
+                    <span class="t-key">break</span>
+                <span class="t-key">if</span> event[<span class="t-num">0</span>] == <span class="t-str">&#x27;opened&#x27;</span>:
+                    wallet.<span class="t-fn">credit</span>(event[<span class="t-num">1</span>])
+                <span class="t-key">elif</span> event[<span class="t-num">0</span>] == <span class="t-str">&#x27;ended&#x27;</span>:
+                    wallet.balance = <span class="t-num">0</span>
+                news.<span class="t-fn">append</span>(event)
+            <span class="t-key">if</span> <span class="t-key">self</span>.pending_cashout <span class="t-key">is</span> <span class="t-key">None</span> <span class="t-key">and</span> wallet.balance != <span class="t-key">self</span>.balance:
+                <span class="t-key">self</span>.balance = wallet.balance
+                <span class="t-key">self</span>.<span class="t-fn">_save</span>()
+        <span class="t-key">return</span> news
+
+    <span class="t-key">def</span> <span class="t-fn">cash_out</span>(<span class="t-key">self</span>, wallet) -&gt; bool:
+        <span class="t-doc">&quot;&quot;&quot;Pay the whole balance back to the player; the worker sends it.&quot;&quot;&quot;</span>
+        <span class="t-key">with</span> <span class="t-key">self</span>.lock:
+            <span class="t-key">if</span> <span class="t-key">not</span> <span class="t-key">self</span>.in_session:
+                <span class="t-key">return</span> <span class="t-key">False</span>
+            <span class="t-key">self</span>.pending_cashout = wallet.balance
+            wallet.balance = <span class="t-num">0</span>
+            <span class="t-key">self</span>.balance = <span class="t-num">0</span>
+            <span class="t-key">self</span>.<span class="t-fn">_save</span>()
+        <span class="t-key">self</span>.status = <span class="t-str">&#x27;CASHING OUT&#x27;</span>
+        <span class="t-key">self</span>._wake.<span class="t-fn">set</span>()
+        <span class="t-key">return</span> <span class="t-key">True</span>
+
+    <span class="t-key">def</span> <span class="t-fn">stop</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>._stop.<span class="t-fn">set</span>()
+        <span class="t-key">self</span>._wake.<span class="t-fn">set</span>()
+        <span class="t-key">if</span> <span class="t-key">self</span>._worker <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+            <span class="t-key">self</span>._worker.<span class="t-fn">join</span>(timeout=<span class="t-num">0.2</span>)
+
+    <span class="t-com"># ---- the worker ------------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">_run</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">while</span> <span class="t-key">not</span> <span class="t-key">self</span>._stop.<span class="t-fn">is_set</span>():
+            <span class="t-key">try</span>:
+                <span class="t-key">self</span>.<span class="t-fn">step</span>()
+                <span class="t-key">self</span>.error = <span class="t-str">&#x27;&#x27;</span>
+                wait = <span class="t-key">self</span>.<span class="t-type">POLL_S</span>
+            <span class="t-key">except</span> <span class="t-type">Exception</span> <span class="t-key">as</span> exc:      <span class="t-com"># network, RPC or revert: show it and retry</span>
+                <span class="t-key">self</span>.error = <span class="t-fn">str</span>(exc)[:<span class="t-num">120</span>]
+                <span class="t-key">self</span>.status = <span class="t-str">&#x27;CHAIN UNREACHABLE / RETRYING&#x27;</span>
+                <span class="t-key">self</span>.busy = <span class="t-key">False</span>
+                wait = <span class="t-key">self</span>.<span class="t-type">RETRY_S</span>
+            <span class="t-key">self</span>._wake.<span class="t-fn">wait</span>(wait)
+            <span class="t-key">self</span>._wake.<span class="t-fn">clear</span>()
+
+    <span class="t-key">def</span> <span class="t-fn">step</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;One pass: finish any cash-out, then take the deposits that arrived.&quot;&quot;&quot;</span>
+        <span class="t-key">if</span> <span class="t-key">self</span>.last_block <span class="t-key">is</span> <span class="t-key">None</span>:
+            head = <span class="t-key">self</span>.chain.<span class="t-fn">block</span>()
+            <span class="t-key">with</span> <span class="t-key">self</span>.lock:
+                <span class="t-com"># USDC that reached the device before it first ran is not a deposit.</span>
+                <span class="t-key">self</span>.last_block = head
+                <span class="t-key">self</span>.<span class="t-fn">_save</span>()
+        <span class="t-key">if</span> <span class="t-key">not</span> <span class="t-key">self</span>.checked:
+            <span class="t-key">self</span>.<span class="t-fn">_drop_ended_sessions</span>()
+            <span class="t-key">self</span>.checked = <span class="t-key">True</span>
+        <span class="t-key">if</span> <span class="t-key">self</span>.pending_cashout <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+            <span class="t-key">self</span>.<span class="t-fn">_pay_out</span>()
+        head = <span class="t-key">self</span>.chain.<span class="t-fn">block</span>()
+        <span class="t-key">while</span> <span class="t-key">self</span>.last_block &lt; head:
+            last = <span class="t-fn">min</span>(head, <span class="t-key">self</span>.last_block + <span class="t-key">self</span>.<span class="t-type">MAX_RANGE</span>)
+            <span class="t-key">for</span> incoming <span class="t-key">in</span> <span class="t-key">self</span>.chain.<span class="t-fn">incoming</span>(<span class="t-key">self</span>.last_block + <span class="t-num">1</span>, last):
+                <span class="t-key">self</span>.<span class="t-fn">_take</span>(incoming)
+            <span class="t-key">with</span> <span class="t-key">self</span>.lock:
+                <span class="t-key">self</span>.last_block = last
+                <span class="t-key">self</span>.<span class="t-fn">_save</span>()
+        <span class="t-key">if</span> <span class="t-key">not</span> <span class="t-key">self</span>.busy:
+            <span class="t-key">self</span>.status = <span class="t-str">&#x27;IN PLAY&#x27;</span> <span class="t-key">if</span> <span class="t-key">self</span>.sessions <span class="t-key">else</span> <span class="t-str">&#x27;WAITING FOR USDC&#x27;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">_drop_ended_sessions</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;Forget sessions that ended while the device was off (a reclaim, say).&quot;&quot;&quot;</span>
+        still = [s <span class="t-key">for</span> s <span class="t-key">in</span> <span class="t-key">self</span>.sessions <span class="t-key">if</span> <span class="t-key">self</span>.chain.<span class="t-fn">session_open</span>(s.id)]
+        <span class="t-key">if</span> <span class="t-fn">len</span>(still) == <span class="t-fn">len</span>(<span class="t-key">self</span>.sessions):
+            <span class="t-key">return</span>
+        <span class="t-key">with</span> <span class="t-key">self</span>.lock:
+            <span class="t-key">self</span>.sessions = still
+            <span class="t-key">if</span> <span class="t-key">not</span> still <span class="t-key">and</span> <span class="t-key">self</span>.pending_cashout <span class="t-key">is</span> <span class="t-key">None</span>:
+                <span class="t-key">self</span>.balance = <span class="t-num">0</span>
+                <span class="t-key">self</span>.events.<span class="t-fn">put</span>((<span class="t-str">&#x27;ended&#x27;</span>,))
+            <span class="t-key">self</span>.<span class="t-fn">_save</span>()
+
+    <span class="t-key">def</span> <span class="t-fn">_take</span>(<span class="t-key">self</span>, incoming: <span class="t-type">Incoming</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">if</span> incoming.key <span class="t-key">in</span> <span class="t-key">self</span>.seen:
+            <span class="t-key">return</span>
+        <span class="t-key">if</span> incoming.sender.<span class="t-fn">lower</span>() <span class="t-key">in</span> (<span class="t-key">self</span>.net.escrow.<span class="t-fn">lower</span>(), <span class="t-key">self</span>.address.<span class="t-fn">lower</span>()):
+            <span class="t-key">self</span>.<span class="t-fn">_mark</span>(incoming.key)
+            <span class="t-key">return</span>
+        amount = incoming.amount - <span class="t-key">self</span>.gas_fee
+        <span class="t-key">if</span> amount &lt;= <span class="t-num">0</span>:
+            <span class="t-key">self</span>.<span class="t-fn">_mark</span>(incoming.key)     <span class="t-com"># too small to play with: it tops up the gas</span>
+            <span class="t-key">return</span>
+        tries = <span class="t-key">self</span>.tries.<span class="t-fn">get</span>(incoming.key, <span class="t-num">0</span>) + <span class="t-num">1</span>
+        <span class="t-key">self</span>.tries[incoming.key] = tries
+        <span class="t-key">if</span> tries &gt; <span class="t-key">self</span>.<span class="t-type">MAX_TRIES</span>:
+            <span class="t-key">self</span>.<span class="t-fn">_mark</span>(incoming.key)
+            <span class="t-key">self</span>.error = f<span class="t-str">&#x27;COULD NOT OPEN {incoming.key[:10]}; RECLAIM BY HAND&#x27;</span>
+            <span class="t-key">return</span>
+        <span class="t-key">self</span>.busy = <span class="t-key">True</span>
+        <span class="t-key">self</span>.status = <span class="t-str">&#x27;OPENING SESSION&#x27;</span>
+        house = <span class="t-key">self</span>.chain.<span class="t-fn">house</span>()
+        reserve = amount * house.win_cap_bps // <span class="t-num">10_000</span>
+        <span class="t-key">if</span> house.paused <span class="t-key">or</span> amount &gt; house.max_deposit <span class="t-key">or</span> reserve &gt; house.free:
+            <span class="t-com"># Money the house cannot back is sent straight back, not held.</span>
+            reason = (<span class="t-str">&#x27;HOUSE PAUSED&#x27;</span> <span class="t-key">if</span> house.paused <span class="t-key">else</span>
+                      <span class="t-str">&#x27;OVER MAX DEPOSIT&#x27;</span> <span class="t-key">if</span> amount &gt; house.max_deposit <span class="t-key">else</span> <span class="t-str">&#x27;HOUSE TOO SMALL&#x27;</span>)
+            tx = <span class="t-key">self</span>.chain.<span class="t-fn">transfer</span>(incoming.sender, amount)
+            <span class="t-key">with</span> <span class="t-key">self</span>.lock:
+                <span class="t-key">self</span>.<span class="t-fn">_mark</span>(incoming.key)
+                <span class="t-key">self</span>.events.<span class="t-fn">put</span>((<span class="t-str">&#x27;refunded&#x27;</span>, amount, incoming.sender, reason, tx))
+            <span class="t-key">self</span>.busy = <span class="t-key">False</span>
+            <span class="t-key">return</span>
+        <span class="t-key">if</span> <span class="t-key">self</span>.chain.<span class="t-fn">allowance</span>() &lt; amount:
+            <span class="t-key">self</span>.chain.<span class="t-fn">approve_escrow</span>()
+        sid, deposit, reserve, tx = <span class="t-key">self</span>.chain.<span class="t-fn">open_for</span>(incoming.sender, amount)
+        <span class="t-key">with</span> <span class="t-key">self</span>.lock:
+            <span class="t-key">self</span>.sessions.<span class="t-fn">append</span>(<span class="t-fn">Session</span>(sid, incoming.sender, deposit, reserve))
+            <span class="t-key">self</span>.balance += deposit
+            <span class="t-key">self</span>.<span class="t-fn">_mark</span>(incoming.key)
+            <span class="t-key">self</span>.events.<span class="t-fn">put</span>((<span class="t-str">&#x27;opened&#x27;</span>, deposit, incoming.sender, tx))
+        <span class="t-key">self</span>.last_deposit = (deposit, incoming.sender)
+        <span class="t-key">self</span>.busy = <span class="t-key">False</span>
+
+    <span class="t-key">def</span> <span class="t-fn">_pay_out</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;Close every open session, oldest first, until the final balance is paid.&quot;&quot;&quot;</span>
+        <span class="t-key">self</span>.busy = <span class="t-key">True</span>
+        <span class="t-key">self</span>.status = <span class="t-str">&#x27;CASHING OUT&#x27;</span>
+        paid: list[tuple[int, str, str]] = []
+        <span class="t-key">while</span> <span class="t-key">self</span>.sessions:
+            session = <span class="t-key">self</span>.sessions[<span class="t-num">0</span>]
+            remaining = <span class="t-key">self</span>.pending_cashout <span class="t-key">or</span> <span class="t-num">0</span>
+            payout, tx = <span class="t-num">0</span>, <span class="t-str">&#x27;&#x27;</span>
+            <span class="t-key">if</span> <span class="t-key">self</span>.chain.<span class="t-fn">session_open</span>(session.id):
+                payout, tx = <span class="t-key">self</span>.chain.<span class="t-fn">close</span>(session.id, <span class="t-fn">min</span>(remaining, session.cap))
+            <span class="t-key">with</span> <span class="t-key">self</span>.lock:
+                <span class="t-key">self</span>.sessions.<span class="t-fn">pop</span>(<span class="t-num">0</span>)
+                <span class="t-key">self</span>.pending_cashout = remaining - payout
+                <span class="t-key">self</span>.<span class="t-fn">_save</span>()
+            paid.<span class="t-fn">append</span>((payout, session.player, tx))
+        <span class="t-key">with</span> <span class="t-key">self</span>.lock:
+            <span class="t-key">self</span>.pending_cashout = <span class="t-key">None</span>
+            <span class="t-key">self</span>.<span class="t-fn">_save</span>()
+            <span class="t-key">self</span>.events.<span class="t-fn">put</span>((<span class="t-str">&#x27;cashed_out&#x27;</span>, paid))
+        <span class="t-key">if</span> paid:
+            <span class="t-key">self</span>.last_cashout = (<span class="t-fn">sum</span>(p <span class="t-key">for</span> p, _, _ <span class="t-key">in</span> paid), paid[-<span class="t-num">1</span>][<span class="t-num">1</span>], paid[-<span class="t-num">1</span>][<span class="t-num">2</span>])
+        <span class="t-key">self</span>.busy = <span class="t-key">False</span>
+
+    <span class="t-com"># ---- saved state -----------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">_mark</span>(<span class="t-key">self</span>, key: str) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;Remember a transfer as handled and save. Call with the lock held.&quot;&quot;&quot;</span>
+        <span class="t-key">self</span>.seen = (<span class="t-key">self</span>.seen + [key])[-<span class="t-key">self</span>.<span class="t-type">SEEN</span>:]
+        <span class="t-key">self</span>.tries.<span class="t-fn">pop</span>(key, <span class="t-key">None</span>)
+        <span class="t-key">self</span>.<span class="t-fn">_save</span>()
+
+    <span class="t-key">def</span> <span class="t-fn">_load</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">try</span>:
+            data = json.<span class="t-fn">loads</span>(<span class="t-key">self</span>.state_path.<span class="t-fn">read_text</span>())
+        <span class="t-key">except</span> (<span class="t-type">FileNotFoundError</span>, <span class="t-type">ValueError</span>):
+            <span class="t-key">return</span>
+        <span class="t-key">if</span> data.<span class="t-fn">get</span>(<span class="t-str">&#x27;escrow&#x27;</span>, <span class="t-str">&#x27;&#x27;</span>).<span class="t-fn">lower</span>() != <span class="t-key">self</span>.net.escrow.<span class="t-fn">lower</span>():
+            <span class="t-key">return</span>      <span class="t-com"># sessions on another escrow are not this one&#x27;s to close</span>
+        <span class="t-key">self</span>.sessions = [<span class="t-fn">Session</span>(**s) <span class="t-key">for</span> s <span class="t-key">in</span> data.<span class="t-fn">get</span>(<span class="t-str">&#x27;sessions&#x27;</span>, [])]
+        <span class="t-key">self</span>.balance = <span class="t-fn">int</span>(data.<span class="t-fn">get</span>(<span class="t-str">&#x27;balance&#x27;</span>, <span class="t-num">0</span>))
+        <span class="t-key">self</span>.last_block = data.<span class="t-fn">get</span>(<span class="t-str">&#x27;last_block&#x27;</span>)
+        <span class="t-key">self</span>.pending_cashout = data.<span class="t-fn">get</span>(<span class="t-str">&#x27;pending_cashout&#x27;</span>)
+        <span class="t-key">self</span>.seen = <span class="t-fn">list</span>(data.<span class="t-fn">get</span>(<span class="t-str">&#x27;seen&#x27;</span>, []))
+
+    <span class="t-key">def</span> <span class="t-fn">_save</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;Write the state atomically. Call with the lock held.&quot;&quot;&quot;</span>
+        data = {<span class="t-str">&#x27;escrow&#x27;</span>: <span class="t-key">self</span>.net.escrow, <span class="t-str">&#x27;device&#x27;</span>: <span class="t-key">self</span>.address,
+                <span class="t-str">&#x27;last_block&#x27;</span>: <span class="t-key">self</span>.last_block, <span class="t-str">&#x27;balance&#x27;</span>: <span class="t-key">self</span>.balance,
+                <span class="t-str">&#x27;pending_cashout&#x27;</span>: <span class="t-key">self</span>.pending_cashout,
+                <span class="t-str">&#x27;sessions&#x27;</span>: [<span class="t-fn">asdict</span>(s) <span class="t-key">for</span> s <span class="t-key">in</span> <span class="t-key">self</span>.sessions], <span class="t-str">&#x27;seen&#x27;</span>: <span class="t-key">self</span>.seen}
+        <span class="t-key">self</span>.state_dir.<span class="t-fn">mkdir</span>(mode=<span class="t-num">0o700</span>, parents=<span class="t-key">True</span>, exist_ok=<span class="t-key">True</span>)
+        tmp = <span class="t-key">self</span>.state_path.<span class="t-fn">with_suffix</span>(<span class="t-str">&#x27;.tmp&#x27;</span>)
+        tmp.<span class="t-fn">write_text</span>(json.<span class="t-fn">dumps</span>(data, indent=<span class="t-num">1</span>))
+        os.<span class="t-fn">replace</span>(tmp, <span class="t-key">self</span>.state_path)
+
+
+<span class="t-type">FUNDING_KINDS</span> = (<span class="t-str">&#x27;demo&#x27;</span>, <span class="t-str">&#x27;arc-testnet&#x27;</span>)
+
+
+<span class="t-key">def</span> <span class="t-fn">build_wallet</span>(kind: str | <span class="t-key">None</span> = <span class="t-key">None</span>, balance: int | <span class="t-key">None</span> = <span class="t-key">None</span>):
+    <span class="t-doc">&quot;&quot;&quot;The wallet named by TICK_FUNDING: paper by default, real USDC on request.&quot;&quot;&quot;</span>
+    <span class="t-key">from</span> .money <span class="t-key">import</span> <span class="t-type">MICRO</span>, <span class="t-type">DemoFunding</span>, <span class="t-type">Wallet</span>
+    kind = (kind <span class="t-key">or</span> os.environ.<span class="t-fn">get</span>(<span class="t-str">&#x27;TICK_FUNDING&#x27;</span>, <span class="t-str">&#x27;demo&#x27;</span>)).<span class="t-fn">strip</span>()
+    <span class="t-key">if</span> kind <span class="t-key">not</span> <span class="t-key">in</span> <span class="t-type">FUNDING_KINDS</span>:
+        <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(f<span class="t-str">&quot;TICK_FUNDING must be one of {&#x27;, &#x27;.join(FUNDING_KINDS)}&quot;</span>)
+    <span class="t-key">if</span> kind == <span class="t-str">&#x27;demo&#x27;</span>:
+        <span class="t-key">return</span> <span class="t-fn">Wallet</span>(<span class="t-num">100</span> * <span class="t-type">MICRO</span> <span class="t-key">if</span> balance <span class="t-key">is</span> <span class="t-key">None</span> <span class="t-key">else</span> balance, <span class="t-fn">DemoFunding</span>())
+    funding = <span class="t-fn">EscrowFunding</span>(kind)
+    <span class="t-key">return</span> <span class="t-fn">Wallet</span>(funding.balance, funding)
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

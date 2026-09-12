@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tests/test_escrow.py - TICK SDK</title>
+<meta name="description" content="Source of tests/test_escrow.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">test_escrow.py<a class="anchor" href="#top">#</a></h1><p class="path">tests/test_escrow.py &middot; 218 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span><span>128</span><span>129</span><span>130</span><span>131</span><span>132</span><span>133</span><span>134</span><span>135</span><span>136</span><span>137</span><span>138</span><span>139</span><span>140</span><span>141</span><span>142</span><span>143</span><span>144</span><span>145</span><span>146</span><span>147</span><span>148</span><span>149</span><span>150</span><span>151</span><span>152</span><span>153</span><span>154</span><span>155</span><span>156</span><span>157</span><span>158</span><span>159</span><span>160</span><span>161</span><span>162</span><span>163</span><span>164</span><span>165</span><span>166</span><span>167</span><span>168</span><span>169</span><span>170</span><span>171</span><span>172</span><span>173</span><span>174</span><span>175</span><span>176</span><span>177</span><span>178</span><span>179</span><span>180</span><span>181</span><span>182</span><span>183</span><span>184</span><span>185</span><span>186</span><span>187</span><span>188</span><span>189</span><span>190</span><span>191</span><span>192</span><span>193</span><span>194</span><span>195</span><span>196</span><span>197</span><span>198</span><span>199</span><span>200</span><span>201</span><span>202</span><span>203</span><span>204</span><span>205</span><span>206</span><span>207</span><span>208</span><span>209</span><span>210</span><span>211</span><span>212</span><span>213</span><span>214</span><span>215</span><span>216</span><span>217</span><span>218</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;The real-money state machine, with a fake chain: no network, no keys.
+
+This is the point of keeping every on-chain call behind `Chain`. The rules that
+decide whether a player&#x27;s deposit becomes a session, and whether their winnings
+come back, are testable on a laptop in milliseconds.
+&quot;&quot;&quot;</span>
+<span class="t-key">import</span> tempfile
+<span class="t-key">import</span> unittest
+<span class="t-key">from</span> pathlib <span class="t-key">import</span> <span class="t-type">Path</span>
+
+<span class="t-key">from</span> tick.chain <span class="t-key">import</span> <span class="t-type">House</span>, <span class="t-type">Incoming</span>
+<span class="t-key">from</span> tick.escrow <span class="t-key">import</span> <span class="t-type">EscrowFunding</span>, <span class="t-type">Session</span>
+<span class="t-key">from</span> tick.money <span class="t-key">import</span> <span class="t-type">MICRO</span>, <span class="t-type">Wallet</span>
+
+
+<span class="t-key">class</span> <span class="t-type">FakeChain</span>:
+    <span class="t-doc">&quot;&quot;&quot;Everything `Chain` does, in memory.&quot;&quot;&quot;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, free=<span class="t-num">10_000</span> * <span class="t-type">MICRO</span>, cap_bps=<span class="t-num">40_000</span>, most=<span class="t-num">25</span> * <span class="t-type">MICRO</span>, paused=<span class="t-key">False</span>):
+        <span class="t-key">self</span>.address = <span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;11&#x27;</span> * <span class="t-num">20</span>
+        <span class="t-key">self</span>.head = <span class="t-num">100</span>
+        <span class="t-key">self</span>.log: list[tuple[int, <span class="t-type">Incoming</span>]] = []
+        <span class="t-key">self</span>.opened: list[tuple] = []
+        <span class="t-key">self</span>.closed: list[tuple] = []
+        <span class="t-key">self</span>.sent_back: list[tuple] = []
+        <span class="t-key">self</span>.approved = <span class="t-key">False</span>
+        <span class="t-key">self</span>._allowance = <span class="t-num">0</span>
+        <span class="t-key">self</span>.house_state = <span class="t-fn">House</span>(free, cap_bps, most, paused)
+        <span class="t-key">self</span>.open_ids: set[int] = <span class="t-fn">set</span>()
+        <span class="t-key">self</span>.next_id = <span class="t-num">1</span>
+
+    <span class="t-key">def</span> <span class="t-fn">block</span>(<span class="t-key">self</span>): <span class="t-key">return</span> <span class="t-key">self</span>.head
+    <span class="t-key">def</span> <span class="t-fn">send</span>(<span class="t-key">self</span>, sender, amount, key=<span class="t-key">None</span>):
+        <span class="t-doc">&quot;&quot;&quot;A USDC transfer into the device, in the next block.&quot;&quot;&quot;</span>
+        <span class="t-key">self</span>.head += <span class="t-num">1</span>
+        <span class="t-key">self</span>.log.<span class="t-fn">append</span>((<span class="t-key">self</span>.head, <span class="t-fn">Incoming</span>(sender, amount, key <span class="t-key">or</span> f<span class="t-str">&#x27;0xtx{len(self.log)}:0&#x27;</span>)))
+    <span class="t-key">def</span> <span class="t-fn">incoming</span>(<span class="t-key">self</span>, first, last):
+        <span class="t-key">return</span> [i <span class="t-key">for</span> block, i <span class="t-key">in</span> <span class="t-key">self</span>.log <span class="t-key">if</span> first &lt;= block &lt;= last]
+    <span class="t-key">def</span> <span class="t-fn">house</span>(<span class="t-key">self</span>): <span class="t-key">return</span> <span class="t-key">self</span>.house_state
+    <span class="t-key">def</span> <span class="t-fn">allowance</span>(<span class="t-key">self</span>): <span class="t-key">return</span> <span class="t-key">self</span>._allowance
+    <span class="t-key">def</span> <span class="t-fn">approve_escrow</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.approved, <span class="t-key">self</span>._allowance = <span class="t-key">True</span>, <span class="t-num">2</span> ** <span class="t-num">256</span> - <span class="t-num">1</span>
+        <span class="t-key">return</span> <span class="t-str">&#x27;0xapprove&#x27;</span>
+    <span class="t-key">def</span> <span class="t-fn">session_open</span>(<span class="t-key">self</span>, sid): <span class="t-key">return</span> sid <span class="t-key">in</span> <span class="t-key">self</span>.open_ids
+    <span class="t-key">def</span> <span class="t-fn">open_for</span>(<span class="t-key">self</span>, player, amount):
+        sid, <span class="t-key">self</span>.next_id = <span class="t-key">self</span>.next_id, <span class="t-key">self</span>.next_id + <span class="t-num">1</span>
+        reserve = amount * <span class="t-key">self</span>.house_state.win_cap_bps // <span class="t-num">10_000</span>
+        <span class="t-key">self</span>.open_ids.<span class="t-fn">add</span>(sid)
+        <span class="t-key">self</span>.opened.<span class="t-fn">append</span>((sid, player, amount))
+        <span class="t-key">return</span> sid, amount, reserve, f<span class="t-str">&#x27;0xopen{sid}&#x27;</span>
+    <span class="t-key">def</span> <span class="t-fn">close</span>(<span class="t-key">self</span>, sid, final):
+        <span class="t-key">self</span>.open_ids.<span class="t-fn">discard</span>(sid)
+        <span class="t-key">self</span>.closed.<span class="t-fn">append</span>((sid, final))
+        <span class="t-key">return</span> final, f<span class="t-str">&#x27;0xclose{sid}&#x27;</span>
+    <span class="t-key">def</span> <span class="t-fn">transfer</span>(<span class="t-key">self</span>, to, amount):
+        <span class="t-key">self</span>.sent_back.<span class="t-fn">append</span>((to, amount))
+        <span class="t-key">return</span> <span class="t-str">&#x27;0xrefund&#x27;</span>
+
+
+<span class="t-key">class</span> <span class="t-fn">EscrowCase</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">funding</span>(<span class="t-key">self</span>, chain=<span class="t-key">None</span>, **kwargs):
+        <span class="t-key">self</span>.folder = tempfile.<span class="t-fn">TemporaryDirectory</span>()
+        <span class="t-key">self</span>.<span class="t-fn">addCleanup</span>(<span class="t-key">self</span>.folder.cleanup)
+        chain = chain <span class="t-key">or</span> <span class="t-fn">FakeChain</span>()
+        <span class="t-key">return</span> <span class="t-fn">EscrowFunding</span>(<span class="t-str">&#x27;arc-testnet&#x27;</span>, chain=chain, state_dir=<span class="t-fn">Path</span>(<span class="t-key">self</span>.folder.name),
+                             gas_fee=<span class="t-num">10_000</span>, start=<span class="t-key">False</span>, **kwargs), chain
+
+
+<span class="t-key">class</span> <span class="t-fn">TestDeposits</span>(<span class="t-type">EscrowCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_a_deposit_opens_a_session_in_the_senders_name</span>(<span class="t-key">self</span>):
+        funding, chain = <span class="t-key">self</span>.<span class="t-fn">funding</span>()
+        player = <span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;ab&#x27;</span> * <span class="t-num">20</span>
+        funding.<span class="t-fn">step</span>()                       <span class="t-com"># first pass just marks where to read from</span>
+        chain.<span class="t-fn">send</span>(player, <span class="t-num">5</span> * <span class="t-type">MICRO</span>)
+        funding.<span class="t-fn">step</span>()
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">len</span>(chain.opened), <span class="t-num">1</span>)
+        sid, opened_for, amount = chain.opened[<span class="t-num">0</span>]
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(opened_for, player)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(amount, <span class="t-num">5</span> * <span class="t-type">MICRO</span> - <span class="t-num">10_000</span>)     <span class="t-com"># the gas fee is kept</span>
+        <span class="t-key">self</span>.<span class="t-fn">assertTrue</span>(chain.approved)
+
+    <span class="t-key">def</span> <span class="t-fn">test_the_same_transfer_is_never_taken_twice</span>(<span class="t-key">self</span>):
+        funding, chain = <span class="t-key">self</span>.<span class="t-fn">funding</span>()
+        funding.<span class="t-fn">step</span>()
+        chain.<span class="t-fn">send</span>(<span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;ab&#x27;</span> * <span class="t-num">20</span>, <span class="t-num">5</span> * <span class="t-type">MICRO</span>)
+        funding.<span class="t-fn">step</span>()
+        funding.last_block -= <span class="t-num">5</span>              <span class="t-com"># as a retried range would</span>
+        funding.<span class="t-fn">step</span>()
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">len</span>(chain.opened), <span class="t-num">1</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_dust_below_the_gas_fee_is_kept_not_opened</span>(<span class="t-key">self</span>):
+        funding, chain = <span class="t-key">self</span>.<span class="t-fn">funding</span>()
+        funding.<span class="t-fn">step</span>()
+        chain.<span class="t-fn">send</span>(<span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;ab&#x27;</span> * <span class="t-num">20</span>, <span class="t-num">5_000</span>)
+        funding.<span class="t-fn">step</span>()
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(chain.opened, [])
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(chain.sent_back, [])
+
+    <span class="t-key">def</span> <span class="t-fn">test_money_the_house_cannot_back_goes_straight_home</span>(<span class="t-key">self</span>):
+        funding, chain = <span class="t-key">self</span>.<span class="t-fn">funding</span>(<span class="t-fn">FakeChain</span>(free=<span class="t-num">1</span>))
+        player = <span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;ab&#x27;</span> * <span class="t-num">20</span>
+        funding.<span class="t-fn">step</span>()
+        chain.<span class="t-fn">send</span>(player, <span class="t-num">5</span> * <span class="t-type">MICRO</span>)
+        funding.<span class="t-fn">step</span>()
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(chain.opened, [])
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(chain.sent_back, [(player, <span class="t-num">5</span> * <span class="t-type">MICRO</span> - <span class="t-num">10_000</span>)])
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_deposit_over_the_maximum_goes_straight_home</span>(<span class="t-key">self</span>):
+        funding, chain = <span class="t-key">self</span>.<span class="t-fn">funding</span>(<span class="t-fn">FakeChain</span>(most=<span class="t-type">MICRO</span>))
+        player = <span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;ab&#x27;</span> * <span class="t-num">20</span>
+        funding.<span class="t-fn">step</span>()
+        chain.<span class="t-fn">send</span>(player, <span class="t-num">5</span> * <span class="t-type">MICRO</span>)
+        funding.<span class="t-fn">step</span>()
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(chain.opened, [])
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">len</span>(chain.sent_back), <span class="t-num">1</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_the_device_ignores_money_from_itself</span>(<span class="t-key">self</span>):
+        funding, chain = <span class="t-key">self</span>.<span class="t-fn">funding</span>()
+        funding.<span class="t-fn">step</span>()
+        chain.<span class="t-fn">send</span>(chain.address, <span class="t-num">5</span> * <span class="t-type">MICRO</span>)
+        funding.<span class="t-fn">step</span>()
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(chain.opened, [])
+
+
+<span class="t-key">class</span> <span class="t-fn">TestBalanceAndCap</span>(<span class="t-type">EscrowCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_an_opened_session_credits_the_wallet_and_sets_a_cap</span>(<span class="t-key">self</span>):
+        funding, chain = <span class="t-key">self</span>.<span class="t-fn">funding</span>()
+        funding.<span class="t-fn">step</span>()
+        chain.<span class="t-fn">send</span>(<span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;ab&#x27;</span> * <span class="t-num">20</span>, <span class="t-num">5</span> * <span class="t-type">MICRO</span>)
+        funding.<span class="t-fn">step</span>()
+        wallet = <span class="t-fn">Wallet</span>(<span class="t-num">0</span>, funding)
+        funding.<span class="t-fn">sync</span>(wallet)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(wallet.balance, <span class="t-num">5</span> * <span class="t-type">MICRO</span> - <span class="t-num">10_000</span>)
+        <span class="t-com"># deposit + reserve: what the escrow will actually pay out.</span>
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(wallet.cap, funding.sessions[<span class="t-num">0</span>].cap)
+        <span class="t-key">self</span>.<span class="t-fn">assertGreater</span>(wallet.cap, wallet.balance)
+
+    <span class="t-key">def</span> <span class="t-fn">test_no_session_means_no_cap_so_demo_play_is_unlimited</span>(<span class="t-key">self</span>):
+        funding, _ = <span class="t-key">self</span>.<span class="t-fn">funding</span>()
+        <span class="t-key">self</span>.<span class="t-fn">assertIsNone</span>(funding.cap)
+
+
+<span class="t-key">class</span> <span class="t-fn">TestCashOut</span>(<span class="t-type">EscrowCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_cashing_out_closes_the_session_and_pays_the_final_balance</span>(<span class="t-key">self</span>):
+        funding, chain = <span class="t-key">self</span>.<span class="t-fn">funding</span>()
+        funding.<span class="t-fn">step</span>()
+        chain.<span class="t-fn">send</span>(<span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;ab&#x27;</span> * <span class="t-num">20</span>, <span class="t-num">5</span> * <span class="t-type">MICRO</span>)
+        funding.<span class="t-fn">step</span>()
+        wallet = <span class="t-fn">Wallet</span>(<span class="t-num">0</span>, funding)
+        funding.<span class="t-fn">sync</span>(wallet)
+        wallet.<span class="t-fn">credit</span>(<span class="t-num">2</span> * <span class="t-type">MICRO</span>)              <span class="t-com"># won some</span>
+        funding.<span class="t-fn">sync</span>(wallet)
+        final = wallet.balance
+        <span class="t-key">self</span>.<span class="t-fn">assertTrue</span>(funding.<span class="t-fn">cash_out</span>(wallet))
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(wallet.balance, <span class="t-num">0</span>)
+        funding.<span class="t-fn">step</span>()
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(chain.closed, [(<span class="t-num">1</span>, final)])
+        <span class="t-key">self</span>.<span class="t-fn">assertIsNone</span>(funding.pending_cashout)
+
+    <span class="t-key">def</span> <span class="t-fn">test_cashing_out_with_nothing_open_does_nothing</span>(<span class="t-key">self</span>):
+        funding, _ = <span class="t-key">self</span>.<span class="t-fn">funding</span>()
+        <span class="t-key">self</span>.<span class="t-fn">assertFalse</span>(funding.<span class="t-fn">cash_out</span>(<span class="t-fn">Wallet</span>(<span class="t-num">0</span>, funding)))
+
+    <span class="t-key">def</span> <span class="t-fn">test_an_interrupted_cash_out_finishes_on_the_next_run</span>(<span class="t-key">self</span>):
+        funding, chain = <span class="t-key">self</span>.<span class="t-fn">funding</span>()
+        funding.<span class="t-fn">step</span>()
+        chain.<span class="t-fn">send</span>(<span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;ab&#x27;</span> * <span class="t-num">20</span>, <span class="t-num">5</span> * <span class="t-type">MICRO</span>)
+        funding.<span class="t-fn">step</span>()
+        wallet = <span class="t-fn">Wallet</span>(<span class="t-num">0</span>, funding)
+        funding.<span class="t-fn">sync</span>(wallet)
+        funding.<span class="t-fn">cash_out</span>(wallet)
+        <span class="t-com"># Restart from the saved state, as a power cut would.</span>
+        again = <span class="t-fn">EscrowFunding</span>(<span class="t-str">&#x27;arc-testnet&#x27;</span>, chain=chain, state_dir=funding.state_dir,
+                              gas_fee=<span class="t-num">10_000</span>, start=<span class="t-key">False</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertIsNotNone</span>(again.pending_cashout)
+        again.<span class="t-fn">step</span>()
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">len</span>(chain.closed), <span class="t-num">1</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_session_closed_while_the_device_was_off_is_forgotten</span>(<span class="t-key">self</span>):
+        funding, chain = <span class="t-key">self</span>.<span class="t-fn">funding</span>()
+        funding.sessions = [<span class="t-fn">Session</span>(<span class="t-num">9</span>, <span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;ab&#x27;</span> * <span class="t-num">20</span>, <span class="t-type">MICRO</span>, <span class="t-type">MICRO</span>)]
+        funding.balance = <span class="t-type">MICRO</span>
+        funding.<span class="t-fn">step</span>()                        <span class="t-com"># session 9 is not open on chain</span>
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(funding.sessions, [])
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(funding.balance, <span class="t-num">0</span>)
+
+
+<span class="t-key">class</span> <span class="t-fn">TestState</span>(<span class="t-type">EscrowCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_state_survives_a_restart</span>(<span class="t-key">self</span>):
+        funding, chain = <span class="t-key">self</span>.<span class="t-fn">funding</span>()
+        funding.<span class="t-fn">step</span>()
+        chain.<span class="t-fn">send</span>(<span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;ab&#x27;</span> * <span class="t-num">20</span>, <span class="t-num">5</span> * <span class="t-type">MICRO</span>)
+        funding.<span class="t-fn">step</span>()
+        again = <span class="t-fn">EscrowFunding</span>(<span class="t-str">&#x27;arc-testnet&#x27;</span>, chain=chain, state_dir=funding.state_dir,
+                              gas_fee=<span class="t-num">10_000</span>, start=<span class="t-key">False</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">len</span>(again.sessions), <span class="t-num">1</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(again.balance, funding.balance)
+
+    <span class="t-key">def</span> <span class="t-fn">test_state_from_another_escrow_is_ignored</span>(<span class="t-key">self</span>):
+        funding, chain = <span class="t-key">self</span>.<span class="t-fn">funding</span>()
+        funding.<span class="t-fn">step</span>()
+        chain.<span class="t-fn">send</span>(<span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;ab&#x27;</span> * <span class="t-num">20</span>, <span class="t-num">5</span> * <span class="t-type">MICRO</span>)
+        funding.<span class="t-fn">step</span>()
+        <span class="t-key">import</span> json
+        data = json.<span class="t-fn">loads</span>(funding.state_path.<span class="t-fn">read_text</span>())
+        data[<span class="t-str">&#x27;escrow&#x27;</span>] = <span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;ff&#x27;</span> * <span class="t-num">20</span>
+        funding.state_path.<span class="t-fn">write_text</span>(json.<span class="t-fn">dumps</span>(data))
+        again = <span class="t-fn">EscrowFunding</span>(<span class="t-str">&#x27;arc-testnet&#x27;</span>, chain=chain, state_dir=funding.state_dir,
+                              gas_fee=<span class="t-num">10_000</span>, start=<span class="t-key">False</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(again.sessions, [])
+
+    <span class="t-key">def</span> <span class="t-fn">test_the_qr_code_is_an_eip_681_send_to_the_device</span>(<span class="t-key">self</span>):
+        funding, chain = <span class="t-key">self</span>.<span class="t-fn">funding</span>()
+        <span class="t-key">self</span>.<span class="t-fn">assertTrue</span>(funding.qr_text.<span class="t-fn">startswith</span>(f<span class="t-str">&#x27;ethereum:{chain.address}@&#x27;</span>))
+
+
+<span class="t-key">if</span> __name__ == <span class="t-str">&#x27;__main__&#x27;</span>:
+    unittest.<span class="t-fn">main</span>()
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

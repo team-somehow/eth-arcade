@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>examples/coinflip.py - TICK SDK</title>
+<meta name="description" content="Source of examples/coinflip.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html" class="on">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">coinflip.py<a class="anchor" href="#top">#</a></h1><p class="path">examples/coinflip.py &middot; 82 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;COINFLIP -- the smallest real game on this SDK. Up or down at the bell.
+
+Run:  python examples/coinflip.py
+      TICK_MARKET_SOURCE=coinbase python examples/coinflip.py
+
+There is no aim, no geometry and no chart: pick a side, press A, and the round
+settles on which side of the opening price the market closed. It exists to show
+how little a game has to do -- the feed, the clock, the odds, the wallet and the
+payout are all the SDK&#x27;s.
+
+Note what the odds do. A coin flip on a price is very close to 50/50, so the
+quote sits a hair under 2x and *moves with the market*: when volatility drops
+the two sides stop being equally likely to move far, but they stay equally
+likely to be up or down, so the price barely shifts. That is the honest answer,
+and it is computed, not typed in.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> tick <span class="t-key">import</span> <span class="t-type">Game</span>, run
+<span class="t-key">from</span> tick.hud <span class="t-key">import</span> clear, draw_clock, draw_hud
+<span class="t-key">from</span> tick.ui <span class="t-key">import</span> <span class="t-type">CREAM</span>, <span class="t-type">MINT</span>, <span class="t-type">MUTED</span>, <span class="t-type">RED</span>, <span class="t-type">YELLOW</span>, say
+
+<span class="t-type">FAR</span> = <span class="t-num">10</span> ** <span class="t-num">9</span>      <span class="t-com"># &quot;anything above/below&quot;: a one-sided range</span>
+
+
+<span class="t-key">class</span> <span class="t-fn">Coinflip</span>(<span class="t-type">Game</span>):
+    title = <span class="t-str">&#x27;COINFLIP&#x27;</span>
+    window_s = <span class="t-num">10.0</span>
+    arm_s = <span class="t-num">1.0</span>
+
+    <span class="t-key">def</span> <span class="t-fn">setup</span>(<span class="t-key">self</span>, ctx):
+        <span class="t-key">self</span>.pick = <span class="t-str">&#x27;UP&#x27;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">range_for</span>(<span class="t-key">self</span>, ctx, side):
+        <span class="t-doc">&quot;&quot;&quot;UP is everything above the round&#x27;s opening price; DOWN is below it.&quot;&quot;&quot;</span>
+        anchor = ctx.open_price
+        <span class="t-key">return</span> (anchor, <span class="t-type">FAR</span>) <span class="t-key">if</span> side == <span class="t-str">&#x27;UP&#x27;</span> <span class="t-key">else</span> (<span class="t-num">0.0</span>, anchor)
+
+    <span class="t-key">def</span> <span class="t-fn">on_action</span>(<span class="t-key">self</span>, ctx, action):
+        <span class="t-key">if</span> action.name == <span class="t-str">&#x27;B&#x27;</span>:
+            <span class="t-key">return</span> <span class="t-str">&#x27;quit&#x27;</span>
+        <span class="t-key">if</span> action.name <span class="t-key">in</span> (<span class="t-str">&#x27;UP&#x27;</span>, <span class="t-str">&#x27;DOWN&#x27;</span>):
+            <span class="t-key">if</span> <span class="t-key">self</span>.pick != action.name:
+                <span class="t-key">self</span>.pick = action.name
+                ctx.<span class="t-fn">play</span>(<span class="t-str">&#x27;nav&#x27;</span>)
+        <span class="t-key">elif</span> action.name == <span class="t-str">&#x27;A&#x27;</span>:
+            low, high = <span class="t-key">self</span>.<span class="t-fn">range_for</span>(ctx, <span class="t-key">self</span>.pick)
+            <span class="t-key">if</span> ctx.<span class="t-fn">bet</span>(low, high, label=<span class="t-key">self</span>.pick) <span class="t-key">is</span> <span class="t-key">None</span>:
+                ctx.<span class="t-fn">note</span>(ctx.refused <span class="t-key">or</span> <span class="t-str">&#x27;NO BET&#x27;</span>)
+                ctx.<span class="t-fn">play</span>(<span class="t-str">&#x27;warn&#x27;</span>)
+            <span class="t-key">else</span>:
+                ctx.<span class="t-fn">play</span>(<span class="t-str">&#x27;buy1&#x27;</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">on_touch</span>(<span class="t-key">self</span>, ctx, pos):
+        <span class="t-key">self</span>.pick = <span class="t-str">&#x27;UP&#x27;</span> <span class="t-key">if</span> pos[<span class="t-num">1</span>] &lt; <span class="t-num">160</span> <span class="t-key">else</span> <span class="t-str">&#x27;DOWN&#x27;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">draw</span>(<span class="t-key">self</span>, ctx, screen):
+        <span class="t-fn">clear</span>(screen)
+        <span class="t-fn">draw_clock</span>(ctx, screen, y=<span class="t-num">34</span>)
+        <span class="t-key">for</span> index, side <span class="t-key">in</span> <span class="t-fn">enumerate</span>((<span class="t-str">&#x27;UP&#x27;</span>, <span class="t-str">&#x27;DOWN&#x27;</span>)):
+            low, high = <span class="t-key">self</span>.<span class="t-fn">range_for</span>(ctx, side)
+            y = <span class="t-num">80</span> + index * <span class="t-num">84</span>
+            chosen = <span class="t-key">self</span>.pick == side
+            colour = <span class="t-type">YELLOW</span> <span class="t-key">if</span> chosen <span class="t-key">else</span> <span class="t-type">MUTED</span>
+            screen.<span class="t-fn">fill</span>((<span class="t-num">22</span>, <span class="t-num">40</span>, <span class="t-num">51</span>), (<span class="t-num">60</span>, y, <span class="t-num">360</span>, <span class="t-num">70</span>))
+            <span class="t-key">if</span> chosen:
+                screen.<span class="t-fn">fill</span>(colour, (<span class="t-num">60</span>, y, <span class="t-num">4</span>, <span class="t-num">70</span>))
+            <span class="t-fn">say</span>(screen, side, <span class="t-num">84</span>, y + <span class="t-num">12</span>, <span class="t-num">26</span>, colour)
+            <span class="t-fn">say</span>(screen, f<span class="t-str">&#x27;{ctx.quote(low, high):.2f}x&#x27;</span>, <span class="t-num">300</span>, y + <span class="t-num">16</span>, <span class="t-num">22</span>, <span class="t-type">CREAM</span>)
+            staked = <span class="t-fn">sum</span>(bet.stake <span class="t-key">for</span> bet <span class="t-key">in</span> ctx.live_bets <span class="t-key">if</span> bet.label == side)
+            <span class="t-key">if</span> staked:
+                <span class="t-fn">say</span>(screen, f<span class="t-str">&#x27;{ctx.usdc(staked)} ON&#x27;</span>, <span class="t-num">84</span>, y + <span class="t-num">44</span>, <span class="t-num">15</span>, <span class="t-type">MINT</span>)
+
+        last = ctx.book.last
+        <span class="t-key">if</span> last <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+            word = <span class="t-str">&#x27;VOID&#x27;</span> <span class="t-key">if</span> last.voided <span class="t-key">else</span> (<span class="t-str">&#x27;WON&#x27;</span> <span class="t-key">if</span> last.hit <span class="t-key">else</span> <span class="t-str">&#x27;LOST&#x27;</span>)
+            colour = <span class="t-type">MUTED</span> <span class="t-key">if</span> last.voided <span class="t-key">else</span> (<span class="t-type">MINT</span> <span class="t-key">if</span> last.hit <span class="t-key">else</span> <span class="t-type">RED</span>)
+            <span class="t-fn">say</span>(screen, f<span class="t-str">&#x27;{word} {ctx.usdc(abs(last.net))}&#x27;</span>, <span class="t-num">240</span>, <span class="t-num">248</span>, <span class="t-num">18</span>, colour, center=<span class="t-key">True</span>)
+
+        <span class="t-fn">draw_hud</span>(ctx, screen, back=<span class="t-str">&#x27;QUIT&#x27;</span>, go=<span class="t-str">&#x27;BUY&#x27;</span>)
+
+
+<span class="t-key">if</span> __name__ == <span class="t-str">&#x27;__main__&#x27;</span>:
+    <span class="t-fn">run</span>(<span class="t-fn">Coinflip</span>())
+</code></pre></div></div></article>
+    <nav class="pager"><a class="prev" href="docs-site.html"><span>Previous</span>This site</a><a class="next" href="src-examples-ladder.html"><span>Next</span>Ladder</a></nav>
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The plan - TICK SDK</title>
+<meta name="description" content="First principles, the rules and what each one cost, and the build order.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html" class="on">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="the-plan">The plan<a class="anchor" href="#the-plan" aria-label="Link">#</a></h1>
+<p>What this SDK is, why each piece exists, and the order to build or extend it in.</p>
+<p>Written to be read top to bottom in about fifteen minutes. Every claim has a runnable example; every rule has the bug that taught it.</p>
+<hr>
+<h2 id="part-1-first-principles">Part 1 — First principles<a class="anchor" href="#part-1-first-principles" aria-label="Link">#</a></h2>
+<p>Seven questions. Answer them and the architecture falls out.</p>
+<h3 id="1-what-is-a-game-on-this-device">1. What is a game on this device?<a class="anchor" href="#1-what-is-a-game-on-this-device" aria-label="Link">#</a></h3>
+<p><strong>A claim about where a number will be at a known moment, backed by money.</strong></p>
+<p>That is it. A box on a price ladder, an over/under, a coin flip, a hi-lo — all the same claim with different clothes. So the SDK has exactly one bet type: a <strong>price range</strong> and a <strong>round</strong> it settles at.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>ctx.<span class="t-fn">bet</span>(low=<span class="t-num">2499.0</span>, high=<span class="t-num">2501.0</span>)      <span class="t-com"># a box</span>
+ctx.<span class="t-fn">bet</span>(ctx.open_price, <span class="t-num">1e9</span>)          <span class="t-com"># &quot;up&quot;: a one-sided range</span>
+ctx.<span class="t-fn">bet</span>(<span class="t-num">0.0</span>, ctx.open_price)          <span class="t-com"># &quot;down&quot;</span></code></pre></div>
+<p>Your game decides which range the player is pointing at, and what it looks like. Nothing else about a game is the SDK&#x27;s business.</p>
+<h3 id="2-where-does-the-number-come-from">2. Where does the number come from?<a class="anchor" href="#2-where-does-the-number-come-from" aria-label="Link">#</a></h3>
+<p><strong>From somewhere real, and it must carry its own age.</strong></p>
+<p>A float cannot tell you when it was true. Settle money on one and you will eventually settle on a number from four minutes ago. So every feed produces a <code>PriceTick</code>:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">PriceTick</span>(price=<span class="t-num">2500.12</span>, sequence=<span class="t-num">417</span>, received_at=<span class="t-num">10234.5</span>, source_age=<span class="t-num">0.8</span>)
+tick.<span class="t-fn">age</span>(now)      <span class="t-com"># time since arrival + how old it already was</span></code></pre></div>
+<p><code>source_age</code> is what makes a chain block honest: a block two seconds old <em>is</em> two seconds old, and the game must know that before it settles on it.</p>
+<p>Four sources, one seam:</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-type">TICK_MARKET_SOURCE</span>=sim<span class="t-com">         # seeded random walk, no network        (default)</span>
+<span class="t-type">TICK_MARKET_SOURCE</span>=coinbase<span class="t-com">    # live public ticker at 5 Hz</span>
+<span class="t-type">TICK_MARKET_SOURCE</span>=substreams<span class="t-com">  # on-chain pools, one tick per block</span>
+<span class="t-type">TICK_MARKET_SOURCE</span>=replay<span class="t-com">      # a market you recorded earlier</span></code></pre></div>
+<p>Your game reads <code>ctx.price</code> and never knows which. That is the only reason it can be developed on a laptop, tested deterministically, and demoed on-chain.</p>
+<h3 id="3-what-is-a-fair-price-for-a-bet">3. What is a fair price for a bet?<a class="anchor" href="#3-what-is-a-fair-price-for-a-bet" aria-label="Link">#</a></h3>
+<p><strong>One over the chance of winning.</strong> Everything else is decoration.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>chance   = market.<span class="t-fn">probability</span>(low, high, horizon)     <span class="t-com"># normal CDF over the range</span>
+multiple = (<span class="t-num">1</span> - edge) / chance                        <span class="t-com"># capped, floored</span></code></pre></div>
+<p>Over a short horizon a price is a random walk in log space, and distance travelled grows with the <strong>square root</strong> of time, not with time. So:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>sigma_10s = price * <span class="t-fn">sqrt</span>(variance_per_second * <span class="t-num">10</span>)</code></pre></div>
+<p>A one-sigma-wide band is about a 68% shot, so it pays about 1.47x. A box a long way out is a long shot and pays accordingly. Nothing is typed into a table; every number is computed from what the market is doing right now.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>&gt;&gt;&gt; h = <span class="t-fn">Harness</span>(<span class="t-fn">MyGame</span>(), seed=<span class="t-num">7</span>).<span class="t-fn">warm</span>(<span class="t-num">25</span>)
+&gt;&gt;&gt; half = h.price * <span class="t-num">0.0002</span>              <span class="t-com"># a box 4 bps tall, on $2,500 ETH</span>
+&gt;&gt;&gt; h.ctx.<span class="t-fn">quote</span>(h.price - half, h.price + half)          <span class="t-com"># on spot</span>
+<span class="t-num">2.39</span>
+&gt;&gt;&gt; h.ctx.<span class="t-fn">quote</span>(h.price + half, h.price + <span class="t-num">3</span>*half)        <span class="t-com"># one box out</span>
+<span class="t-num">4.14</span>
+&gt;&gt;&gt; h.ctx.<span class="t-fn">quote</span>(h.price + <span class="t-num">3</span>*half, h.price + <span class="t-num">5</span>*half)      <span class="t-com"># two boxes out</span>
+<span class="t-num">21.57</span>
+&gt;&gt;&gt; h.ctx.<span class="t-fn">quote</span>(h.price + <span class="t-num">5</span>*half, h.price + <span class="t-num">7</span>*half)      <span class="t-com"># three: past the cap</span>
+<span class="t-num">25.0</span></code></pre></div>
+<p>That ladder is not designed, it is measured. Turn the volatility up and every rung moves down; nothing in the game has to be retuned.</p>
+<h3 id="4-what-is-money">4. What is money?<a class="anchor" href="#4-what-is-money" aria-label="Link">#</a></h3>
+<p><strong>An integer.</strong> Micro-USDC: whole units of 0.000001 USDC, the real on-chain unit.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>wallet.balance          <span class="t-com"># 100_000_000  == 100 USDC</span>
+wallet.<span class="t-fn">debit</span>(<span class="t-num">10_000_000</span>)</code></pre></div>
+<p>A balance that is a float drifts, and <code>0.1 + 0.2</code> is not a thing you want to explain to someone whose money it is. Payouts are <strong>truncated</strong>, never rounded: a book must not round money into existence it did not owe.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>&gt;&gt;&gt; <span class="t-fn">parse_usdc</span>(<span class="t-str">&#x27;0.57&#x27;</span>)        <span class="t-com"># float(&#x27;0.57&#x27;) * 1e6 is 569999.9999999999</span>
+<span class="t-num">570000</span></code></pre></div>
+<h3 id="5-when-does-a-bet-settle">5. When does a bet settle?<a class="anchor" href="#5-when-does-a-bet-settle" aria-label="Link">#</a></h3>
+<p><strong>At the bell, on a price stamped at or after the bell.</strong></p>
+<p>The clock never stops. A round is always running; when one ends the next has already started, in the same frame — there is no ready screen, because a clock you can pause is a clock you can wait out.</p>
+<p>A price from <em>before</em> the bell cannot settle that bell, however fresh it looks. So the clock waits:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>bell ──&gt; no post-bell price yet ──&gt; SETTLING (up to 4s) ──&gt; still nothing ──&gt; VOID, stake refunded
+                                 └──&gt; price arrives ─────&gt; settle</code></pre></div>
+<p>Refunding is the right answer when you are unsure. Settling a real bet against the wrong moment&#x27;s price is worse than not settling it.</p>
+<h3 id="6-who-is-the-player">6. Who is the player?<a class="anchor" href="#6-who-is-the-player" aria-label="Link">#</a></h3>
+<p><strong>A wallet — and a wallet is not a name.</strong> <code>0x7ee8…CCac</code> on a leaderboard is noise.</p>
+<p>So each wallet gets a readable subname (<code>amber-otter.tick.eth</code>) and its record lives in that name&#x27;s own text records. The leaderboard is then <em>derived</em> rather than stored: read the registry, read each name, sort. No server, no database, nothing that dies when you stop paying for it.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick.identity <span class="t-key">import</span> <span class="t-type">Standings</span>, name_of
+<span class="t-fn">name_of</span>(<span class="t-str">&#x27;0x7ee8...&#x27;</span>)        <span class="t-com"># &#x27;amber-otter.tick.eth&#x27;</span>
+<span class="t-fn">Standings</span>().<span class="t-fn">read</span>()          <span class="t-com"># [Standing(name=..., pnl=Decimal(&#x27;12.4&#x27;), ...), ...]</span></code></pre></div>
+<h3 id="7-what-does-the-sdk-own-and-what-do-you">7. What does the SDK own, and what do you?<a class="anchor" href="#7-what-does-the-sdk-own-and-what-do-you" aria-label="Link">#</a></h3>
+<div class="table"><table><thead><tr><th>The SDK</th><th>You</th></tr></thead><tbody><tr><td>the feed, its validation, its staleness</td><td>which range the player is pointing at</td></tr><tr><td>volatility, probability, the multiple</td><td>how the player aims</td></tr><tr><td>the round clock, settlement, voiding</td><td>what it looks like</td></tr><tr><td>the wallet, the escrow, the cap</td><td>what it sounds like beyond the default cues</td></tr><tr><td>dial, buttons, keys, touch, rotation</td><td>the words on the screen</td></tr><tr><td>the generic cues and the music beds</td><td></td></tr></tbody></table></div>
+<p>If you find yourself writing a random number generator, a volatility estimate, or a payout calculation, stop: it already exists, and the version here has the bugs already taken out of it.</p>
+<hr>
+<h2 id="part-2-the-system">Part 2 — The system<a class="anchor" href="#part-2-the-system" aria-label="Link">#</a></h2>
+<h3 id="the-shape-of-one-frame">The shape of one frame<a class="anchor" href="#the-shape-of-one-frame" aria-label="Link">#</a></h3>
+<div class="code"><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>                 ┌─────────────────────────────────────────────┐
+  feed ────────► │ 1  market.poll()      validate, fold in      │
+                 │ 2  rounds.update()    has a bell passed?     │
+                 │ 3  book.settle()      pay, refund, record    │
+                 │ 4  cues               bell, crossings, ticks │
+                 │ 5  your on_action()   the dial and buttons   │
+                 │ 6  your update()      your state             │
+                 │ 7  your draw()        the frame              │
+                 └─────────────────────────────────────────────┘</code></pre></div>
+<p>The order is not arbitrary:</p>
+<ul><li><strong>Prices before the clock</strong>, because the clock settles on a price.</li><li><strong>Settlement before input</strong>, because a press arriving in the same frame as a bell belongs to the round now open, not the one that just closed.</li><li><strong>Draw last</strong>, because everything above may have changed what is on screen.</li></ul>
+<h3 id="the-layers">The layers<a class="anchor" href="#the-layers" aria-label="Link">#</a></h3>
+<div class="code"><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>   tick.feeds      PriceTick · SimulatedFeed · CoinbaseFeed · SubstreamsFeed · ReplayFeed
+        │          PoolStream (raw, per-pool, per-block)
+        ▼
+   tick.market     history · realized volatility · fresh / quiet / ready · probability
+        │
+        ├──────────► tick.pricing     chance → multiple, with cap, floor, edge
+        ▼
+   tick.rounds      RoundClock: open price, bell, settling, void
+        │
+        ▼
+   tick.bets        BetBook: place (debit) · top up · settle (credit) · refund
+        │                    ▲
+        │                    │
+   tick.money       Wallet (integer micro-USDC) ◄── tick.escrow (real, on-chain)
+        │
+        ▼
+   tick.game        Game + GameContext   ◄── you write this
+        │
+        ▼
+   tick.runtime     run(): display · input · cues · 30 FPS · shutdown
+                    tick.hud / tick.ui  ladder · HUD · palette · synthesized sound
+                    tick.identity       names and standings</code></pre></div>
+<p>Take any layer on its own. The data layers need no pygame at all:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-com"># a price bot, no game, no screen</span>
+<span class="t-key">from</span> tick <span class="t-key">import</span> <span class="t-type">Market</span>, open_feed
+market = <span class="t-fn">Market</span>(feed=<span class="t-fn">open_feed</span>(<span class="t-str">&#x27;substreams&#x27;</span>))
+<span class="t-key">for</span> tick <span class="t-key">in</span> market.feed.<span class="t-fn">stream</span>():
+    <span class="t-fn">print</span>(tick.price, market.<span class="t-fn">probability</span>(tick.price - <span class="t-num">1</span>, tick.price + <span class="t-num">1</span>, <span class="t-num">10</span>))</code></pre></div>
+<h3 id="what-a-game-looks-like-in-full">What a game looks like in full<a class="anchor" href="#what-a-game-looks-like-in-full" aria-label="Link">#</a></h3>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick <span class="t-key">import</span> <span class="t-type">Game</span>, run
+<span class="t-key">from</span> tick.hud <span class="t-key">import</span> <span class="t-type">Ladder</span>, clear, draw_bet, draw_clock, draw_cursor, draw_hud
+
+<span class="t-key">class</span> <span class="t-fn">Ladder_</span>(<span class="t-type">Game</span>):
+    title, window_s, arm_s = <span class="t-str">&#x27;LADDER&#x27;</span>, <span class="t-num">10.0</span>, <span class="t-num">1.5</span>
+
+    <span class="t-key">def</span> <span class="t-fn">setup</span>(<span class="t-key">self</span>, ctx):
+        <span class="t-key">self</span>.offset = <span class="t-num">0</span>                      <span class="t-com"># detents from the round&#x27;s open price</span>
+
+    <span class="t-key">def</span> <span class="t-fn">unit</span>(<span class="t-key">self</span>, ctx):
+        <span class="t-key">return</span> <span class="t-fn">max</span>(ctx.open_price, <span class="t-num">1.0</span>) / <span class="t-num">10_000</span>          <span class="t-com"># one basis point</span>
+
+    <span class="t-key">def</span> <span class="t-fn">aim</span>(<span class="t-key">self</span>, ctx):
+        centre = ctx.open_price + <span class="t-key">self</span>.offset * <span class="t-key">self</span>.<span class="t-fn">unit</span>(ctx)
+        half = <span class="t-num">4</span> * <span class="t-key">self</span>.<span class="t-fn">unit</span>(ctx)
+        <span class="t-key">return</span> centre - half, centre + half
+
+    <span class="t-key">def</span> <span class="t-fn">on_action</span>(<span class="t-key">self</span>, ctx, action):
+        <span class="t-key">if</span> action.name <span class="t-key">in</span> (<span class="t-str">&#x27;UP&#x27;</span>, <span class="t-str">&#x27;DOWN&#x27;</span>) <span class="t-key">and</span> <span class="t-key">not</span> ctx.next_bets:
+            <span class="t-key">self</span>.offset += <span class="t-num">1</span> <span class="t-key">if</span> action.name == <span class="t-str">&#x27;UP&#x27;</span> <span class="t-key">else</span> -<span class="t-num">1</span>
+        <span class="t-key">elif</span> action.name == <span class="t-str">&#x27;A&#x27;</span>:
+            ctx.<span class="t-fn">bet</span>(*<span class="t-key">self</span>.<span class="t-fn">aim</span>(ctx)) <span class="t-key">or</span> ctx.<span class="t-fn">note</span>(ctx.refused)
+
+    <span class="t-key">def</span> <span class="t-fn">on_round_end</span>(<span class="t-key">self</span>, ctx, round_):
+        <span class="t-key">self</span>.offset = <span class="t-num">0</span>
+
+    <span class="t-key">def</span> <span class="t-fn">draw</span>(<span class="t-key">self</span>, ctx, screen):
+        <span class="t-fn">clear</span>(screen)
+        ladder = <span class="t-fn">Ladder</span>(ctx.open_price, <span class="t-num">20</span> * <span class="t-key">self</span>.<span class="t-fn">unit</span>(ctx))
+        <span class="t-key">for</span> bet <span class="t-key">in</span> ctx.live_bets:
+            <span class="t-fn">draw_bet</span>(screen, ladder, bet, <span class="t-num">200</span>, <span class="t-num">96</span>, glow=bet.<span class="t-fn">contains</span>(ctx.price))
+        <span class="t-fn">draw_cursor</span>(screen, ladder, *<span class="t-key">self</span>.<span class="t-fn">aim</span>(ctx), <span class="t-num">320</span>, <span class="t-num">84</span>)
+        <span class="t-fn">draw_clock</span>(ctx, screen)
+        <span class="t-fn">draw_hud</span>(ctx, screen)
+
+<span class="t-fn">run</span>(<span class="t-fn">Ladder_</span>())</code></pre></div>
+<p>Forty lines, and it is a real game with real odds and real money.</p>
+<hr>
+<h2 id="part-3-the-rules-and-what-each-one-cost">Part 3 — The rules, and what each one cost<a class="anchor" href="#part-3-the-rules-and-what-each-one-cost" aria-label="Link">#</a></h2>
+<p>Every rule below is enforced in code and covered by a test. They read as paranoia until you meet the bug.</p>
+<div class="table"><table><thead><tr><th>Rule</th><th>Where</th><th>What happens without it</th></tr></thead><tbody><tr><td><strong>Stillness is a calm market, not missing data</strong></td><td><code>Market._measure</code></td><td>A flat feed was priced as &quot;typical ETH&quot;. A box parked on the line won <strong>58 bets out of 58</strong>.</td></tr><tr><td><strong>Nothing is sold when the price has not moved for 15s</strong></td><td><code>Market.quiet</code></td><td>On a line that never moves, a box on spot is a certain win at any multiple over 1x.</td></tr><tr><td><strong>Nothing is sold under 1.05x</strong></td><td><code>Game.min_multiple</code></td><td>A near-certain bet is not a bet, it is a withdrawal with extra steps.</td></tr><tr><td><strong>One print cannot move the odds</strong></td><td><code>SPIKE_CAP</code></td><td>One glitched tick inflated every payout for the next minute.</td></tr><tr><td><strong>A pre-bell price cannot settle a bell</strong></td><td><code>RoundClock.update</code></td><td>The round settled on whatever happened to be on screen, which is not the same number.</td></tr><tr><td><strong>No usable bell price for 4s → void and refund</strong></td><td><code>VOID_AFTER</code></td><td>Settling real money on the wrong moment&#x27;s price.</td></tr><tr><td><strong>The horizon runs to the bell being bought</strong></td><td><code>ctx.horizon()</code></td><td>Buying fifteen seconds early priced ten seconds of drift: a free option, and players find free options.</td></tr><tr><td><strong>Topping up is priced at that press&#x27;s odds</strong></td><td><code>Bet.add</code></td><td>Adding stake after the price walked toward your box cost the old, cheaper price.</td></tr><tr><td><strong>A bought bet cannot be moved</strong></td><td>your game (<code>ctx.next_bets</code>)</td><td>Repositioning after the market moves is an early exit wearing a hat.</td></tr><tr><td><strong>Payouts truncate down</strong></td><td><code>BetBook.settle</code></td><td>Rounding created money the book never owed.</td></tr><tr><td><strong>Amounts are integers</strong></td><td><code>tick.money</code></td><td><code>0.57 USDC</code> became <code>0.569999</code> and stayed wrong.</td></tr><tr><td><strong>Refuse a bet whose best case exceeds the escrow cap</strong></td><td><code>ctx.would_exceed_cap</code></td><td>The screen promised a payout the contract would refuse.</td></tr><tr><td><strong>Geometry is fixed; only the payout reacts</strong></td><td>your game</td><td>A box already bought got redrawn at a different size when the market woke up.</td></tr><tr><td><strong>Presses are swallowed for <code>arm_s</code> after a bell</strong></td><td><code>ctx.armed</code></td><td>A press meant as &quot;more on that box&quot; bought the <em>next</em> round wherever the cursor sat.</td></tr><tr><td><strong>The dial is read raw in play, rate-limited in menus</strong></td><td><code>EncoderInput.poll</code></td><td>A whip-spin wrapped a menu a dozen times, or a stopped dial kept moving the box.</td></tr></tbody></table></div>
+<hr>
+<h2 id="part-4-building-it-one-shippable-increment-at-a-time">Part 4 — Building it, one shippable increment at a time<a class="anchor" href="#part-4-building-it-one-shippable-increment-at-a-time" aria-label="Link">#</a></h2>
+<p>Each increment ends with something you can run, and a command that proves it. Nothing here depends on the increment after it.</p>
+<h3 id="increment-0-a-number-that-arrives-half-a-day">Increment 0 — a number that arrives (half a day)<a class="anchor" href="#increment-0-a-number-that-arrives-half-a-day" aria-label="Link">#</a></h3>
+<p><em>Goal: prices, validated, from more than one source.</em></p>
+<p>Build <code>tick/ticks.py</code>, <code>tick/feeds/</code>.</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">tick</span> prices <span class="t-key">--source</span> sim <span class="t-key">--limit</span> 20
+<span class="t-fn">tick</span> prices <span class="t-key">--source</span> coinbase <span class="t-key">--limit</span> 20</code></pre></div>
+<p><strong>Done when:</strong> the same seed replays the same market exactly; a tick with a future timestamp, a negative price, or an out-of-order sequence is rejected rather than used.</p>
+<h3 id="increment-1-what-the-number-means-half-a-day">Increment 1 — what the number means (half a day)<a class="anchor" href="#increment-1-what-the-number-means-half-a-day" aria-label="Link">#</a></h3>
+<p><em>Goal: measured volatility and a probability you can defend.</em></p>
+<p>Build <code>tick/pricing.py</code>, <code>tick/market.py</code>.</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">python</span> examples/ticker.py
+<span class="t-fn">python</span> <span class="t-key">-m</span> unittest tests.test_market tests.test_pricing</code></pre></div>
+<p><strong>Done when:</strong> a one-sigma band prices at 68%; a dead-flat feed reports <code>MARKET QUIET / NO BETS</code> rather than a cheap certainty; one spiked print does not move the estimate by more than the cap allows.</p>
+<h3 id="increment-2-money-that-cannot-drift-half-a-day">Increment 2 — money that cannot drift (half a day)<a class="anchor" href="#increment-2-money-that-cannot-drift-half-a-day" aria-label="Link">#</a></h3>
+<p><em>Goal: a wallet, in integers, with a funding seam.</em></p>
+<p>Build <code>tick/money.py</code>.</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">python</span> <span class="t-key">-m</span> unittest tests.test_money</code></pre></div>
+<p><strong>Done when:</strong> a thousand debit/credit pairs leave the balance exactly where it started, and <code>parse_usdc(&#x27;0.57&#x27;)</code> is <code>570000</code>.</p>
+<h3 id="increment-3-the-clock-and-the-book-one-day">Increment 3 — the clock and the book (one day)<a class="anchor" href="#increment-3-the-clock-and-the-book-one-day" aria-label="Link">#</a></h3>
+<p><em>Goal: rounds roll on their own and bets settle honestly.</em></p>
+<p>Build <code>tick/rounds.py</code>, <code>tick/bets.py</code>.</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">python</span> <span class="t-key">-m</span> unittest tests.test_rounds tests.test_bets</code></pre></div>
+<p><strong>Done when:</strong> a missed frame does not shift the bell; a bell with no post-bell price voids and refunds after four seconds; a top-up blends the multiple.</p>
+<h3 id="increment-4-a-game-you-can-actually-play-one-day">Increment 4 — a game you can actually play (one day)<a class="anchor" href="#increment-4-a-game-you-can-actually-play-one-day" aria-label="Link">#</a></h3>
+<p><em>Goal: <code>run(MyGame())</code> opens a window and plays.</em></p>
+<p>Build <code>tick/game.py</code>, <code>tick/runtime.py</code>, <code>tick/display.py</code>, <code>tick/input.py</code>, <code>tick/ui.py</code>, <code>tick/hud.py</code>.</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">tick</span> new mygame &amp;&amp; python mygame.py</code></pre></div>
+<p><strong>Done when:</strong> the dial moves the aim, A buys, the bell settles, the screen shows the balance, and Escape leaves cleanly.</p>
+<h3 id="increment-5-proof-it-is-testable-half-a-day">Increment 5 — proof it is testable (half a day)<a class="anchor" href="#increment-5-proof-it-is-testable-half-a-day" aria-label="Link">#</a></h3>
+<p><em>Goal: the rules are tested, not eyeballed.</em></p>
+<p>Build <code>tick/testing.py</code> and the suite.</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-type">SDL_VIDEODRIVER</span>=dummy SDL_AUDIODRIVER=dummy python <span class="t-key">-m</span> unittest discover <span class="t-key">-s</span> tests <span class="t-key">-t</span> .</code></pre></div>
+<p><strong>Done when:</strong> three hundred simulated rounds of a fair book drift less than a third of the money staked, and every example draws a frame without raising.</p>
+<h3 id="increment-6-a-price-nobody-can-push-one-day">Increment 6 — a price nobody can push (one day)<a class="anchor" href="#increment-6-a-price-nobody-can-push-one-day" aria-label="Link">#</a></h3>
+<p><em>Goal: the on-chain feed under the game.</em></p>
+<p>Build <code>tick/feeds/substreams.py</code>; run the relay.</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">python</span> substreams/relay.py &amp;
+<span class="t-fn">tick</span> pools <span class="t-key">-v</span>
+<span class="t-fn">tick</span> run mygame.py <span class="t-key">--source</span> substreams</code></pre></div>
+<p><strong>Done when:</strong> many pools across two chains become one price, an outlier pool is excluded, a chain that falls behind stops counting, and a relay that dies makes the game refuse bets rather than settle on stale blocks. See <a href="prices-substreams.html">docs/prices-substreams.md</a>.</p>
+<h3 id="increment-7-real-money-one-to-two-days">Increment 7 — real money (one to two days)<a class="anchor" href="#increment-7-real-money-one-to-two-days" aria-label="Link">#</a></h3>
+<p><em>Goal: a stranger funds the device from their own wallet and cashes out.</em></p>
+<p>Build <code>tick/chain.py</code>, <code>tick/escrow.py</code>.</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">python</span> <span class="t-key">-m</span> unittest tests.test_escrow<span class="t-com">          # a fake chain: no network, no keys</span>
+<span class="t-type">TICK_FUNDING</span>=arc-testnet TICK_STAKE_USDC=0.001 python mygame.py</code></pre></div>
+<p><strong>Done when:</strong> a deposit opens a session in the sender&#x27;s name, the balance is capped at what the escrow can pay, cash-out returns the money to the address it came from, and a restart mid-cash-out finishes the job. See <a href="money-arc.html">docs/money-arc.md</a>.</p>
+<h3 id="increment-8-a-player-people-can-point-at-half-a-day">Increment 8 — a player people can point at (half a day)<a class="anchor" href="#increment-8-a-player-people-can-point-at-half-a-day" aria-label="Link">#</a></h3>
+<p><em>Goal: names and a leaderboard.</em></p>
+<p>Build <code>tick/identity.py</code>.</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">tick</span> board</code></pre></div>
+<p><strong>Done when:</strong> a wallet resolves to a name without any index, a name is trusted only when it points back at the wallet, and the board survives an unreachable RPC by keeping its last rows. See <a href="identity-ens.html">docs/identity-ens.md</a>.</p>
+<h3 id="increment-9-polish-that-is-not-optional">Increment 9 — polish that is not optional<a class="anchor" href="#increment-9-polish-that-is-not-optional" aria-label="Link">#</a></h3>
+<p>Sound cues, music beds tied to what is at stake, the encoder&#x27;s arming window, rotation for a portrait panel, <code>tick doctor</code>. These read as garnish and are not: the crossing swoops and the pitched countdown are how a player knows whether they are winning <strong>without looking at the screen</strong>, which is the entire point of a handheld you play with your thumb.</p>
+<h3 id="increment-10-documentation-somebody-will-actually-read-half-a-day">Increment 10 — documentation somebody will actually read (half a day)<a class="anchor" href="#increment-10-documentation-somebody-will-actually-read-half-a-day" aria-label="Link">#</a></h3>
+<p><em>Goal: the docs are a site, not a pile of files.</em></p>
+<p>Build <code>web/</code>: <code>mdlite.py</code> renders the Markdown that already exists, <code>build.py</code> assembles pages, navigation, a search index and one page per source file.</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">tick</span> docs
+<span class="t-fn">python</span> <span class="t-key">-m</span> unittest tests.test_web</code></pre></div>
+<p><strong>Done when:</strong> every internal link resolves, every <code>#anchor</code> matches a real heading, search finds a rule by its words rather than its page, and the whole thing opens from <code>file://</code> with nothing installed. The Markdown stays the source of truth — a docs site with its own copy of the prose is a docs site that is wrong within a week.</p>
+<hr>
+<h2 id="part-5-extending-it">Part 5 — Extending it<a class="anchor" href="#part-5-extending-it" aria-label="Link">#</a></h2>
+<p>Things the seams already allow, in rough order of value:</p>
+<div class="table"><table><thead><tr><th>Want</th><th>Where it goes</th><th>Notes</th></tr></thead><tbody><tr><td>A new venue (Binance, a DEX aggregator)</td><td>a class in <code>tick/feeds/</code> with <code>poll</code>/<code>close</code></td><td>register it in <code>open_feed</code></td></tr><tr><td>A new asset</td><td><code>ASSETS</code> in <code>tick/ticks.py</code></td><td>needs a realistic <code>sigma</code>; a wrong one teaches wrong odds</td></tr><tr><td>A different bet shape (a ladder of ranges, a parlay)</td><td>your game, using several <code>ctx.bet</code> calls</td><td>the book already settles many bets per round</td></tr><tr><td>A house edge</td><td><code>Game.house_edge = 0.03</code></td><td>and say so on screen; hiding it teaches the player the wrong thing</td></tr><tr><td>Multi-round bets</td><td><code>ctx.bet(..., rounds_ahead=3)</code></td><td>already priced correctly: the horizon runs to that bell</td></tr><tr><td>A different chain</td><td><code>NETWORKS</code> in <code>tick/chain.py</code></td><td>the escrow interface is four calls</td></tr><tr><td>Your own names</td><td><code>TICK_ENS_PARENT</code> and friends</td><td>nothing in <code>identity</code> is hardcoded to one parent</td></tr><tr><td>Two players on one device</td><td>a <code>BetBook</code> per wallet</td><td><code>Wallet</code> and <code>BetBook</code> are already per-player objects</td></tr></tbody></table></div>
+<h3 id="what-is-deliberately-not-here">What is deliberately not here<a class="anchor" href="#what-is-deliberately-not-here" aria-label="Link">#</a></h3>
+<ul><li><strong>No per-bet transaction.</strong> A ten-second round cannot wait for a block, and nobody will approve forty transactions an hour. One deposit in, one settlement out; the rounds in between are the device&#x27;s.</li><li><strong>No anti-tamper on the device.</strong> Prices and odds are computed on the handheld. That is fine for a device you hand someone; it is not fine for a product with an adversary, and the honest place to move it is a signed price attestation the escrow checks.</li><li><strong>No account system.</strong> The wallet is the account, the name is the profile, and the leaderboard is a read. There is nothing to sign up for and nothing to shut down.</li></ul></article>
+    <nav class="pager"><a class="prev" href="index.html"><span>Previous</span>Overview</a><a class="next" href="writing-a-game.html"><span>Next</span>Writing a game</a></nav>
+  </main>
+  <aside class="toc"><h4>On this page</h4><ul><li class="l2"><a href="#part-1-first-principles">Part 1 — First principles</a></li><li class="l2"><a href="#part-2-the-system">Part 2 — The system</a></li><li class="l2"><a href="#part-3-the-rules-and-what-each-one-cost">Part 3 — The rules, and what each one cost</a></li><li class="l2"><a href="#part-4-building-it-one-shippable-increment-at-a-time">Part 4 — Building it, one shippable increment at a time</a></li><li class="l2"><a href="#part-5-extending-it">Part 5 — Extending it</a></li></ul></aside>
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

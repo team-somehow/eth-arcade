@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/game.py - TICK SDK</title>
+<meta name="description" content="Source of tick/game.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">game.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/game.py &middot; 299 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span><span>128</span><span>129</span><span>130</span><span>131</span><span>132</span><span>133</span><span>134</span><span>135</span><span>136</span><span>137</span><span>138</span><span>139</span><span>140</span><span>141</span><span>142</span><span>143</span><span>144</span><span>145</span><span>146</span><span>147</span><span>148</span><span>149</span><span>150</span><span>151</span><span>152</span><span>153</span><span>154</span><span>155</span><span>156</span><span>157</span><span>158</span><span>159</span><span>160</span><span>161</span><span>162</span><span>163</span><span>164</span><span>165</span><span>166</span><span>167</span><span>168</span><span>169</span><span>170</span><span>171</span><span>172</span><span>173</span><span>174</span><span>175</span><span>176</span><span>177</span><span>178</span><span>179</span><span>180</span><span>181</span><span>182</span><span>183</span><span>184</span><span>185</span><span>186</span><span>187</span><span>188</span><span>189</span><span>190</span><span>191</span><span>192</span><span>193</span><span>194</span><span>195</span><span>196</span><span>197</span><span>198</span><span>199</span><span>200</span><span>201</span><span>202</span><span>203</span><span>204</span><span>205</span><span>206</span><span>207</span><span>208</span><span>209</span><span>210</span><span>211</span><span>212</span><span>213</span><span>214</span><span>215</span><span>216</span><span>217</span><span>218</span><span>219</span><span>220</span><span>221</span><span>222</span><span>223</span><span>224</span><span>225</span><span>226</span><span>227</span><span>228</span><span>229</span><span>230</span><span>231</span><span>232</span><span>233</span><span>234</span><span>235</span><span>236</span><span>237</span><span>238</span><span>239</span><span>240</span><span>241</span><span>242</span><span>243</span><span>244</span><span>245</span><span>246</span><span>247</span><span>248</span><span>249</span><span>250</span><span>251</span><span>252</span><span>253</span><span>254</span><span>255</span><span>256</span><span>257</span><span>258</span><span>259</span><span>260</span><span>261</span><span>262</span><span>263</span><span>264</span><span>265</span><span>266</span><span>267</span><span>268</span><span>269</span><span>270</span><span>271</span><span>272</span><span>273</span><span>274</span><span>275</span><span>276</span><span>277</span><span>278</span><span>279</span><span>280</span><span>281</span><span>282</span><span>283</span><span>284</span><span>285</span><span>286</span><span>287</span><span>288</span><span>289</span><span>290</span><span>291</span><span>292</span><span>293</span><span>294</span><span>295</span><span>296</span><span>297</span><span>298</span><span>299</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;What you write, and what you are handed.
+
+A game is a class with a few optional methods. Every one of them is optional
+except `draw`; the SDK calls what exists and skips what does not.
+
+    from tick import Game, run
+
+    class Coinflip(Game):
+        title = &#x27;COINFLIP&#x27;
+        window_s = 10.0
+
+        def setup(self, ctx):
+            self.pick = &#x27;UP&#x27;
+
+        def on_action(self, ctx, action):
+            if action.name in (&#x27;UP&#x27;, &#x27;DOWN&#x27;):
+                self.pick = action.name
+            if action.name == &#x27;A&#x27;:
+                low, high = (ctx.price, 1e12) if self.pick == &#x27;UP&#x27; else (0.0, ctx.price)
+                ctx.bet(low, high)
+
+        def draw(self, ctx, screen):
+            ...
+
+    run(Coinflip())
+
+Everything else -- the feed, the round clock, the odds, the wallet, the escrow,
+the encoder, the sound cues, the 480x320 canvas and its rotation -- is already
+running by the time `setup` is called.
+
+The context
+-----------
+
+`ctx` is the live state of the machine, rebuilt-free and passed to every hook:
+
+    ctx.price          last price, a float
+    ctx.market         freshness, volatility, probabilities  (tick.market)
+    ctx.round          the round now running                 (tick.rounds)
+    ctx.rounds         the clock itself
+    ctx.wallet         balance in micro-USDC                 (tick.money)
+    ctx.book           open bets and their history           (tick.bets)
+    ctx.now / ctx.dt   monotonic seconds, and the frame delta
+
+    ctx.bet(low, high)        place a bet on the next bell. Returns the Bet, or
+                              None with `ctx.refused` saying why
+    ctx.quote(low, high)      what that bet would pay, right now
+    ctx.can_bet()             is the market sellable at all?
+    ctx.play(&#x27;win_big&#x27;)       a sound cue
+    ctx.note(&#x27;LOCKED&#x27;)        a line of text for the status bar
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">from</span> .bets <span class="t-key">import</span> <span class="t-type">Bet</span>, <span class="t-type">BetBook</span>, <span class="t-type">Settlement</span>
+<span class="t-key">from</span> .input <span class="t-key">import</span> <span class="t-type">InputAction</span>
+<span class="t-key">from</span> .market <span class="t-key">import</span> <span class="t-type">Market</span>
+<span class="t-key">from</span> .money <span class="t-key">import</span> <span class="t-type">Wallet</span>, format_usdc, places_for
+<span class="t-key">from</span> .rounds <span class="t-key">import</span> <span class="t-type">Round</span>, <span class="t-type">RoundClock</span>
+
+
+<span class="t-key">class</span> <span class="t-type">Game</span>:
+    <span class="t-doc">&quot;&quot;&quot;Subclass this. Override what you need; the rest has a sane default.&quot;&quot;&quot;</span>
+
+    <span class="t-com"># ---- what the runtime reads before starting --------------------------</span>
+    title = <span class="t-str">&#x27;TICK GAME&#x27;</span>
+    window_s = <span class="t-num">10.0</span>          <span class="t-com"># round length in seconds; the clock never stops</span>
+    stake_usdc: str | <span class="t-key">None</span> = <span class="t-key">None</span>   <span class="t-com"># per bet; None means TICK_STAKE_USDC</span>
+    max_multiple = <span class="t-num">25.0</span>      <span class="t-com"># never quote more than this: an unfunded promise</span>
+    min_multiple = <span class="t-num">1.05</span>      <span class="t-com"># never sell under this: a near-certain win is not a bet</span>
+    house_edge = <span class="t-num">0.0</span>         <span class="t-com"># 0.0 quotes fair odds -- and says so on screen</span>
+    rounds_ahead = <span class="t-num">1</span>         <span class="t-com"># 1 = the next bell; 0 = the round already running</span>
+    arm_s = <span class="t-num">0.0</span>              <span class="t-com"># swallow bets for this long after a bell (see ctx.armed)</span>
+    sound_cues = <span class="t-key">True</span>        <span class="t-com"># let the SDK play the generic cues for you</span>
+    music = <span class="t-key">True</span>             <span class="t-com"># ... and pick the music bed from what is at stake</span>
+
+    <span class="t-com"># ---- lifecycle -------------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">setup</span>(<span class="t-key">self</span>, ctx: <span class="t-str">&#x27;GameContext&#x27;</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;Once, after the display, feed and wallet are up.&quot;&quot;&quot;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">teardown</span>(<span class="t-key">self</span>, ctx: <span class="t-str">&#x27;GameContext&#x27;</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;Once, on the way out. The feed and escrow are closed for you.&quot;&quot;&quot;</span>
+
+    <span class="t-com"># ---- events ----------------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">on_tick</span>(<span class="t-key">self</span>, ctx: <span class="t-str">&#x27;GameContext&#x27;</span>, tick) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;A new price arrived and has already been folded into the market.&quot;&quot;&quot;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">on_round_start</span>(<span class="t-key">self</span>, ctx: <span class="t-str">&#x27;GameContext&#x27;</span>, round_: <span class="t-type">Round</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;A new round opened at `round_.open_price`.&quot;&quot;&quot;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">on_round_end</span>(<span class="t-key">self</span>, ctx: <span class="t-str">&#x27;GameContext&#x27;</span>, round_: <span class="t-type">Round</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;A round rang. Its bets have already settled.&quot;&quot;&quot;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">on_settle</span>(<span class="t-key">self</span>, ctx: <span class="t-str">&#x27;GameContext&#x27;</span>, settlement: <span class="t-type">Settlement</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;One of your bets was paid or lost. Money has already moved.&quot;&quot;&quot;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">on_action</span>(<span class="t-key">self</span>, ctx: <span class="t-str">&#x27;GameContext&#x27;</span>, action: <span class="t-type">InputAction</span>) -&gt; str | <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;A dial turn or a button. Return &#x27;quit&#x27; to leave.&quot;&quot;&quot;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">on_touch</span>(<span class="t-key">self</span>, ctx: <span class="t-str">&#x27;GameContext&#x27;</span>, pos: tuple[int, int]) -&gt; str | <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;A tap, in canvas pixels. Return &#x27;quit&#x27; to leave.&quot;&quot;&quot;</span>
+
+    <span class="t-com"># ---- frame -----------------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">update</span>(<span class="t-key">self</span>, ctx: <span class="t-str">&#x27;GameContext&#x27;</span>, dt: float) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;Every frame, before drawing.&quot;&quot;&quot;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">draw</span>(<span class="t-key">self</span>, ctx: <span class="t-str">&#x27;GameContext&#x27;</span>, screen) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;Every frame. The one hook a game has to have.&quot;&quot;&quot;</span>
+        <span class="t-key">raise</span> <span class="t-fn">NotImplementedError</span>(<span class="t-str">&#x27;a game must draw something&#x27;</span>)
+
+
+<span class="t-key">class</span> <span class="t-type">GameContext</span>:
+    <span class="t-doc">&quot;&quot;&quot;Everything the machine currently knows, handed to every hook.&quot;&quot;&quot;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, game: <span class="t-type">Game</span>, market: <span class="t-type">Market</span>, wallet: <span class="t-type">Wallet</span>,
+                 rounds: <span class="t-type">RoundClock</span>, book: <span class="t-type">BetBook</span>, sounds=<span class="t-key">None</span>,
+                 stake: int = <span class="t-num">0</span>, screen=<span class="t-key">None</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.game = game
+        <span class="t-key">self</span>.market = market
+        <span class="t-key">self</span>.wallet = wallet
+        <span class="t-key">self</span>.rounds = rounds
+        <span class="t-key">self</span>.book = book
+        <span class="t-key">self</span>.sounds = sounds
+        <span class="t-key">self</span>.stake = stake
+        <span class="t-key">self</span>.screen = screen
+        <span class="t-key">self</span>.now = <span class="t-num">0.0</span>
+        <span class="t-key">self</span>.dt = <span class="t-num">0.0</span>
+        <span class="t-key">self</span>.frame = <span class="t-num">0</span>
+        <span class="t-key">self</span>.message = <span class="t-str">&#x27;&#x27;</span>
+        <span class="t-key">self</span>.message_until = <span class="t-num">0.0</span>
+        <span class="t-key">self</span>.refused = <span class="t-str">&#x27;&#x27;</span>            <span class="t-com"># why the last bet was refused, for the screen</span>
+        <span class="t-key">self</span>.armed_at = <span class="t-num">0.0</span>          <span class="t-com"># bets are swallowed until this moment</span>
+        <span class="t-key">self</span>.running = <span class="t-key">True</span>
+
+    <span class="t-com"># ---- shortcuts -------------------------------------------------------</span>
+    @property
+    <span class="t-key">def</span> <span class="t-fn">price</span>(<span class="t-key">self</span>) -&gt; float:
+        <span class="t-key">return</span> <span class="t-key">self</span>.market.price
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">round</span>(<span class="t-key">self</span>) -&gt; <span class="t-type">Round</span> | <span class="t-key">None</span>:
+        <span class="t-key">return</span> <span class="t-key">self</span>.rounds.current
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">open_price</span>(<span class="t-key">self</span>) -&gt; float:
+        <span class="t-key">return</span> <span class="t-key">self</span>.rounds.open_price
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">remaining</span>(<span class="t-key">self</span>) -&gt; float:
+        <span class="t-key">return</span> <span class="t-key">self</span>.rounds.<span class="t-fn">remaining</span>(<span class="t-key">self</span>.now)
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">move</span>(<span class="t-key">self</span>) -&gt; float:
+        <span class="t-doc">&quot;&quot;&quot;How far the price has come since this round opened.&quot;&quot;&quot;</span>
+        <span class="t-key">return</span> <span class="t-key">self</span>.rounds.<span class="t-fn">move</span>(<span class="t-key">self</span>.price)
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">armed</span>(<span class="t-key">self</span>) -&gt; bool:
+        <span class="t-doc">&quot;&quot;&quot;False for `game.arm_s` after each bell.
+
+        Presses meant as one more stake on the round that just closed keep
+        arriving for a beat after the bell. With nothing pending they would buy
+        the *new* round at wherever the cursor happens to sit -- which is not
+        what the thumb meant. Swallow them instead.
+        &quot;&quot;&quot;</span>
+        <span class="t-key">return</span> <span class="t-key">self</span>.now &gt;= <span class="t-key">self</span>.armed_at
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">target_round</span>(<span class="t-key">self</span>) -&gt; int:
+        <span class="t-doc">&quot;&quot;&quot;The round index a bet placed now will settle at.
+
+        `rounds_ahead = 1` by default: a press buys the **next** round, not the
+        one already running. Selling the running round means selling a bet
+        whose outcome is already half known -- a press a second before the bell
+        is nearly a sure thing, and the model correctly prices it at 1.0x and
+        refuses it, which reads as a broken button rather than a rule.
+        &quot;&quot;&quot;</span>
+        <span class="t-key">return</span> <span class="t-key">self</span>.rounds.index + <span class="t-fn">max</span>(<span class="t-num">0</span>, <span class="t-key">self</span>.game.rounds_ahead)
+
+    <span class="t-key">def</span> <span class="t-fn">horizon</span>(<span class="t-key">self</span>) -&gt; float:
+        <span class="t-doc">&quot;&quot;&quot;Seconds from now to the bell a bet placed now settles at.&quot;&quot;&quot;</span>
+        <span class="t-key">return</span> <span class="t-key">self</span>.rounds.<span class="t-fn">horizon</span>(<span class="t-key">self</span>.now, <span class="t-fn">max</span>(<span class="t-num">0</span>, <span class="t-key">self</span>.game.rounds_ahead))
+
+    <span class="t-com"># ---- betting ---------------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">can_bet</span>(<span class="t-key">self</span>) -&gt; bool:
+        <span class="t-key">return</span> <span class="t-key">self</span>.market.<span class="t-fn">sellable</span>(<span class="t-key">self</span>.now) <span class="t-key">and</span> <span class="t-key">self</span>.armed
+
+    <span class="t-key">def</span> <span class="t-fn">why_not</span>(<span class="t-key">self</span>) -&gt; str:
+        <span class="t-doc">&quot;&quot;&quot;Words for the screen when a bet cannot be placed. Empty if it can.&quot;&quot;&quot;</span>
+        <span class="t-key">if</span> <span class="t-key">not</span> <span class="t-key">self</span>.armed:
+            <span class="t-key">return</span> <span class="t-str">&#x27;ARMING&#x27;</span>
+        <span class="t-key">return</span> <span class="t-key">self</span>.market.<span class="t-fn">why_not</span>(<span class="t-key">self</span>.now)
+
+    <span class="t-key">def</span> <span class="t-fn">quote</span>(<span class="t-key">self</span>, low: float, high: float, rounds_ahead: int | <span class="t-key">None</span> = <span class="t-key">None</span>) -&gt; float:
+        <span class="t-doc">&quot;&quot;&quot;The multiple that range would pay if bought right now.
+
+        The horizon runs to the bell being bought, so buying early prices more
+        drift -- a longer bet, not a free one.
+        &quot;&quot;&quot;</span>
+        ahead = <span class="t-key">self</span>.game.rounds_ahead <span class="t-key">if</span> rounds_ahead <span class="t-key">is</span> <span class="t-key">None</span> <span class="t-key">else</span> rounds_ahead
+        horizon = <span class="t-key">self</span>.rounds.<span class="t-fn">horizon</span>(<span class="t-key">self</span>.now, <span class="t-fn">max</span>(<span class="t-num">0</span>, ahead))
+        <span class="t-key">return</span> <span class="t-key">self</span>.market.<span class="t-fn">quote</span>(low, high, horizon,
+                                 <span class="t-key">self</span>.game.house_edge, <span class="t-key">self</span>.game.max_multiple)
+
+    <span class="t-key">def</span> <span class="t-fn">bet</span>(<span class="t-key">self</span>, low: float, high: float, stake: int | <span class="t-key">None</span> = <span class="t-key">None</span>,
+            rounds_ahead: int | <span class="t-key">None</span> = <span class="t-key">None</span>, label: str = <span class="t-str">&#x27;&#x27;</span>) -&gt; <span class="t-type">Bet</span> | <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;Put money on [low, high] at the coming bell. None means refused.
+
+        Refused, in order, when: the round clock has not started; the market is
+        not sellable (stale, quiet, or not yet read); the cursor is not armed;
+        the quote is under `min_multiple` (a near-certain win is not a bet);
+        the best case would win past what the escrow can pay; or the wallet is
+        short. `ctx.refused` says which -- put it on the screen.
+        &quot;&quot;&quot;</span>
+        <span class="t-key">self</span>.refused = <span class="t-str">&#x27;&#x27;</span>
+        ahead = <span class="t-key">self</span>.game.rounds_ahead <span class="t-key">if</span> rounds_ahead <span class="t-key">is</span> <span class="t-key">None</span> <span class="t-key">else</span> rounds_ahead
+        stake = <span class="t-key">self</span>.stake <span class="t-key">if</span> stake <span class="t-key">is</span> <span class="t-key">None</span> <span class="t-key">else</span> stake
+        <span class="t-key">if</span> <span class="t-key">not</span> <span class="t-key">self</span>.rounds.started:
+            <span class="t-key">self</span>.refused = <span class="t-str">&#x27;NO MARKET YET&#x27;</span>
+            <span class="t-key">return</span> <span class="t-key">None</span>
+        <span class="t-key">if</span> <span class="t-key">not</span> <span class="t-key">self</span>.armed:
+            <span class="t-key">self</span>.refused = <span class="t-str">&#x27;ARMING&#x27;</span>
+            <span class="t-key">return</span> <span class="t-key">None</span>
+        blocked = <span class="t-key">self</span>.market.<span class="t-fn">why_not</span>(<span class="t-key">self</span>.now)
+        <span class="t-key">if</span> blocked:
+            <span class="t-key">self</span>.refused = blocked
+            <span class="t-key">return</span> <span class="t-key">None</span>
+        multiple = <span class="t-key">self</span>.<span class="t-fn">quote</span>(low, high, ahead)
+        <span class="t-key">if</span> multiple &lt; <span class="t-key">self</span>.game.min_multiple:
+            <span class="t-key">self</span>.refused = <span class="t-str">&#x27;TOO SURE TO SELL&#x27;</span>
+            <span class="t-key">return</span> <span class="t-key">None</span>
+        <span class="t-key">if</span> <span class="t-key">self</span>.<span class="t-fn">would_exceed_cap</span>(stake, multiple):
+            <span class="t-key">self</span>.refused = <span class="t-str">&#x27;MAX WIN REACHED / CASH OUT&#x27;</span>
+            <span class="t-key">return</span> <span class="t-key">None</span>
+        <span class="t-key">if</span> <span class="t-key">not</span> <span class="t-key">self</span>.wallet.<span class="t-fn">can_afford</span>(stake):
+            <span class="t-key">self</span>.refused = <span class="t-str">&#x27;NOT ENOUGH USDC&#x27;</span>
+            <span class="t-key">return</span> <span class="t-key">None</span>
+        index = <span class="t-key">self</span>.rounds.index + <span class="t-fn">max</span>(<span class="t-num">0</span>, ahead)
+        placed = <span class="t-key">self</span>.book.<span class="t-fn">place</span>(index, low, high, stake, multiple, label)
+        <span class="t-key">if</span> placed <span class="t-key">is</span> <span class="t-key">None</span>:
+            <span class="t-key">self</span>.refused = <span class="t-str">&#x27;NOT ENOUGH USDC&#x27;</span>
+        <span class="t-key">return</span> placed
+
+    <span class="t-key">def</span> <span class="t-fn">would_exceed_cap</span>(<span class="t-key">self</span>, stake: int, multiple: float) -&gt; bool:
+        <span class="t-doc">&quot;&quot;&quot;Could one more bet win past what the escrow will actually pay?
+
+        The best case lands every open bet plus this one. Past the cap the
+        contract would pay less than the screen promised, so refuse the press
+        instead of writing a cheque the chain will bounce.
+        &quot;&quot;&quot;</span>
+        best = <span class="t-key">self</span>.wallet.balance - stake + stake * multiple + <span class="t-key">self</span>.book.<span class="t-fn">best_case</span>()
+        <span class="t-key">return</span> <span class="t-key">self</span>.wallet.<span class="t-fn">would_exceed_cap</span>(<span class="t-fn">int</span>(best))
+
+    <span class="t-key">def</span> <span class="t-fn">cancel_next</span>(<span class="t-key">self</span>) -&gt; int:
+        <span class="t-doc">&quot;&quot;&quot;Refund bets on a round that has not started yet. Returns the stake.&quot;&quot;&quot;</span>
+        <span class="t-key">return</span> <span class="t-key">self</span>.book.<span class="t-fn">refund</span>(<span class="t-key">self</span>.rounds.index + <span class="t-num">1</span>)
+
+    <span class="t-com"># ---- bets you have out ----------------------------------------------</span>
+    @property
+    <span class="t-key">def</span> <span class="t-fn">live_bets</span>(<span class="t-key">self</span>) -&gt; list[<span class="t-type">Bet</span>]:
+        <span class="t-doc">&quot;&quot;&quot;Bets settling at the next bell.&quot;&quot;&quot;</span>
+        <span class="t-key">return</span> <span class="t-key">self</span>.book.<span class="t-fn">for_round</span>(<span class="t-key">self</span>.rounds.index)
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">next_bets</span>(<span class="t-key">self</span>) -&gt; list[<span class="t-type">Bet</span>]:
+        <span class="t-doc">&quot;&quot;&quot;Bets already bought for the bell after that.&quot;&quot;&quot;</span>
+        <span class="t-key">return</span> <span class="t-key">self</span>.book.<span class="t-fn">for_round</span>(<span class="t-key">self</span>.rounds.index + <span class="t-num">1</span>)
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">inside</span>(<span class="t-key">self</span>) -&gt; bool | <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;Is the price inside a live bet right now? None when nothing is live.&quot;&quot;&quot;</span>
+        live = <span class="t-key">self</span>.live_bets
+        <span class="t-key">if</span> <span class="t-key">not</span> live:
+            <span class="t-key">return</span> <span class="t-key">None</span>
+        <span class="t-key">return</span> <span class="t-fn">any</span>(bet.<span class="t-fn">contains</span>(<span class="t-key">self</span>.price) <span class="t-key">for</span> bet <span class="t-key">in</span> live)
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">staked</span>(<span class="t-key">self</span>) -&gt; int:
+        <span class="t-key">return</span> <span class="t-key">self</span>.book.<span class="t-fn">staked</span>()
+
+    <span class="t-com"># ---- output ----------------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">play</span>(<span class="t-key">self</span>, cue: str) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">if</span> <span class="t-key">self</span>.sounds <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+            <span class="t-key">self</span>.sounds.<span class="t-fn">play</span>(cue)
+
+    <span class="t-key">def</span> <span class="t-fn">note</span>(<span class="t-key">self</span>, text: str, seconds: float = <span class="t-num">2.0</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;A line for the status bar, for a couple of seconds.&quot;&quot;&quot;</span>
+        <span class="t-key">self</span>.message, <span class="t-key">self</span>.message_until = text, <span class="t-key">self</span>.now + seconds
+
+    <span class="t-key">def</span> <span class="t-fn">status_line</span>(<span class="t-key">self</span>) -&gt; str:
+        <span class="t-doc">&quot;&quot;&quot;The note if one is showing, else why betting is blocked, else &#x27;&#x27;.&quot;&quot;&quot;</span>
+        <span class="t-key">if</span> <span class="t-key">self</span>.message <span class="t-key">and</span> <span class="t-key">self</span>.now &lt; <span class="t-key">self</span>.message_until:
+            <span class="t-key">return</span> <span class="t-key">self</span>.message
+        <span class="t-key">return</span> <span class="t-key">self</span>.<span class="t-fn">why_not</span>()
+
+    <span class="t-key">def</span> <span class="t-fn">usdc</span>(<span class="t-key">self</span>, micro: int | <span class="t-key">None</span> = <span class="t-key">None</span>) -&gt; str:
+        <span class="t-doc">&quot;&quot;&quot;Format micro-USDC with exactly the decimals this game&#x27;s stake needs.&quot;&quot;&quot;</span>
+        <span class="t-key">return</span> <span class="t-fn">format_usdc</span>(<span class="t-key">self</span>.stake <span class="t-key">if</span> micro <span class="t-key">is</span> <span class="t-key">None</span> <span class="t-key">else</span> micro, <span class="t-fn">places_for</span>(<span class="t-key">self</span>.stake))
+
+    <span class="t-key">def</span> <span class="t-fn">quit</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.running = <span class="t-key">False</span>
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

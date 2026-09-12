@@ -1,0 +1,40 @@
+[project]
+name = "tick-sdk"
+version = "0.1.0"
+description = "Build crypto arcade games for the TICK handheld: live prices, honest odds, real USDC settlement."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "pygame>=2.5.0",
+]
+
+[project.optional-dependencies]
+# Real funds and ENS names. Demo play needs none of this.
+chain = [
+    "eth-account>=0.13",
+    "eth-abi>=5.0",
+    "eth-utils>=4.0",
+    "qrcode>=8",
+]
+# The dial and the two panel buttons, on a Raspberry Pi.
+pi = [
+    "gpiozero>=2.0",
+    "lgpio>=0.2",
+]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+tick = "tick.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["tick*"]
+
+[tool.setuptools.package-data]
+tick = ["templates/*.py"]
