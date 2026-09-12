@@ -574,6 +574,19 @@ class SoundTests(unittest.TestCase):
             self.game.update(1/30)          # a frame passes, as in play
             self.game.crank(steps)
 
+    def arm(self):
+        """Let a fresh cursor finish arming: the first presses after a bell are
+        swallowed on purpose, so a top-up cannot lock the box that rides in."""
+        while self.game.clock - self.game.aim_in_at < self.game.ARM_S:
+            self.frames(1)
+
+    def to_bell(self, extra=6):
+        """Run to just past the next bell, wherever in the window we are."""
+        windows = self.game.model.windows
+        while self.game.model.windows == windows:
+            self.frames(1)
+        self.frames(extra)
+
     def test_cranking_out_to_the_risky_end_rises_in_pitch(self):
         self.turn(2)
         near = [n for n in self.ears.played if n.startswith('detent')]
@@ -642,10 +655,12 @@ class SoundTests(unittest.TestCase):
         self.ears.played.clear()
         self.frames(int(30 * m.WINDOW_S) + 6)       # no money down
         self.assertIn('bell', self.ears.played)
+        self.arm()                                  # the fresh cursor takes a beat
         self.game.buy()
-        self.frames(int(30 * m.WINDOW_S) + 6)       # bet goes live
+        self.assertIsNotNone(m.pending)
+        self.to_bell()                              # bet goes live
         self.ears.played.clear()
-        self.frames(int(30 * m.WINDOW_S) + 6)       # and settles
+        self.to_bell()                              # and settles
         self.assertEqual(m.rounds, 1)
         outcome = {'win_big', 'win_small', 'miss', 'void'} & set(self.ears.played)
         self.assertTrue(outcome, self.ears.played)
@@ -807,6 +822,19 @@ class GameTests(unittest.TestCase):
         self.frames(int(30 * m.WINDOW_S) + 15)
         self.assertFalse(m.locked)
         self.assertTrue(m.crank(3))
+
+    def test_a_press_carried_past_the_bell_does_not_lock_the_new_box(self):
+        m = self.game.model
+        self.game.buy()                              # money on the next window
+        while m.live is None:                        # ride right up to the bell
+            self.frames(1)
+        balance = m.wallet.balance
+        self.game.buy()                              # the press that was meant as a top-up
+        self.assertIsNone(m.pending)                 # nothing locked, nothing charged
+        self.assertEqual(m.wallet.balance, balance)
+        self.frames(int(30 * self.game.ARM_S) + 2)   # the cursor arms
+        self.game.buy()
+        self.assertIsNotNone(m.pending)
 
     def test_pressing_a_with_no_money_opens_the_loader(self):
         from games.box import BoxGame
