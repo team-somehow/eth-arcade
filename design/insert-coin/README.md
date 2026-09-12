@@ -20,10 +20,11 @@ I pick the money button and press A.
 
 ![insert coin](01-insert-coin.png)
 
-One QR code in a coin-slot bezel, `SEND USDC ON ARC`, `WAITING FOR COINS...`,
-the address. That is everything. No cash-out wording, no balance, no house
-rules — none of that applies until money is in. The game's own city is behind
-it and the kid is parked on the street, waiting for someone to pay.
+One QR code in a lit bezel, `SEND USDC ON ARC`, `WAITING FOR COINS`, the
+address. That is everything. No cash-out wording, no balance, no house rules —
+none of that applies until money is in. The game's own city is behind it, and
+the kid on the wheel is the waiting sign: parked on the street, holding his
+balance, thinking about a coin nobody has sent yet. Both sets of dots blink.
 
 ## 2. The money lands
 

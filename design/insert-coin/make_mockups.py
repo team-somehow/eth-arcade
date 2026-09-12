@@ -120,12 +120,11 @@ ADDRESS = '0x3E0A1f4c9b228d7eA4c6135f0b71D9e2C88F562E'
 QR_TEXT = f'ethereum:{ADDRESS}@5042002'
 
 
-def slot(s, rect, lit=YELLOW):
-    """An arcade coin slot: a dark capsule in a lit plate."""
-    panel(s, rect, fill=(18, 32, 42), edge=lit, width=2, radius=4)
-    inner = pygame.Rect(rect.x + 10, rect.centery - 4, rect.w - 20, 8)
-    pygame.draw.rect(s, SHADOW, inner, border_radius=4)
-    pygame.draw.rect(s, lit, inner, 1, border_radius=4)
+def pulse(s, x, y, size=7, count=3, gap=13, lit=RED, dim=(96, 44, 44), phase=0):
+    """A row of square dots with one alight: one still frame of a thing that blinks."""
+    for i in range(count):
+        color = lit if i == phase else dim
+        pygame.draw.rect(s, color, (x + i * gap, y - size // 2, size, size))
 
 
 def chevron(s, x, y, up=True, color=MINT, size=7):
@@ -171,25 +170,36 @@ def city(s, top=10, low=68):
     s.blit(shade, (0, 0))
 
 
-def waiting_rider(s, x=330, ground=268):
-    """The kid from the game, parked on the street with nothing to do yet."""
+def waiting_rider(s, x=300, ground=272, scale=1.4):
+    """The kid from the game, parked on the street with nothing to do yet.
+
+    He is the waiting indicator: drawn half again his in-game size so the idle
+    sway reads across the room, holding his balance on the spot, thinking about
+    a coin nobody has sent, with the dots that say he is still hanging on for it.
+    """
     rider = Rider()
     for _ in range(26):                      # let the idle sway settle somewhere natural
         rider.update(1 / 30, 0.0, False)
-    rider.draw(s, x, ground, 0.0)
-    bubble = pygame.Rect(x + 22, ground - 58, 46, 30)
+    pad = pygame.Surface((120, 120), pygame.SRCALPHA)
+    rider.draw(pad, 60, 110, 0.0)
+    big = pygame.transform.scale(pad, (int(120 * scale), int(120 * scale)))
+    s.blit(big, (x - 60 * scale, ground - 110 * scale))
+
+    bubble = pygame.Rect(x + 22, ground - 64, 74, 30)
+    pygame.draw.polygon(s, (18, 32, 42), [(bubble.x, bubble.bottom - 12),
+                                          (bubble.x - 10, bubble.bottom + 2),
+                                          (bubble.x + 6, bubble.bottom - 1)])
     panel(s, bubble, fill=(18, 32, 42), edge=MUTED, width=1, radius=6)
-    pygame.draw.polygon(s, (18, 32, 42), [(bubble.x + 2, bubble.bottom - 8),
-                                          (bubble.x + 1, bubble.bottom + 2),
-                                          (bubble.x + 12, bubble.bottom - 1)])
-    coin(s, bubble.centerx, bubble.centery, 9)
+    coin(s, bubble.x + 18, bubble.centery, 9)
+    pulse(s, bubble.x + 33, bubble.centery, 5, 3, 10, lit=YELLOW, dim=(74, 70, 44), phase=1)
 
 
 def insert_coin():
     """Waiting for money. The QR is the coin slot, and it is the only job here.
 
     Everything is packed into the top two thirds so the game's own street stays
-    open along the bottom, with the rider waiting on it for someone to pay.
+    open along the bottom, where the rider is the waiting sign: parked, balancing
+    on the spot, thinking about the coin nobody has sent him yet.
     """
     s = new_screen()
     city(s)
@@ -198,9 +208,8 @@ def insert_coin():
 
     bezel = pygame.Rect(16, 72, 136, 136)
     panel(s, bezel, fill=(14, 28, 38), edge=YELLOW, width=2, radius=6)
-    slot(s, pygame.Rect(bezel.x + 15, bezel.y + 7, bezel.w - 30, 15))
-    qr = qr_image(QR_TEXT, 100)
-    s.blit(qr, qr.get_rect(center=(bezel.centerx, bezel.centery + 13)))
+    qr = qr_image(QR_TEXT, 116)
+    s.blit(qr, qr.get_rect(center=bezel.center))
     say(s, 'SCAN TO INSERT', bezel.centerx, bezel.bottom + 5, 13, YELLOW, center=True)
 
     x = 166
@@ -209,8 +218,8 @@ def insert_coin():
     panel(s, box, fill=(16, 30, 40))
     say(s, ADDRESS[:21], x + 2, 117, 13, MUTED)
     say(s, ADDRESS[21:], x + 2, 135, 13, MUTED)
-    pygame.draw.circle(s, RED, (x + 7, 182), 5)
-    say(s, 'WAITING FOR COINS...', x + 20, 174, 15, CREAM)
+    pulse(s, x + 6, 182, 4, 3, 13)
+    say(s, 'WAITING FOR COINS', x + 42, 174, 15, CREAM)
 
     waiting_rider(s)
     footer(s, '< BACK', '')
@@ -519,6 +528,9 @@ class Move:
 def encode_gif(move: Move, name: str) -> list:
     """Frames to a GIF through ffmpeg, doubled with nearest-neighbour so it stays pixel art."""
     frames = [move.frame(i / FPS) for i in range(int(move.length * FPS))]
+    if shutil.which('ffmpeg') is None:       # stills still regenerate; the GIF waits for ffmpeg
+        print(f'{name}.gif  skipped (no ffmpeg on PATH)')
+        return frames
     temp = Path(tempfile.mkdtemp(prefix='tick-move-'))
     try:
         for i, image in enumerate(frames):
