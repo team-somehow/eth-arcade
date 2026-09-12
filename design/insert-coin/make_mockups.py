@@ -1,4 +1,4 @@
-"""Render the proposed CASHIER and LEADERBOARD screens as 480x320 mockups.
+"""Render the proposed MONEY and LEADERBOARD screens as 480x320 mockups.
 
 Not running firmware: these are drawn here, by hand, to be looked at and argued
 with. The palette, fonts and the night-city background come from the real game
@@ -142,8 +142,12 @@ def new_screen():
     return s
 
 
-def head(s, left='CASHIER', right='ARC TESTNET', right_color=MUTED):
-    say(s, left, 12, 6, 18, YELLOW)
+def head(s, right='ARC TESTNET', right_color=MUTED):
+    """The launcher's own top-left mark, so the money screens read as the same
+    machine rather than a department you have walked into. The big title under
+    it already says which face this is."""
+    say(s, 'ETH', 10, 5, 20, CREAM)
+    say(s, 'ARCADE', 54, 11, 12, MUTED)
     say(s, right, 468, 9, 13, right_color, right=True)
     pygame.draw.line(s, GRID, (0, 30), (W, 30))
 
@@ -154,7 +158,7 @@ _skyline = None
 
 
 def city(s, top=10, low=68):
-    """The game's own night city behind the cashier.
+    """The game's own night city behind the money screen.
 
     The veil is a gradient: light at the top so the moon and stars keep their
     look, heavier down at the window band where the text has to stay readable.
@@ -207,7 +211,7 @@ def insert_coin():
     marquee(s, 'INSERT COIN', 26, 32)
 
     bezel = pygame.Rect(16, 72, 136, 136)
-    panel(s, bezel, fill=(14, 28, 38), edge=YELLOW, width=2, radius=6)
+    panel(s, bezel, fill=(14, 28, 38), edge=None, radius=6)   # a plate, not a frame
     qr = qr_image(QR_TEXT, 116)
     s.blit(qr, qr.get_rect(center=bezel.center))
     say(s, 'SCAN TO INSERT', bezel.centerx, bezel.bottom + 5, 13, YELLOW, center=True)
@@ -291,7 +295,7 @@ def paying():
 def receipt():
     """A printed ticket, the way the machine hands you one."""
     s = new_screen()
-    say(s, 'TICK ARCADE', 240, 8, 15, MUTED, center=True)
+    say(s, 'ETH ARCADE', 240, 8, 15, MUTED, center=True)
 
     card = pygame.Rect(56, 30, 368, 214)
     pygame.draw.rect(s, PAPER, card, border_radius=3)
@@ -566,10 +570,10 @@ def strip(frames, picks, captions, name, cols=3):
     print(f'{name}-frames.png')
 
 
-SHOTS = [('01-insert-coin', insert_coin, 'CASHIER / waiting for money'),
-         ('02-coin-drop', coin_drop, 'CASHIER / the deposit lands'),
-         ('04-paying-out', paying, 'CASHIER / the payout, on Arc'),
-         ('05-receipt', receipt, 'CASHIER / the ticket, then the board'),
+SHOTS = [('01-insert-coin', insert_coin, 'MONEY / waiting for money'),
+         ('02-coin-drop', coin_drop, 'MONEY / the deposit lands'),
+         ('04-paying-out', paying, 'MONEY / the payout, on Arc'),
+         ('05-receipt', receipt, 'MONEY / the ticket, then the board'),
          ('06-board-before', board_before, 'BOARD / your old rank, still scoring')]
 
 
@@ -578,7 +582,7 @@ def sheet(images):
     rows = (len(images) + cols - 1) // cols
     board = pygame.Surface((cols * W + pad * (cols + 1), rows * (H + cap) + pad * (rows + 1) + 40))
     board.fill((22, 30, 38))
-    art = font(20).render('TICK / CASHIER AND LEADERBOARD / PROPOSED', False, CREAM)
+    art = font(20).render('ETH ARCADE / MONEY AND LEADERBOARD / PROPOSED', False, CREAM)
     board.blit(art, (pad, 14))
     for i, (image, caption) in enumerate(images):
         x = pad + (i % cols) * (W + pad)

@@ -46,7 +46,7 @@ def init_display() -> pygame.Surface:
         screen = pygame.display.set_mode(size, flags)
     except Exception:
         screen = pygame.display.set_mode(size)
-    pygame.display.set_caption("TICK / RUSH")
+    pygame.display.set_caption("ETH ARCADE")
     pygame.mouse.set_visible(True)
     if _rotation == 0:
         _canvas = None

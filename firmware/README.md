@@ -1,4 +1,4 @@
-# TICK / BOX RUN
+# ETH ARCADE / BOX RUN
 
 Native pygame game for a **480×320 landscape** handheld. Runs on desktop for development and on the Pi's configured SDL display.
 
@@ -134,9 +134,25 @@ Balances are integer **micro-USDC** (6 decimals, the real USDC unit) so a sessio
 
 `TICK_STAKE_USDC` sets the stake per press of A in BOX RUN and per ride in RUSH: 10 by default, as little as 0.000001. It is parsed as an exact decimal, and labels and balances show as many decimals as the stake has, so a 0.001 stake reads `0.001`, never `0.00`.
 
-**Real USDC.** With `TICK_FUNDING=arc-testnet` the money screen (ADD USDC on the launcher) shows the device's own Arc address as a QR code. Scan it in MetaMask and send any amount of USDC on Arc testnet. The device watches Arc for transfers to itself, keeps 0.01 of each for gas (USDC is Arc's gas token; set it with `TICK_GAS_FEE_USDC`), and locks the rest in `TickEscrow` with `openFor`, in the sender's name. That takes about 8 seconds. The launcher then shows `+0.49 USDC FROM 0x7ee8..CCac` and its money button turns into CASH OUT.
+**Real USDC.** With `TICK_FUNDING=arc-testnet` the money button on the launcher reads INSERT COIN and opens `screens/money.py`, which shows the device's own Arc address as a QR code. Scan it in MetaMask and send any amount of USDC on Arc testnet. The device watches Arc for transfers to itself, keeps 0.01 of each for gas (USDC is Arc's gas token; set it with `TICK_GAS_FEE_USDC`), and locks the rest in `TickEscrow` with `openFor`, in the sender's name. That takes about 8 seconds. The launcher then shows `+0.49 USDC FROM 0x7ee8..CCac` and its money button turns into CASH OUT.
 
 Bets run on the device exactly as in demo play. CASH OUT refunds a box bought for the next window, lets the live one land, then closes the session with the final balance, and the escrow pays it straight back to the address the USDC came from. The escrow pays out at most 5x a deposit, so a press that could win past that is refused with `MAX WIN REACHED / CASH OUT`. A deposit the house cannot cover, or one over the 2.5 USDC maximum, is sent back.
+
+**The money screen** is one screen with four faces, and only one of them is up at a time — designed in [`design/insert-coin`](../design/insert-coin/). Which face is drawn comes from funding state that already exists on `ArcFunding`, plus two timers:
+
+| face | when | ● B | ◆ A |
+|---|---|---|---|
+| INSERT COIN | no session open | home | — |
+| COIN DROP | a deposit just landed | home | **PLAY NOW**, straight into the game |
+| CASH OUT? | money down, money button pressed | not yet | **YES**, after a 0.5s beat |
+| CASHING OUT | the payout is in flight | — | — |
+| the ticket | the payout landed | home | see your rank |
+
+The coin drop falls back to the launcher with PLAY focused if nobody presses anything for three seconds, and the ticket hands itself to the leaderboard after 2.5. CASHING OUT has no buttons, because pressing one cannot make Arc faster — but if the payout is still going after eight seconds (`PAYING_HOLD_S`) the red button becomes `< LEAVE IT RUNNING`, since the worker finishes the transaction whatever is on the panel and the launcher says so when it lands. The cash-out question exists because that press is the only irreversible, screen-less action on the device: the A that opens the card is ignored, so it takes a second, deliberate press to send the money. The ticket reports the run — in, out, P&L, boxes, hits, best win and the tx — from a `Ticket` snapshotted in `BoxGame.sync_funding` the moment the cash-out lands, because everything on it is about to be reset. Paper money keeps its own `+10 / +25 / +100` chooser inside `BoxGame`; none of this applies to it.
+
+**The leaderboard moves.** `screens/board.py` reads every `tick.eth` player from ENS, best P&L first, and the wallet on this device is picked out — in the list, or pinned under it with its real rank. Arriving from a payout it does something more: `BoardScreen.arrive()` is handed who just cashed out and what their run was worth, and from then until the scorekeeper catches up the board **holds the picture it already had**, ghosts the pending P&L beside your old row, and says `SCORING YOUR RUN ON ENS`. `BoardFeed` parks a good read in `pending` instead of swapping it in, and polls every 3s rather than 20 while it is waiting — the scorekeeper writes a few seconds after the escrow closes, so this is usually one or two reads. A run counts as scored when the name's `tick.sessions` goes up, the only signal ENS gives us.
+
+Then the board is *seen* to change rather than found already changed. `Move` is the whole animation: 0.7s holding, one adjacent swap every 0.52s, 1.7s to settle. Your plate lifts over the list, the row above slides under it, both numbers roll at the same instant so they never read as the same rank, `UP 1` becomes `UP 2` becomes `UP 3`, and your P&L counts up the whole way — to cents while it runs, exact when it rests. Land in the top three and confetti comes off the plate under `ON THE PODIUM!`; a bad run runs the same movement downward with no celebration at all, just `THAT ONE COST YOU. GO AGAIN?`. Two cases have no row to trade places with, so the number itself counts instead: a player pinned below the visible six, and a first ever run, whose row drops in from the top and stamps `NEW ENTRY`. If ENS has not been written after 45 seconds (`SCORE_WAIT_S`) the board says so and goes back to being a board. Afterwards the yellow button reads `PLAY AGAIN` and goes to INSERT COIN, which closes the loop.
 
 The device key is created on first run in `firmware/.tick/device.json`, and the open sessions, balance and last block read are saved in `.tick/arc-testnet.json`; the folder is gitignored. A restart resumes play and finishes an interrupted cash-out. Chain work runs on its own thread, so a slow RPC never stalls a frame. Real funds need `eth-account` and `qrcode` from `requirements.txt`; demo play does not. The odds still carry no house edge.
 

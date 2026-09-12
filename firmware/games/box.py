@@ -1,6 +1,8 @@
 """BOX RUN: crank the box, buy the next window. Renderer, sound and input."""
 from __future__ import annotations
 from collections import deque
+from dataclasses import dataclass
+from decimal import Decimal
 import math
 import os
 import time
@@ -40,6 +42,28 @@ GLOW = (44, 80, 98)
 
 
 FUNDING = ('demo', 'arc-testnet')
+
+
+@dataclass(frozen=True)
+class Ticket:
+    """What the machine prints when it pays you: one closed session, in full.
+
+    Snapshotted the moment the cash-out lands, because everything it reports is
+    about to be reset — the escrow sessions close, the balance goes to zero and
+    the next player starts a run of their own.
+    """
+    paid: int           # micro-USDC sent back
+    player: str
+    tx: str
+    paid_in: int        # micro-USDC this player put in
+    boxes: int
+    hits: int
+    best: int           # the best single payout of the run
+
+    @property
+    def pnl(self) -> Decimal:
+        """What the run was worth, in USDC — the unit the leaderboard counts in."""
+        return Decimal(self.paid - self.paid_in) / MICRO
 
 
 def build_wallet() -> Wallet:
@@ -142,10 +166,17 @@ class BoxGame:
         # Real funds only.
         self.cashing = False       # cash-out asked for; waiting for the live box to land
         self.money_note: tuple[str, float] | None = None   # shown on the launcher too
-        self.qr: tuple[str, pygame.Surface] | None = None
-        # A deposit landed on the QR screen: back to the launcher with PLAY up,
-        # rather than leave CASH OUT under the thumb that just paid in.
-        self.funded = False
+        # The money screen's two seams: a deposit it has not shown yet, and the
+        # ticket for the payout it has. Both are read and cleared by that screen.
+        self.coin_in: tuple[int, str] | None = None
+        self.ticket: Ticket | None = None
+        # The run the ticket will report, reset the moment one is printed.
+        self.run_in = 0            # micro-USDC paid in since the last cash-out
+        self.run_boxes = 0
+        self.run_hits = 0
+        self.run_best = 0          # the best single payout of the run
+        # Out of money mid-play, on real funds: the app opens the money screen.
+        self.want_money = False
 
     def enter(self) -> None:
         self.held.clear()
@@ -226,15 +257,18 @@ class BoxGame:
             if kind == 'opened':
                 self.announce(f'+{format_usdc(event[1])} USDC FROM {self.who(event[2])}', 6)
                 self.play('coin')
-                if self.wallet_open:
-                    self.wallet_open = False
-                    self.funded = True
+                self.run_in += event[1]
+                self.coin_in = (event[1], event[2])
             elif kind == 'named':
                 self.announce(f'WELCOME {event[2]}', 6)
             elif kind == 'cashed_out' and event[1]:
                 paid = sum(payout for payout, _, _ in event[1])
-                self.announce(f'SENT {format_usdc(paid)} TO {self.who(event[1][-1][1])}', 8)
+                _, player, tx = event[1][-1]
+                self.announce(f'SENT {format_usdc(paid)} TO {self.who(player)}', 8)
                 self.play('coin')
+                self.ticket = Ticket(paid, player, tx, self.run_in,
+                                     self.run_boxes, self.run_hits, self.run_best)
+                self.run_in = self.run_boxes = self.run_hits = self.run_best = 0
                 self.streak = 0
             elif kind == 'refunded':
                 self.announce(f'SENT BACK {format_usdc(event[1])} / {event[3]}', 6)
@@ -251,8 +285,13 @@ class BoxGame:
         return names.get(address) or short_address(address)
 
     def open_wallet(self) -> None:
-        self.wallet_open = True
+        """The paper-money loader. Real funds have a screen of their own, which
+        only the app can put up, so ask for it instead."""
         self.held.clear()
+        if self.onchain:
+            self.want_money = True
+            return
+        self.wallet_open = True
 
     def load_selected(self) -> None:
         amount = LOAD_CHOICES[self.amount_index]
@@ -334,16 +373,13 @@ class BoxGame:
     def handle_action(self, action: InputAction) -> str | None:
         if action == InputAction.QUIT:
             return 'quit'
-        if self.wallet_open:
-            if action in (InputAction.UP, InputAction.DOWN) and not self.onchain:
+        if self.wallet_open:            # the paper-money loader; see open_wallet
+            if action in (InputAction.UP, InputAction.DOWN):
                 step = 1 if action == InputAction.UP else -1
                 self.amount_index = (self.amount_index + step) % len(LOAD_CHOICES)
                 self.play('nav')
             elif action == InputAction.A:
-                if self.onchain:
-                    self.request_cash_out()
-                else:
-                    self.load_selected()
+                self.load_selected()
             elif action == InputAction.B:
                 self.wallet_open = False
             return None
@@ -446,8 +482,11 @@ class BoxGame:
         if result.voided:
             self.floaters.add('VOID', RIDER_X + 64, y - 30, MUTED)
             return
+        self.run_boxes += 1
         if result.hit:
             self.streak += 1
+            self.run_hits += 1
+            self.run_best = max(self.run_best, result.payout)
             self.sparks.burst(RIDER_X, y, 20, (YELLOW, YELLOW, CREAM), 180, 1.1, 5,
                               square=True, drift=-PX_PER_S)
             self.floaters.add(f'+{format_usdc(result.payout)}', RIDER_X + 64, y - 36, MINT, 20)
@@ -543,7 +582,7 @@ class BoxGame:
         self.draw_hud(s)
         self.draw_status(s)
         footer(s, '< HOME', f'BUY {self.stake_text()} >' if m.can_buy()
-               else ('ADD USDC >' if self.onchain else 'LOAD >'))
+               else ('INSERT COIN >' if self.onchain else 'LOAD >'))
 
     def spin(self) -> float:
         return self.clock * PX_PER_S / Rider.WHEEL
@@ -745,10 +784,8 @@ class BoxGame:
             say_right(s, f'HITS {m.hits}/{m.rounds}', 470, PLAY.bottom + 7, 15, MUTED)
 
     def draw_wallet(self, s: pygame.Surface) -> None:
+        """Paper money only. Real funds are drawn by `screens.money`."""
         wallet = self.model.wallet
-        if self.onchain:
-            self.draw_arc_wallet(s)
-            return
         label(s, f'LOAD {wallet.funding.name} USDC', 240, 50, 26, YELLOW, True)
         label(s, 'LOCAL TEST BALANCE / NO REAL MONEY', 240, 88, 15, MUTED, True)
         for i, amount in enumerate(LOAD_CHOICES):
@@ -760,80 +797,14 @@ class BoxGame:
         label(s, f'{len(wallet.deposits)} LOADS THIS SESSION', 240, 236, 15, CREAM, True)
         footer(s, '< BACK', 'LOAD >')
 
-    def draw_arc_wallet(self, s: pygame.Surface) -> None:
-        """Real funds: the device's address as a QR code, and what the money is doing."""
-        m = self.model
-        funding = m.wallet.funding
-        self.draw_qr(s, funding.qr_text, pygame.Rect(14, 38, 164, 164))
-        x = 190
-        label(s, 'SEND USDC ON', x, 40, 18, YELLOW)
-        label(s, funding.net.name, x, 60, 18, YELLOW)
-        label(s, funding.address[:22], x, 88, 13, CREAM)
-        label(s, funding.address[22:], x, 104, 13, CREAM)
-        text, color = self.arc_status()
-        label(s, text[:26], x, 132, 15, color)
-        label(s, f'KEEPS {format_usdc(funding.gas_fee)} OF EACH FOR GAS', x, 156, 11, MUTED)
-        if funding.error:
-            label(s, funding.error[:36], x, 176, 11, RED)
-        if funding.in_session:
-            label(s, f'BALANCE {format_usdc(m.wallet.balance)} USDC', 14, 212, 17, MINT)
-            label(s, f'CASH OUT GOES TO {self.who(funding.player)}', 14, 238, 15, CREAM)
-        elif funding.last_cashout is not None:
-            paid, player, tx = funding.last_cashout
-            label(s, f'SENT {format_usdc(paid)} TO {self.who(player)}', 14, 212, 17, MINT)
-            label(s, f'TX {tx[:12]}..{tx[-6:]}', 14, 238, 13, MUTED)
-        else:
-            label(s, 'SCAN IN METAMASK AND SEND ANY AMOUNT', 14, 212, 15, CREAM)
-            label(s, f'MAX WIN IS 5x THE DEPOSIT', 14, 238, 13, MUTED)
-        footer(s, '< BACK', 'CASH OUT >' if funding.in_session and not self.cashing else '')
-
-    def arc_status(self) -> tuple[str, tuple]:
-        funding = self.model.wallet.funding
-        if self.cashing:
-            return 'FINISHING LIVE BOX...', YELLOW
-        if funding.pending_cashout is not None:
-            return 'SENDING USDC...', YELLOW
-        if funding.busy:
-            return f'{funding.status}...', YELLOW
-        if funding.error:
-            return 'ARC UNREACHABLE', RED
-        if funding.in_session and funding.last_deposit is not None:
-            amount, sender = funding.last_deposit
-            name = getattr(funding, 'names', {}).get(sender)
-            if name:    # the status line is narrow: the handle, then what it sent
-                return f'{name.removesuffix(".tick.eth")} +{format_usdc(amount)}', MINT
-            return f'+{format_usdc(amount)} FROM {short_address(sender)}', MINT
-        if funding.in_session:
-            return 'IN PLAY', MINT
-        return 'WAITING FOR USDC' + '.' * (int(self.clock * 2) % 4), CREAM
-
-    def draw_qr(self, s: pygame.Surface, text: str, rect: pygame.Rect) -> None:
-        """A QR code of `text`, dark on white with its quiet zone, built once."""
-        if self.qr is None or self.qr[0] != text:
-            import qrcode              # real funds only; demo play does not need it
-            code = qrcode.QRCode(border=2, error_correction=qrcode.constants.ERROR_CORRECT_M)
-            code.add_data(text)
-            code.make(fit=True)
-            matrix = code.get_matrix()
-            cell = max(1, min(rect.w, rect.h) // len(matrix))
-            image = pygame.Surface((len(matrix) * cell, len(matrix) * cell))
-            image.fill((255, 255, 255))
-            for y, row in enumerate(matrix):
-                for x, dark in enumerate(row):
-                    if dark:
-                        image.fill((0, 0, 0), (x * cell, y * cell, cell, cell))
-            self.qr = (text, image)
-        image = self.qr[1]
-        s.blit(image, image.get_rect(center=rect.center))
-
 
 def handle_box_events(game: BoxGame, events: list, actions: list[InputAction]) -> str | None:
-    if game.funded:
-        # This frame's presses are dropped: one aimed at the QR screen's CASH
-        # OUT must not land on whatever comes next.
-        game.funded = False
+    if game.want_money:
+        # Out of money on real funds: the money screen is the app's to put up,
+        # and this frame's presses go with it rather than landing behind it.
+        game.want_money = False
         game.held.clear()
-        return 'funded'
+        return 'money'
     for event in events:
         if event.type == pygame.WINDOWFOCUSLOST:
             game.held.clear()

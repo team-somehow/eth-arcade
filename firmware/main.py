@@ -1,4 +1,4 @@
-"""Entry point for the TICK handheld launcher and BOX RUN."""
+"""Entry point for the ETH Arcade handheld launcher and BOX RUN."""
 
 from display_setup import ensure_system_pygame
 from envfile import load_env_file

@@ -71,7 +71,7 @@ board has no memory of where you were before.
         │                                                        │
    ┌────▼─────┐  A on money button                               │
    │   HOME   ├──────────────► ┌─────────────┐                   │
-   │ attract  │   (no funds)   │  CASHIER A  │  SCAN TO PLAY     │
+   │ attract  │   (no funds)   │   MONEY A   │  SCAN TO PLAY     │
    └────▲─────┘                │   waiting   │  big QR           │
         │                      └──────┬──────┘                   │
         │                             │ deposit lands            │
@@ -86,7 +86,7 @@ board has no memory of where you were before.
    └────┬─────┘                                                  │
         │ A on money button (in session)                         │
    ┌────▼─────┐                                                  │
-   │CASHIER B │  THE BANK: balance is the hero, QR is a 64px     │
+   │ MONEY B  │  THE BANK: balance is the hero, QR is a 64px     │
    │  in play │  chip marked ADD MORE. A = CASH OUT.             │
    └────┬─────┘                                                  │
         │                                                        │
@@ -112,7 +112,7 @@ Two rules carry the whole thing:
 
 ---
 
-## 3. The cashier screen
+## 3. The money screen
 
 Same 480x320 canvas, same palette (`ui.py`), same footer band. Which of the four
 faces is drawn comes from the funding state that already exists on
@@ -130,7 +130,7 @@ faces is drawn comes from the funding state that already exists on
 
 ```
  ┌──────────────────────────────────────────────────┐
- │ CASHIER                             ARC TESTNET  │ 6
+ │ ETH ARCADE                          ARC TESTNET  │ 6
  │                                                  │
  │  ┌────────────────┐                              │
  │  │▓▓░▓░░▓▓▓░▓▓░▓▓▓│   SCAN TO PLAY               │ 46  24px YELLOW
@@ -195,7 +195,7 @@ Triggered by the existing `'opened'` event. Full-screen takeover.
 
 ```
  ┌──────────────────────────────────────────────────┐
- │ CASHIER                    amber-otter.tick.eth  │ 6
+ │ ETH ARCADE                 amber-otter.tick.eth  │ 6
  │                                                  │
  │  BALANCE                             ┌────────┐  │ 40  13px MUTED
  │  ╔════════════════════╗              │▓░▓░▓░▓▓│  │
@@ -375,7 +375,7 @@ does land, even if the player left and came back.
 
 **Beat 4 — after.** Strip fades. Footer becomes `● HOME  /  ◆ PLAY AGAIN >`,
 because the natural thing after seeing your rank is another run. `PLAY AGAIN`
-goes to the cashier if the session is closed (it will be), which is face A,
+goes to the money screen if the session is closed (it will be), which is face A,
 which is the QR — the loop closes.
 
 Same tween machinery runs on ordinary refreshes while the board is open: if
@@ -388,10 +388,10 @@ other people playing should be visibly alive.
 
 | where | ● B (red) | ◆ A (yellow) |
 |---|---|---|
-| HOME · money focused | quit (2x) | cashier |
-| CASHIER A · waiting | home | — |
+| HOME · money focused | quit (2x) | money |
+| MONEY A · waiting | home | — |
 | ARRIVAL | home | **PLAY NOW** |
-| CASHIER B · bank | back to play | **CASH OUT** |
+| MONEY B · bank | back to play | **CASH OUT** |
 | PAYING | — | — |
 | RECEIPT | home | **SEE YOUR RANK** (auto in 2.5s) |
 | BOARD · arrival | home | refresh |
@@ -419,9 +419,9 @@ right-aligned; keeping the balance on the button is right).
    `max(payout)` in `BoxGame.on_result`. One line.
 6. **Balance samples** for the sparkline: append `wallet.balance` after each
    settle, cap the list at ~64.
-7. **A screen router for the cashier.** Today the wallet is an overlay flag
+7. **A screen router for the money screens.** Today the wallet is an overlay flag
    (`wallet_open`) inside `BoxGame`. Four faces with timed transitions want their
-   own small state machine — likely `screens/cashier.py`, with `BoxGame` keeping
+   own small state machine — likely `screens/money.py`, with `BoxGame` keeping
    only the demo loader.
 
 Nothing above touches the escrow, the scorekeeper, or gameplay. It is all

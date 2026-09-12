@@ -11,7 +11,13 @@ import pygame
 from arc import ArcFunding, House, Incoming, calldata
 from games.box import BoxGame
 from games.box_model import BoxModel
+from decimal import Decimal
+
 from input import InputAction
+from names import Standing
+from screens.board import BoardFeed
+from screens.money import (ARRIVAL_HOLD_S, ARRIVAL_S, CONFIRM_ARM_S, PAYING_HOLD_S,
+                           RECEIPT_S, MoneyScreen, handle_money_events)
 from test_box import warm
 from wallet import MICRO, DemoFunding, Wallet
 
@@ -263,7 +269,32 @@ class BoxRulesForRealFundsTests(unittest.TestCase):
         self.assertEqual((m.pending, m.wallet.balance), (None, MICRO))
 
 
+def standing(name: str, pnl: str, player: str | None = None, plays: int = 3) -> Standing:
+    return Standing(f'{name}.tick.eth', player or f'0x{abs(hash(name)):040x}'[:42],
+                    plays, 1, Decimal(pnl), Decimal('0.5'))
+
+
+# The board before and after our player's run is scored: last of six to third.
+BEFORE = [standing('turbo-lynx', '812'), standing('misty-crab', '402.50'),
+          standing('neon-yak', '101'), standing('sly-moose', '52'),
+          standing('quiet-vole', '12'), standing('amber-otter', '-18.40', PLAYER, 11)]
+AFTER = sorted([row for row in BEFORE if row.player != PLAYER]
+               + [standing('amber-otter', '137.40', PLAYER, 12)],
+               key=lambda row: (-row.pnl, -row.wins, row.name))
+
+
+class ReadingFeed(BoardFeed):
+    """A BoardFeed whose reader runs where the test can see it: `want` reads now,
+    on this thread, obeying `hold` exactly as the real one does. That is what
+    makes the read the board fires on opening land at the moment it really would."""
+
+    def want(self) -> None:
+        self.refresh()
+
+
 class ArcScreenTests(unittest.TestCase):
+    """The money screen, end to end on a fake chain: coin in, cash out, ticket."""
+
     def setUp(self):
         pygame.init()
         folder = tempfile.TemporaryDirectory()
@@ -276,67 +307,248 @@ class ArcScreenTests(unittest.TestCase):
                                   gas_fee=FEE, start=False, lookup=lambda player: None)
         self.game = BoxGame(seed=1, sound=False, source='sim', wallet=Wallet(0, self.funding))
         self.addCleanup(self.game.close)
+        self.money = MoneyScreen(self.game)
+        self.canvas = pygame.Surface((480, 320))
 
-    def test_the_wallet_screen_draws_before_and_during_a_session(self):
-        self.game.open_wallet()
-        self.game.draw(pygame.Surface((480, 320)))       # QR code, waiting
+    def deposit(self, amount=MICRO):
+        """A player sends USDC and the device opens a session for it."""
         self.funding.step()
-        self.chain.arrive(PLAYER, MICRO)
+        self.chain.arrive(PLAYER, amount)
         self.funding.step()
         self.game.sync_funding()
+
+    def test_it_opens_on_insert_coin_with_no_money_in(self):
+        self.money.open()
+        self.assertEqual(self.money.face, 'waiting')
+        self.money.draw(self.canvas)                     # QR, address, waiting rider
+        self.assertIsNone(self.money.handle_action(InputAction.A))   # nothing to press
+        self.assertEqual(self.money.handle_action(InputAction.B), 'home')
+
+    def test_a_deposit_while_waiting_becomes_the_coin_drop(self):
+        self.money.open()
+        self.deposit()
+        self.money.update(.1)
+        self.assertEqual(self.money.face, 'arrival')
+        self.assertEqual(self.money.deposit, (MICRO - FEE, PLAYER))
+        self.assertIsNone(self.game.coin_in)             # taken, so it plays once
+        self.money.draw(self.canvas)
         self.assertEqual(self.game.model.wallet.balance, MICRO - FEE)
-        self.assertIn('FROM 0x7ee8..CCac', self.game.banner()[0])
-        self.game.open_wallet()
-        self.game.draw(pygame.Surface((480, 320)))       # balance, cash out
 
-    def test_a_deposit_on_the_qr_screen_goes_back_to_the_launcher(self):
-        from games.box import handle_box_events
-        self.game.open_wallet()
-        self.funding.step()
-        self.chain.arrive(PLAYER, MICRO)
-        self.funding.step()
-        self.game.sync_funding()
-        self.assertFalse(self.game.wallet_open)
-        # The A that was headed for CASH OUT in the same frame is dropped.
-        self.assertEqual(handle_box_events(self.game, [], [InputAction.A]), 'funded')
+    def test_a_on_the_coin_drop_goes_straight_into_the_game(self):
+        self.money.open()
+        self.deposit()
+        self.money.update(.1)
+        self.assertEqual(self.money.handle_action(InputAction.A), 'game')
+
+    def test_the_coin_drop_falls_back_to_the_launcher_on_its_own(self):
+        self.money.open()
+        self.deposit()
+        self.money.update(.1)
+        self.money.update(ARRIVAL_S + ARRIVAL_HOLD_S + .1)
+        self.assertEqual(handle_money_events(self.money, [], [InputAction.A]), 'funded')
+        self.assertIsNone(handle_money_events(self.money, [], []))   # once only
+
+    def test_a_deposit_landing_elsewhere_does_not_replay_later(self):
+        self.deposit()                                   # money lands on the launcher
+        self.money.open()
+        self.money.update(.1)
+        self.assertEqual(self.money.face, 'confirm')
+
+    def test_money_in_opens_the_cash_out_question(self):
+        self.deposit()
+        self.money.open()
+        self.assertEqual(self.money.face, 'confirm')
+        self.money.draw(self.canvas)
+        # The A that opened the card cannot also send the money.
+        self.assertFalse(self.money.armed)
+        self.money.handle_action(InputAction.A)
+        self.assertEqual(self.money.face, 'confirm')
         self.assertIsNone(self.funding.pending_cashout)
-        self.assertTrue(self.funding.in_session)
-        self.assertIsNone(handle_box_events(self.game, [], []))    # once only
+        self.assertEqual(self.money.handle_action(InputAction.B), 'home')
 
-    def test_a_deposit_during_play_stays_in_play(self):
-        from games.box import handle_box_events
-        self.funding.step()
-        self.chain.arrive(PLAYER, MICRO)
+    def test_a_second_press_sends_the_money_and_prints_a_ticket(self):
+        self.deposit()
+        self.money.open()
+        self.money.update(CONFIRM_ARM_S)
+        self.assertTrue(self.money.armed)
+        self.money.handle_action(InputAction.A)
+        self.assertEqual(self.money.face, 'paying')
+        self.assertEqual(self.funding.pending_cashout, MICRO - FEE)
+        self.money.draw(self.canvas)                     # steps ticking, notes flying
+        self.assertIsNone(self.money.handle_action(InputAction.B))   # it is sending
+
         self.funding.step()
         self.game.sync_funding()
-        self.assertIsNone(handle_box_events(self.game, [], []))
+        self.money.update(.1)
+        self.assertEqual(self.chain.paid, [(PLAYER, MICRO - FEE)])
+        self.assertEqual(self.money.face, 'receipt')
+        ticket = self.game.ticket
+        self.assertEqual((ticket.paid, ticket.paid_in), (MICRO - FEE, MICRO - FEE))
+        self.assertEqual(ticket.player, PLAYER)
+        self.money.draw(self.canvas)
 
-    def test_a_in_the_wallet_cashes_out(self):
-        self.funding.step()
-        self.chain.arrive(PLAYER, MICRO)
-        self.funding.step()
-        self.game.sync_funding()
-        self.game.open_wallet()
-        self.game.handle_action(InputAction.A)
+    def test_a_late_payout_lets_you_walk_away_without_stopping_it(self):
+        self.deposit()
+        self.money.open()
+        self.money.update(CONFIRM_ARM_S)
+        self.money.handle_action(InputAction.A)
+        self.assertIsNone(self.money.handle_action(InputAction.B))   # while it sends
+        self.money.update(PAYING_HOLD_S + .1)
+        self.assertTrue(self.money.stuck)
+        self.money.draw(self.canvas)                                 # says it keeps sending
+        self.assertEqual(self.money.handle_action(InputAction.B), 'home')
+        # Leaving changed nothing about the money: the worker still owes it.
         self.assertEqual(self.funding.pending_cashout, MICRO - FEE)
         self.funding.step()
         self.game.sync_funding()
         self.assertEqual(self.chain.paid, [(PLAYER, MICRO - FEE)])
-        self.assertIn('SENT 0.99 TO 0x7ee8..CCac', self.game.banner()[0])
+
+    def test_the_ticket_hands_itself_to_the_leaderboard(self):
+        self.deposit()
+        self.money.open()
+        self.money.update(CONFIRM_ARM_S)
+        self.money.handle_action(InputAction.A)
+        self.funding.step()
+        self.game.sync_funding()
+        self.money.update(.1)
+        self.assertEqual(self.money.handle_action(InputAction.A), 'board')
+        self.money.update(RECEIPT_S + .1)
+        self.assertEqual(handle_money_events(self.money, [], []), 'board')
+
+    def test_the_ticket_reports_the_run_and_then_starts_a_new_one(self):
+        self.deposit()
+        self.game.run_boxes, self.game.run_hits, self.game.run_best = 12, 7, 48 * MICRO
+        self.money.open()
+        self.money.update(CONFIRM_ARM_S)
+        self.money.handle_action(InputAction.A)
+        self.funding.step()
+        self.game.sync_funding()
+        self.assertEqual((self.game.ticket.boxes, self.game.ticket.hits,
+                          self.game.ticket.best), (12, 7, 48 * MICRO))
+        self.assertEqual((self.game.run_boxes, self.game.run_hits, self.game.run_in), (0, 0, 0))
+
+    def test_an_old_ticket_never_stands_in_for_the_next_payout(self):
+        self.deposit()
+        self.money.open()
+        self.money.update(CONFIRM_ARM_S)
+        self.money.handle_action(InputAction.A)
+        self.funding.step()
+        self.game.sync_funding()
+        self.money.update(.1)
+        self.assertEqual(self.money.face, 'receipt')
+        self.deposit()                                   # a new player, a new run
+        self.money.open()
+        self.assertIsNone(self.game.ticket)
+        self.money.update(CONFIRM_ARM_S)
+        self.money.handle_action(InputAction.A)
+        self.assertEqual(self.money.face, 'paying')      # not the old receipt
 
     def test_a_named_player_is_shown_by_their_name(self):
         self.funding.lookup = lambda player: 'fancy-panda.tick.eth'
-        self.funding.step()
-        self.chain.arrive(PLAYER, MICRO)
-        self.funding.step()
-        self.game.sync_funding()
+        self.deposit()
         self.assertIn('WELCOME fancy-panda.tick.eth', self.game.banner()[0])
-        self.game.open_wallet()
-        self.game.draw(pygame.Surface((480, 320)))       # CASH OUT TO fancy-panda.tick.eth
-        self.game.handle_action(InputAction.A)
+        self.money.open()
+        self.money.draw(self.canvas)                     # CASH OUT to fancy-panda
+        self.money.update(CONFIRM_ARM_S)
+        self.money.handle_action(InputAction.A)
         self.funding.step()
         self.game.sync_funding()
         self.assertIn('SENT 0.99 TO fancy-panda.tick.eth', self.game.banner()[0])
+        self.money.update(.1)
+        self.money.draw(self.canvas)                     # the ticket, in their name
+
+    def test_running_out_mid_play_asks_the_app_for_the_money_screen(self):
+        from games.box import handle_box_events
+        self.game.buy()                                  # nothing in the wallet
+        self.assertFalse(self.game.wallet_open)          # the paper loader stays shut
+        self.assertEqual(handle_box_events(self.game, [], [InputAction.A]), 'money')
+        self.assertIsNone(handle_box_events(self.game, [], []))      # once only
+
+    def test_a_deposit_during_play_stays_in_play(self):
+        from games.box import handle_box_events
+        self.deposit()
+        self.assertIsNone(handle_box_events(self.game, [], []))
+
+
+class LoopTests(unittest.TestCase):
+    """The whole arcade loop through the real app: coin in, play, cash out,
+    ticket, the board moving, and round again."""
+
+    def setUp(self):
+        pygame.init()
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        env = mock.patch.dict(os.environ, {'TICK_ESCROW_ADDRESS': ESCROW})
+        env.start()
+        self.addCleanup(env.stop)
+        self.chain = FakeChain()
+        self.funding = ArcFunding(chain=self.chain, state_path=Path(folder.name) / 's.json',
+                                  gas_fee=FEE, start=False, lookup=lambda player: None)
+        from app import App
+        self.app = App('box')
+        self.addCleanup(self.app.game.close)
+        self.app.game.model.wallet.funding = self.funding
+        self.app.game.model.wallet.balance = 0
+        self.standings = [BEFORE]
+        self.app.board.feed = ReadingFeed(lambda: self.standings[-1])
+        self.app.board.feed.refresh()
+
+    def step(self, *actions):
+        if self.app.current != 'game':
+            self.app.screen_up().update(1 / 30)
+            self.app.game.watch(1 / 30)
+        else:
+            self.app.game.update(1 / 30)
+        self.app._dispatch([], list(actions))
+        self.app._draw()
+
+    def until(self, done, limit=600):
+        for _ in range(limit):
+            self.step()
+            if done():
+                return
+        self.fail('never got there')
+
+    def test_the_loop(self):
+        app = self.app
+        app.home.focus = 1                      # the money button
+        self.step(InputAction.A)
+        self.assertEqual((app.current, app.money.face), ('money', 'waiting'))
+
+        self.funding.step()
+        self.chain.arrive(PLAYER, 25 * MICRO)
+        self.funding.step()
+        self.until(lambda: app.money.face == 'arrival')
+        self.step(InputAction.A)                # PLAY NOW, straight into the game
+        self.assertEqual(app.current, 'game')
+        self.step(InputAction.B)
+        self.assertEqual(app.current, 'home')
+
+        app.home.focus = 1
+        self.step(InputAction.A)
+        self.assertEqual(app.money.face, 'confirm')
+        self.until(lambda: app.money.armed)
+        self.step(InputAction.A)                # the second, deliberate press
+        self.assertEqual(app.money.face, 'paying')
+        self.funding.step()
+        self.until(lambda: app.money.face == 'receipt')
+        self.assertEqual(app.game.ticket.paid, 25 * MICRO - FEE)
+
+        # The board is handed the run before it is opened, so the read the
+        # opening fires cannot replace the picture we came to watch change.
+        self.standings.append(AFTER)
+        self.until(lambda: app.current == 'board')
+        self.assertTrue(app.board.waiting)
+        self.assertEqual(app.board.my_rank(app.board.feed.rows), 6)
+
+        app.board.feed.refresh()                # the scorekeeper writes
+        self.until(lambda: app.board.move is not None)
+        move = app.board.move
+        self.assertEqual((move.start, move.end, move.up), (5, 2, True))
+        self.until(lambda: app.board.again)
+        self.assertEqual(app.board.my_rank(app.board.feed.rows), 3)
+        self.step(InputAction.A)                # PLAY AGAIN closes the loop
+        self.assertEqual((app.current, app.money.face), ('money', 'waiting'))
 
 
 if __name__ == '__main__':

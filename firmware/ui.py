@@ -18,7 +18,10 @@ MINT = (127, 228, 184)
 RED = (233, 100, 91)
 
 
-@lru_cache(maxsize=12)
+# Twelve distinct sizes exist across the whole app and no single screen asks for
+# more than seven, so sixteen slots hold every one of them for the life of the
+# process: changing screens never reloads a face. About 250 KiB a size.
+@lru_cache(maxsize=16)
 def font(size: int) -> pygame.font.Font:
     return pygame.font.SysFont('menlo,dejavusansmono,monospace', size, bold=True)
 

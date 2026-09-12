@@ -1,4 +1,4 @@
-"""TICK launcher. One cartridge (BOX RUN) plus the money loader.
+"""ETH Arcade launcher. One cartridge (BOX RUN) plus the money button.
 
 The launcher is an attract screen: the same night city as the game, with the
 rider running a scripted demo over it — a hit, a backflip, a hat trick and a
@@ -216,8 +216,8 @@ class HomeScreen:
         say(s, hint, 240, 116, 13, MUTED, True)
 
     def draw_top(self, s: pygame.Surface) -> None:
-        say(s, 'TICK', 10, 5, 20, CREAM)
-        say(s, 'ARCADE', 64, 11, 12, MUTED)
+        say(s, 'ETH', 10, 5, 20, CREAM)
+        say(s, 'ARCADE', 54, 11, 12, MUTED)
         m = getattr(self.game, 'model', None)
         asset = current_asset()
         symbol = asset.symbol
@@ -293,11 +293,12 @@ class HomeScreen:
         say(s, text, rect.centerx, rect.top - 16, 13, color, True)
 
     def wallet_label(self) -> str:
-        """The money button: load paper USDC, or add and cash out real USDC."""
+        """The money button: load paper USDC, or the arcade's own two verbs —
+        put a coin in, take your money out."""
         m = getattr(self.game, 'model', None)
         funding = getattr(getattr(m, 'wallet', None), 'funding', None)
         if getattr(funding, 'onchain', False):
-            return 'CASH OUT' if funding.in_session else 'ADD USDC'
+            return 'CASH OUT' if funding.in_session else 'INSERT COIN'
         return 'LOAD USDC'
 
     def draw_banner(self, s: pygame.Surface) -> None:
@@ -346,7 +347,9 @@ class HomeScreen:
                 pygame.draw.line(s, ink, (cx - 4, cy + 6), (cx + 4, cy + 6), 2)
             else:
                 pygame.draw.circle(s, ink, (rect.x + 16, rect.centery), 6, 2)
-                if wallet is not None:
+                # Nothing down is what INSERT COIN already says, and a 0.00
+                # beside it only crowds the longest label on the street.
+                if wallet is not None and wallet.balance:
                     bal = font(13).render(format_usdc(wallet.balance), False,
                                           NAVY if on else MUTED)
                     s.blit(bal, (rect.right - bal.get_width() - 10, rect.y + 5))
