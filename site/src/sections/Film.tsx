@@ -36,7 +36,7 @@ function Chapter({ i, hero, chapter, children }: { i: number; hero?: boolean; ch
   return (
     <div className={cls} style={{ top: `${i * 100}vh` }} id={i === 0 ? 'top' : undefined}>
       <div className="copy"><div className="eyebrow">{hero ? <><span className="status-dot" /> A pocket-sized market arcade</> : <><span>{String(i).padStart(2, '0')}</span> / {RAIL[i]}</>}</div>{children}</div>
-      {hero && <div className="scrollcue"><span aria-hidden>↓</span> Scroll to meet TICK</div>}
+      {hero && <div className="scrollcue"><span aria-hidden>↓</span> Scroll to meet ETH Arcade.fun</div>}
     </div>
   );
 }
@@ -47,7 +47,7 @@ export function Film() {
   return (
     <div className="film" ref={ref}>
       <div className="stage">
-        <div className="stage-word" aria-hidden>TICK</div>
+        <div className="stage-word" aria-hidden>PLAY.</div>
         <Stage />
         <div className="stage-caption"><span>FIG. {String(chapter + 1).padStart(2, '0')} / {RAIL[chapter]}</span><span>DESIGNED TO BE PLAYED.</span></div>
         <div className="glow" />
@@ -58,14 +58,14 @@ export function Film() {
       <Chapter i={0} hero chapter={chapter}>
         <h1>The market.<br />Now <span className="hero-accent">in play.</span></h1>
         <p className="lead">
-          Meet TICK. A tiny handheld that turns the ETH price into an arcade.
+          Meet ETH Arcade.fun. A tiny handheld that turns the ETH price into an arcade.
           One knob. Two buttons. Ten seconds to make your move.
         </p>
         <div className="ctas">
           <a className="key hot big" href="#demo">Let’s play <span aria-hidden>↗</span></a>
           <a className="text-link" href="#reserve">I want one <span aria-hidden>→</span></a>
         </div>
-        <div className="hero-facts"><span><b>10s</b> per round</span><span><b>100%</b> open source</span><span><b>Zero</b> real money here</span></div>
+        <div className="hero-facts"><span><b>10s</b> per round</span><span><b>100%</b> open source</span></div>
       </Chapter>
 
       <Chapter i={1} chapter={chapter}>
@@ -107,7 +107,7 @@ export function Film() {
         <p>
           The shell is a body and a lid that press together on a 5 mm lip running the whole perimeter.
           Inside: a Raspberry Pi Zero W, a 3.5-inch panel on the first 26 header pins, the encoder
-          bolted through the right wall, two 12 mm switches and six jumpers. Nothing is glued down —
+          bolted through the right wall, two 12 mm switches with two leads each, seven jumpers, and a rear-mounted speaker. Nothing is glued down —
           small printed L-brackets stop the board where you want it.
         </p>
         <Plate rows={[
@@ -130,7 +130,7 @@ export function Film() {
           ['synthesis', 'square wave, at boot'],
           ['samples', 'none'],
           ['beds', 'idle · live · final'],
-          ['out', 'Bluetooth, or an I²S DAC'],
+          ['out', 'rear-mounted speaker'],
         ]} />
       </Chapter>
 

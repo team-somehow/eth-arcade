@@ -22,6 +22,6 @@ export const KEYS: { pos: [number, number, number]; look: [number, number, numbe
   { pos: [236, -4, 202], look: [24, -26, 4], ex: 0 },   // the dial: down the right face at the knob
   { pos: [-14, 34, 246], look: [2, 19, 6], ex: 0 },      // the game: close on the screen
   { pos: [372, 158, 452], look: [0, -8, -16], ex: 1 },     // exploded
-  { pos: [-196, 26, 250], look: [-6, 0, 0], ex: 0 },     // sound: back together, from the left
+  { pos: [-196, 26, -250], look: [0, 0, -10], ex: 0 },     // sound: back together, from the left
   { pos: [68, 20, 344], look: [16, 0, 0], ex: 0 },        // specs: a slow orbit back to front
 ];

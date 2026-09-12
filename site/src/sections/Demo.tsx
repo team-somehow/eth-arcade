@@ -149,7 +149,7 @@ export function Demo() {
             className={'device' + (focused ? ' focus' : '')}
             ref={deviceRef}
             tabIndex={0}
-            aria-label="TICK handheld. Use arrow keys to crank, Enter to buy."
+            aria-label="ETH Arcade.fun handheld. Use arrow keys to crank, Enter to buy."
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             onClick={() => deviceRef.current?.focus({ preventScroll: true })}
@@ -161,7 +161,7 @@ export function Demo() {
             <div className="dial" ref={dialRef} role="slider" aria-label="Crank dial" aria-valuemin={-12} aria-valuemax={12} aria-valuenow={0} tabIndex={0}>
               <div className="knurl" /><i ref={needleRef} />
             </div>
-            <div className="devtag">TICK</div>
+            <div className="devtag">ETH Arcade.fun</div>
           </div>
         </div>
         <div>

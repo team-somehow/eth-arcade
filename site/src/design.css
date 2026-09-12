@@ -170,3 +170,12 @@ footer p { max-width: 85ch; font-size: 10px; }
   .ctas { gap: 22px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+
+/* Full product wordmark stays legible at phone widths. */
+.topbar .wordmark { font-size: clamp(19px, 2.3vw, 30px); white-space: nowrap; letter-spacing: -.055em; }
+.wordmark em { color: var(--yellow); font-size: .72em; letter-spacing: -.03em; }
+footer .wordmark { font-size: clamp(28px, 4vw, 48px); }
+.source-link { color: var(--yellow); text-decoration: none; border-bottom: 1px solid var(--edge); padding-bottom: 4px; }
+.source-link:hover { border-color: var(--yellow); }
+.devtag { font-size: clamp(10px, 1.5vw, 15px); letter-spacing: -.03em; }
+@media (max-width: 760px) { .baraction .ghostable { display: none; } }

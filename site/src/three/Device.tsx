@@ -127,6 +127,24 @@ function Lid() {
   );
 }
 
+/* Rear-mounted speaker. Illustrative proportions, pending the physical driver dimensions. */
+function Speaker() {
+  return (
+    <Part home={[0, 4, -11]} explode={[0, 0, -78]}>
+      <group rotation={[Math.PI / 2, 0, 0]}>
+        <mesh material={M.dark} castShadow><cylinderGeometry args={[21, 21, 3, 64]} /></mesh>
+        <mesh position={[0, -2, 0]} material={M.steel} castShadow><cylinderGeometry args={[13, 18, 5, 48]} /></mesh>
+        <mesh position={[0, -6, 0]} material={M.black}><cylinderGeometry args={[10, 10, 5, 48]} /></mesh>
+        <mesh position={[0, 1.6, 0]} material={M.black}><cylinderGeometry args={[18, 18, .6, 64]} /></mesh>
+        <mesh position={[0, 2, 0]} rotation={[Math.PI / 2, 0, 0]} material={M.dark}><torusGeometry args={[16, 1.5, 10, 64]} /></mesh>
+        <mesh position={[0, 2.1, 0]} scale={[1, .3, 1]} material={M.dark}><sphereGeometry args={[7, 32, 16]} /></mesh>
+      </group>
+      {[-1, 1].map((side) => <mesh key={side} position={[side * 8, -16, 4]} material={M.gold}><boxGeometry args={[3, 4, .8]} /></mesh>)}
+      <Callout position={[22, 18, 0]} show={[3, 4]} title="Rear speaker" sub="mounted behind the back grille" />
+    </Part>
+  );
+}
+
 /* ---------------- RASPBERRY PI ZERO W ----------------
    Board-local mm from the board centre: 65 x 30, the soldered 40-pin header
    along the top edge, mini-HDMI and the two micro-USBs along the bottom, the
@@ -258,12 +276,12 @@ function Button({ x, cap, callout }: { x: number; cap: THREE.Material; callout?:
       <mesh position={[0, 0, .5]} material={cap} rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[5.75, 5.5, 4, 48]} /></mesh>
       <mesh position={[0, 0, 2.5]} material={cap} scale={[1, 1, .32]}><sphereGeometry args={[5.75, 32, 16]} /></mesh>
       <mesh position={[0, 0, -2]} material={M.black} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[6.4, 6.4, 1.4, 40]} /></mesh>
-      {/* the switch body behind the wall, with its dome plate and four legs */}
+      {/* the switch body behind the wall, with its dome plate and two connection terminals */}
       <mesh position={[0, 0, -6.4]} material={M.black}><boxGeometry args={[12, 12, 7]} /></mesh>
       <mesh position={[0, 0, -2.9]} material={M.steel}><boxGeometry args={[10.6, 10.6, .4]} /></mesh>
-      {[-1, 1].map((sx) => [-1, 1].map((sy) => (
-        <mesh key={`${sx}${sy}`} position={[sx * 5.4, sy * 4, -10.6]} material={M.gold}><boxGeometry args={[1.2, 2.6, 1.4]} /></mesh>
-      )))}
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[side * 5.4, 0, -10.6]} material={M.gold}><boxGeometry args={[1.2, 2.6, 1.4]} /></mesh>
+      ))}
       {callout}
     </Part>
   );
@@ -271,7 +289,7 @@ function Button({ x, cap, callout }: { x: number; cap: THREE.Material; callout?:
 function Buttons() {
   return (
     <>
-      <Button x={-13} cap={M.red} callout={<Callout position={[-6, -16, -2]} show={[3]} title="12 mm switches" sub="red → GPIO13 · yellow → GPIO26" />} />
+      <Button x={-13} cap={M.red} callout={<Callout position={[-6, -16, -2]} show={[3]} title="12 mm switches" sub="two leads each: signal + ground" />} />
       <Button x={13} cap={M.yellow} />
     </>
   );
@@ -317,20 +335,21 @@ function Encoder() {
 /* ---------------- JUMPER WIRES: header → buttons and encoder ----------------
    Silicone jumpers with Dupont shells, rebuilt only when the explode changes. */
 const WIRES = [
-  { pin: 33, to: 'red', color: '#e04a3f' },
-  { pin: 34, to: 'red', color: '#23272b' },
-  { pin: 37, to: 'yellow', color: '#ffcc48' },
+  { pin: 33, to: 'red', terminal: -1, color: '#e04a3f' },
+  { pin: 34, to: 'red', terminal: 1, color: '#23272b' },
+  { pin: 37, to: 'yellow', terminal: -1, color: '#ffcc48' },
+  { pin: 39, to: 'yellow', terminal: 1, color: '#23272b' },
   { pin: 40, to: 'enc', color: '#7fe4b8' },
   { pin: 38, to: 'enc', color: '#3d8fd0' },
   { pin: 36, to: 'enc', color: '#e8e2d3' },
 ];
 
-function endOf(to: string, explode: number) {
+function endOf(to: string, explode: number, terminal = 0) {
   if (to === 'enc') {
     return new THREE.Vector3(HOME.enc[0] - 9 + HOME.encEx[0] * explode, HOME.enc[1] - 8.5, HOME.enc[2] - 1);
   }
   const x = to === 'red' ? -13 : 13;
-  return new THREE.Vector3(x + x * .5 * explode, HOME.btnY + HOME.btnEx[1] * explode, HOME.btnZ - 11 + HOME.btnEx[2] * explode);
+  return new THREE.Vector3(x + x * .5 * explode + terminal * 5.4, HOME.btnY + HOME.btnEx[1] * explode, HOME.btnZ - 10.6 + HOME.btnEx[2] * explode);
 }
 
 function Wires() {
@@ -344,7 +363,7 @@ function Wires() {
     last.current = rig.explode;
     WIRES.forEach((w, i) => {
       const a = pinWorld(w.pin, rig.explode);
-      const b = endOf(w.to, rig.explode);
+      const b = endOf(w.to, rig.explode, w.terminal);
       // out of the pin, down behind the board, then round to the switch
       const c1 = a.clone().add(new THREE.Vector3(0, -6, -10 - i * 1.5));
       const c2 = new THREE.Vector3(a.x * .35 + b.x * .65, b.y + 16 + i * 1.2, b.z - 16 - i * 1.5);
@@ -380,6 +399,7 @@ export function Device() {
     <group ref={yaw}>
       <Body />
       <Lid />
+      <Speaker />
       <Pi />
       <Panel />
       <Buttons />
