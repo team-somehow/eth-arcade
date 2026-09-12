@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Writing a game - TICK SDK</title>
+<meta name="description" content="Nothing to playable, step by step.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html" class="on">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="writing-a-game">Writing a game<a class="anchor" href="#writing-a-game" aria-label="Link">#</a></h1>
+<p>From nothing to a playable game in about twenty minutes. Read <a href="plan.html">PLAN.md</a> first if you want the reasoning; this page is the doing.</p>
+<hr>
+<h2 id="1-scaffold">1. Scaffold<a class="anchor" href="#1-scaffold" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">tick</span> new dropzone
+<span class="t-fn">python</span> dropzone.py</code></pre></div>
+<p>You now have a playable game on simulated prices: crank the dial, press A, and a box settles at the next bell. Open <code>dropzone.py</code> — it is about eighty lines, and every one of them is yours to change.</p>
+<hr>
+<h2 id="2-the-five-hooks">2. The five hooks<a class="anchor" href="#2-the-five-hooks" aria-label="Link">#</a></h2>
+<p>A game is a class. Override what you need; the rest has a default.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick <span class="t-key">import</span> <span class="t-type">Game</span>, run
+
+<span class="t-key">class</span> <span class="t-fn">Dropzone</span>(<span class="t-type">Game</span>):
+    title = <span class="t-str">&#x27;DROPZONE&#x27;</span>
+    window_s = <span class="t-num">10.0</span>
+
+    <span class="t-key">def</span> <span class="t-fn">setup</span>(<span class="t-key">self</span>, ctx):                     <span class="t-com"># once, everything is already running</span>
+        <span class="t-key">self</span>.offset = <span class="t-num">0</span>
+
+    <span class="t-key">def</span> <span class="t-fn">on_action</span>(<span class="t-key">self</span>, ctx, action):         <span class="t-com"># UP / DOWN / A / B</span>
+        ...
+
+    <span class="t-key">def</span> <span class="t-fn">on_settle</span>(<span class="t-key">self</span>, ctx, settlement):     <span class="t-com"># your bet was paid or lost</span>
+        ...
+
+    <span class="t-key">def</span> <span class="t-fn">update</span>(<span class="t-key">self</span>, ctx, dt):                <span class="t-com"># every frame, before drawing</span>
+        ...
+
+    <span class="t-key">def</span> <span class="t-fn">draw</span>(<span class="t-key">self</span>, ctx, screen):              <span class="t-com"># every frame</span>
+        ...
+
+<span class="t-fn">run</span>(<span class="t-fn">Dropzone</span>())</code></pre></div>
+<p>The full list: <code>setup</code>, <code>teardown</code>, <code>on_tick</code>, <code>on_round_start</code>, <code>on_round_end</code>, <code>on_settle</code>, <code>on_action</code>, <code>on_touch</code>, <code>update</code>, <code>draw</code>.</p>
+<hr>
+<h2 id="3-placing-a-bet">3. Placing a bet<a class="anchor" href="#3-placing-a-bet" aria-label="Link">#</a></h2>
+<p>One call. It debits, prices, and books the bet for the coming bell.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">def</span> <span class="t-fn">on_action</span>(<span class="t-key">self</span>, ctx, action):
+    <span class="t-key">if</span> action.name == <span class="t-str">&#x27;A&#x27;</span>:
+        bet = ctx.<span class="t-fn">bet</span>(low, high)
+        <span class="t-key">if</span> bet <span class="t-key">is</span> <span class="t-key">None</span>:
+            ctx.<span class="t-fn">note</span>(ctx.refused)       <span class="t-com"># put the reason on screen</span>
+            ctx.<span class="t-fn">play</span>(<span class="t-str">&#x27;warn&#x27;</span>)
+        <span class="t-key">else</span>:
+            ctx.<span class="t-fn">play</span>(<span class="t-str">&#x27;buy1&#x27;</span>)</code></pre></div>
+<p><code>ctx.bet</code> returns <code>None</code> and sets <code>ctx.refused</code> when:</p>
+<div class="table"><table><thead><tr><th><code>ctx.refused</code></th><th>Meaning</th></tr></thead><tbody><tr><td><code>NO MARKET YET</code></td><td>no price has arrived; the clock has not started</td></tr><tr><td><code>READING THE MARKET</code></td><td>the feed has not moved enough to measure anything</td></tr><tr><td><code>FEED STALE</code></td><td>the last price is too old to settle money on</td></tr><tr><td><code>MARKET QUIET / NO BETS</code></td><td>the price has not moved for 15s: every bet is a certainty</td></tr><tr><td><code>ARMING</code></td><td>a bell just rang; presses are swallowed for <code>arm_s</code></td></tr><tr><td><code>TOO SURE TO SELL</code></td><td>the quote is under <code>min_multiple</code></td></tr><tr><td><code>MAX WIN REACHED / CASH OUT</code></td><td>the best case exceeds what the escrow can pay</td></tr><tr><td><code>NOT ENOUGH USDC</code></td><td>the wallet is short</td></tr></tbody></table></div>
+<p>Show it. A button that silently does nothing reads as broken hardware.</p>
+<h3 id="what-a-bet-is-worth-before-placing-it">What a bet is worth, before placing it<a class="anchor" href="#what-a-bet-is-worth-before-placing-it" aria-label="Link">#</a></h3>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>ctx.<span class="t-fn">quote</span>(low, high)                   <span class="t-com"># multiple, at this instant</span>
+ctx.<span class="t-fn">quote</span>(low, high, rounds_ahead=<span class="t-num">2</span>)   <span class="t-com"># for the bell after next: a longer bet</span></code></pre></div>
+<p>Draw the quote next to the cursor and it updates as the market moves — which is most of what makes these games readable.</p>
+<hr>
+<h2 id="4-shaping-the-bet">4. Shaping the bet<a class="anchor" href="#4-shaping-the-bet" aria-label="Link">#</a></h2>
+<p>Almost every game is one of three shapes.</p>
+<p><strong>A box</strong> — a range around a level the player aims at:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>half = ctx.open_price * <span class="t-num">4</span> / <span class="t-num">10_000</span>            <span class="t-com"># 4 bps: a fixed height</span>
+centre = ctx.open_price + <span class="t-key">self</span>.offset * step
+ctx.<span class="t-fn">bet</span>(centre - half, centre + half)</code></pre></div>
+<p><strong>A side</strong> — everything above or below a line:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>ctx.<span class="t-fn">bet</span>(ctx.open_price, <span class="t-num">1e9</span>)      <span class="t-com"># up</span>
+ctx.<span class="t-fn">bet</span>(<span class="t-num">0.0</span>, ctx.open_price)      <span class="t-com"># down</span></code></pre></div>
+<p><strong>A ladder</strong> — several ranges at once, each its own bet, all settling together:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">for</span> low, high <span class="t-key">in</span> <span class="t-key">self</span>.<span class="t-fn">rungs</span>(ctx):
+    ctx.<span class="t-fn">bet</span>(low, high, stake=ctx.stake // <span class="t-fn">len</span>(<span class="t-key">self</span>.<span class="t-fn">rungs</span>(ctx)))</code></pre></div>
+<h3 id="size-geometry-in-basis-points-not-in-volatility">Size geometry in basis points, not in volatility<a class="anchor" href="#size-geometry-in-basis-points-not-in-volatility" aria-label="Link">#</a></h3>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">def</span> <span class="t-fn">unit</span>(<span class="t-key">self</span>, ctx):
+    <span class="t-key">return</span> ctx.open_price / <span class="t-num">10_000</span>        <span class="t-com"># one basis point of the round&#x27;s open</span></code></pre></div>
+<p>Anchor on the <strong>round&#x27;s opening price</strong> and size in <strong>basis points</strong>, so the box is the same size all round and in every market. Sizing it in sigma means the market redraws a box the player already bought — confusing, and dishonest about what they paid for.</p>
+<p>If you change <code>window_s</code>, scale the geometry rather than leaving it:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick.pricing <span class="t-key">import</span> scale_to_window
+box_bps = <span class="t-fn">scale_to_window</span>(<span class="t-num">8.0</span>, <span class="t-key">self</span>.window_s, reference_s=<span class="t-num">20.0</span>)</code></pre></div>
+<p>Prices travel with the square root of time. Halving the round without shrinking the box makes a box on spot a near-certainty at 1.2x and everything else a capped lottery ticket — a flatter game, not a faster one.</p>
+<hr>
+<h2 id="5-locking-topping-up-and-arming">5. Locking, topping up, and arming<a class="anchor" href="#5-locking-topping-up-and-arming" aria-label="Link">#</a></h2>
+<p>Three small rules that make these games feel fair.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">class</span> <span class="t-fn">MyGame</span>(<span class="t-type">Game</span>):
+    arm_s = <span class="t-num">1.5</span>          <span class="t-com"># swallow presses for a beat after each bell</span>
+
+    <span class="t-key">def</span> <span class="t-fn">on_action</span>(<span class="t-key">self</span>, ctx, action):
+        <span class="t-key">if</span> action.name <span class="t-key">in</span> (<span class="t-str">&#x27;UP&#x27;</span>, <span class="t-str">&#x27;DOWN&#x27;</span>):
+            <span class="t-key">if</span> ctx.next_bets:                      <span class="t-com"># already bought: lock the dial</span>
+                ctx.<span class="t-fn">note</span>(<span class="t-str">&#x27;LOCKED / A ADDS &#x27;</span> + ctx.<span class="t-fn">usdc</span>())
+                ctx.<span class="t-fn">play</span>(<span class="t-str">&#x27;lock&#x27;</span>)
+                <span class="t-key">return</span>
+            <span class="t-key">self</span>.offset += <span class="t-num">1</span> <span class="t-key">if</span> action.name == <span class="t-str">&#x27;UP&#x27;</span> <span class="t-key">else</span> -<span class="t-num">1</span>
+        <span class="t-key">elif</span> action.name == <span class="t-str">&#x27;A&#x27;</span>:
+            bets = ctx.next_bets
+            low, high = (bets[<span class="t-num">0</span>].low, bets[<span class="t-num">0</span>].high) <span class="t-key">if</span> bets <span class="t-key">else</span> <span class="t-key">self</span>.<span class="t-fn">aim</span>(ctx)
+            ctx.<span class="t-fn">bet</span>(low, high)                     <span class="t-com"># tops up at *this* press&#x27;s odds</span></code></pre></div>
+<ul><li><strong>The first press fixes the level.</strong> Repositioning after the market moves is an early exit in disguise.</li><li><strong>Later presses add stake at current odds.</strong> Charging the first press&#x27;s price for the fifth is a free option.</li><li><strong><code>arm_s</code> swallows the press that was meant for the last round.</strong> Without it a thumb still finishing &quot;one more on that box&quot; buys the <em>new</em> round wherever the cursor happens to sit.</li></ul>
+<hr>
+<h2 id="6-drawing">6. Drawing<a class="anchor" href="#6-drawing" aria-label="Link">#</a></h2>
+<p>The SDK gives you a ladder, a HUD and a palette so a one-file game still looks like it belongs on the device.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick.hud <span class="t-key">import</span> (<span class="t-type">Ladder</span>, clear, draw_bet, draw_clock, draw_cursor,
+                      draw_hud, draw_open_line, draw_price_line)
+<span class="t-key">from</span> tick.ui <span class="t-key">import</span> <span class="t-type">CREAM</span>, <span class="t-type">MINT</span>, <span class="t-type">MUTED</span>, <span class="t-type">RED</span>, <span class="t-type">YELLOW</span>, say, say_right
+
+<span class="t-key">def</span> <span class="t-fn">draw</span>(<span class="t-key">self</span>, ctx, screen):
+    <span class="t-fn">clear</span>(screen)
+    ladder = <span class="t-fn">Ladder</span>(ctx.open_price, <span class="t-num">20</span> * <span class="t-key">self</span>.<span class="t-fn">unit</span>(ctx))   <span class="t-com"># price -&gt; pixels</span>
+
+    <span class="t-fn">draw_open_line</span>(screen, ladder, ctx.open_price)         <span class="t-com"># the reference</span>
+    <span class="t-fn">draw_price_line</span>(screen, ladder, ctx.market.history, ctx.now, right_x=<span class="t-num">170</span>)
+
+    <span class="t-key">for</span> bet <span class="t-key">in</span> ctx.live_bets:                              <span class="t-com"># settling this bell</span>
+        <span class="t-fn">draw_bet</span>(screen, ladder, bet, <span class="t-num">200</span>, <span class="t-num">96</span>, <span class="t-type">YELLOW</span>, glow=bet.<span class="t-fn">contains</span>(ctx.price))
+    <span class="t-key">for</span> bet <span class="t-key">in</span> ctx.next_bets:                              <span class="t-com"># bought for the next</span>
+        <span class="t-fn">draw_bet</span>(screen, ladder, bet, <span class="t-num">320</span>, <span class="t-num">84</span>, <span class="t-type">CREAM</span>)
+    <span class="t-key">if</span> <span class="t-key">not</span> ctx.next_bets:
+        <span class="t-fn">draw_cursor</span>(screen, ladder, *<span class="t-key">self</span>.<span class="t-fn">aim</span>(ctx), <span class="t-num">320</span>, <span class="t-num">84</span>)
+
+    <span class="t-fn">draw_clock</span>(ctx, screen)
+    <span class="t-fn">draw_hud</span>(ctx, screen, back=<span class="t-str">&#x27;QUIT&#x27;</span>, go=<span class="t-str">&#x27;BUY &#x27;</span> + ctx.<span class="t-fn">usdc</span>())</code></pre></div>
+<p>Two conventions worth keeping, because a player who has used one game on this device then reads yours for free:</p>
+<ul><li><strong>Dashed = not committed. Solid = money is on it.</strong></li><li><strong>Anchor the view on the round&#x27;s opening price</strong>, never on spot. Anchoring on spot re-centres the view every tick and the price appears still while the world slides around it.</li></ul>
+<p>Size the visible band to what a bet can actually reach and no wider. Widen it to fit every possibility and a dollar of real movement becomes an invisible wobble.</p>
+<hr>
+<h2 id="7-sound">7. Sound<a class="anchor" href="#7-sound" aria-label="Link">#</a></h2>
+<p>You get the generic cues for free — the bell, the swoops when the price crosses into or out of a live bet, the countdown pitched by whether you are currently winning, the win/miss/void stings, and a music bed chosen from what is at stake. Turn them off with <code>sound_cues = False</code> / <code>music = False</code>.</p>
+<p>Add your own from the same kit:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>ctx.<span class="t-fn">play</span>(<span class="t-str">&#x27;buy2&#x27;</span>)
+ctx.<span class="t-fn">play</span>(ctx.sounds.<span class="t-fn">detent</span>(<span class="t-fn">abs</span>(<span class="t-key">self</span>.offset) / <span class="t-key">self</span>.reach))   <span class="t-com"># rising crank clicks</span></code></pre></div>
+<p>The two that matter most are the crossing swoops and the pitched countdown: together they tell a player whether they are winning <strong>without looking</strong>, which is the whole point of a handheld you play with your thumb.</p>
+<hr>
+<h2 id="8-testing-it">8. Testing it<a class="anchor" href="#8-testing-it" aria-label="Link">#</a></h2>
+<p>A game that holds money needs tests, and a game loop is testable only if it can run without a window.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-com"># tests/test_dropzone.py</span>
+<span class="t-key">import</span> unittest
+<span class="t-key">from</span> tick <span class="t-key">import</span> <span class="t-type">InputAction</span>
+<span class="t-key">from</span> tick.testing <span class="t-key">import</span> <span class="t-type">Harness</span>
+<span class="t-key">from</span> dropzone <span class="t-key">import</span> <span class="t-type">Dropzone</span>
+
+
+<span class="t-key">class</span> <span class="t-fn">TestDropzone</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_a_bet_is_taken_and_settled</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Dropzone</span>(), seed=<span class="t-num">7</span>) <span class="t-key">as</span> h:
+            h.<span class="t-fn">warm</span>(<span class="t-num">25</span>)                         <span class="t-com"># 25s of market, instantly</span>
+            h.<span class="t-fn">press</span>(<span class="t-type">InputAction</span>.<span class="t-type">A</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(h.balance, <span class="t-num">1000_000000</span> - h.ctx.stake)
+            h.<span class="t-fn">advance</span>(<span class="t-num">25</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertTrue</span>(h.book.history)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_certainty_is_never_sold</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Dropzone</span>(), seed=<span class="t-num">7</span>) <span class="t-key">as</span> h:
+            h.<span class="t-fn">warm</span>(<span class="t-num">25</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertIsNone</span>(h.ctx.<span class="t-fn">bet</span>(h.price * <span class="t-num">0.5</span>, h.price * <span class="t-num">1.5</span>))
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(h.ctx.refused, <span class="t-str">&#x27;TOO SURE TO SELL&#x27;</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_it_draws</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Dropzone</span>(), seed=<span class="t-num">7</span>) <span class="t-key">as</span> h:
+            h.<span class="t-fn">warm</span>(<span class="t-num">25</span>)
+            h.<span class="t-fn">draw_once</span>()</code></pre></div>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-type">SDL_VIDEODRIVER</span>=dummy SDL_AUDIODRIVER=dummy python <span class="t-key">-m</span> unittest discover <span class="t-key">-s</span> tests <span class="t-key">-t</span> .</code></pre></div>
+<p>Time in the harness is fake and monotonic, so <code>advance(600)</code> is instant, and a seeded simulated feed gives the same market every run — which is what makes a payout assertion an assertion.</p>
+<p>Other tools worth knowing:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick.testing <span class="t-key">import</span> <span class="t-type">ScriptedFeed</span>
+<span class="t-fn">Harness</span>(<span class="t-fn">MyGame</span>(), feed=<span class="t-fn">ScriptedFeed</span>([(<span class="t-num">0.0</span>, <span class="t-num">2500.0</span>), (<span class="t-num">1.0</span>, <span class="t-num">2501.0</span>)]))   <span class="t-com"># an exact market</span>
+<span class="t-fn">Harness</span>(<span class="t-fn">MyGame</span>(), feed=<span class="t-fn">FrozenFeed</span>(<span class="t-num">2500.0</span>))                             <span class="t-com"># a dead flat one</span></code></pre></div>
+<hr>
+<h2 id="9-going-live">9. Going live<a class="anchor" href="#9-going-live" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">tick</span> run dropzone.py <span class="t-key">--source</span> coinbase<span class="t-com">                # real prices, paper money</span>
+<span class="t-fn">tick</span> run dropzone.py <span class="t-key">--source</span> substreams<span class="t-com">              # on-chain prices</span>
+<span class="t-type">TICK_FUNDING</span>=arc-testnet TICK_STAKE_USDC=0.001 python dropzone.py<span class="t-com">    # real money</span></code></pre></div>
+<p>Nothing in your game changes for any of these. See <a href="prices-substreams.html">prices-substreams.md</a>, <a href="money-arc.html">money-arc.md</a> and <a href="identity-ens.html">identity-ens.md</a>.</p>
+<hr>
+<h2 id="checklist-before-you-call-it-done">Checklist before you call it done<a class="anchor" href="#checklist-before-you-call-it-done" aria-label="Link">#</a></h2>
+<ul><li class="task"><span class="box">&nbsp;</span>Every refusal reason reaches the screen, in words.</li><li class="task"><span class="box">&nbsp;</span>The dial does nothing surprising after a bet is placed — and says so.</li><li class="task"><span class="box">&nbsp;</span>The view is anchored on the round&#x27;s open price.</li><li class="task"><span class="box">&nbsp;</span>Geometry is in basis points; only the payout reacts to the market.</li><li class="task"><span class="box">&nbsp;</span><code>arm_s</code> is set if a press can be meant for the round that just closed.</li><li class="task"><span class="box">&nbsp;</span>Your game draws correctly with no price yet, and with a stale feed.</li><li class="task"><span class="box">&nbsp;</span>A test asserts what happens when the market goes flat.</li><li class="task"><span class="box">&nbsp;</span>A test asserts a settlement&#x27;s payout, not just that one happened.</li></ul></article>
+    <nav class="pager"><a class="prev" href="plan.html"><span>Previous</span>The plan</a><a class="next" href="prices-substreams.html"><span>Next</span>Prices on-chain</a></nav>
+  </main>
+  <aside class="toc"><h4>On this page</h4><ul><li class="l2"><a href="#1-scaffold">1. Scaffold</a></li><li class="l2"><a href="#2-the-five-hooks">2. The five hooks</a></li><li class="l2"><a href="#3-placing-a-bet">3. Placing a bet</a></li><li class="l3"><a href="#what-a-bet-is-worth-before-placing-it">What a bet is worth, before placing it</a></li><li class="l2"><a href="#4-shaping-the-bet">4. Shaping the bet</a></li><li class="l3"><a href="#size-geometry-in-basis-points-not-in-volatility">Size geometry in basis points, not in volatility</a></li><li class="l2"><a href="#5-locking-topping-up-and-arming">5. Locking, topping up, and arming</a></li><li class="l2"><a href="#6-drawing">6. Drawing</a></li><li class="l2"><a href="#7-sound">7. Sound</a></li><li class="l2"><a href="#8-testing-it">8. Testing it</a></li><li class="l2"><a href="#9-going-live">9. Going live</a></li><li class="l2"><a href="#checklist-before-you-call-it-done">Checklist before you call it done</a></li></ul></aside>
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

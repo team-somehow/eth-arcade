@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/runtime.py - TICK SDK</title>
+<meta name="description" content="Source of tick/runtime.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">runtime.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/runtime.py &middot; 248 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span><span>128</span><span>129</span><span>130</span><span>131</span><span>132</span><span>133</span><span>134</span><span>135</span><span>136</span><span>137</span><span>138</span><span>139</span><span>140</span><span>141</span><span>142</span><span>143</span><span>144</span><span>145</span><span>146</span><span>147</span><span>148</span><span>149</span><span>150</span><span>151</span><span>152</span><span>153</span><span>154</span><span>155</span><span>156</span><span>157</span><span>158</span><span>159</span><span>160</span><span>161</span><span>162</span><span>163</span><span>164</span><span>165</span><span>166</span><span>167</span><span>168</span><span>169</span><span>170</span><span>171</span><span>172</span><span>173</span><span>174</span><span>175</span><span>176</span><span>177</span><span>178</span><span>179</span><span>180</span><span>181</span><span>182</span><span>183</span><span>184</span><span>185</span><span>186</span><span>187</span><span>188</span><span>189</span><span>190</span><span>191</span><span>192</span><span>193</span><span>194</span><span>195</span><span>196</span><span>197</span><span>198</span><span>199</span><span>200</span><span>201</span><span>202</span><span>203</span><span>204</span><span>205</span><span>206</span><span>207</span><span>208</span><span>209</span><span>210</span><span>211</span><span>212</span><span>213</span><span>214</span><span>215</span><span>216</span><span>217</span><span>218</span><span>219</span><span>220</span><span>221</span><span>222</span><span>223</span><span>224</span><span>225</span><span>226</span><span>227</span><span>228</span><span>229</span><span>230</span><span>231</span><span>232</span><span>233</span><span>234</span><span>235</span><span>236</span><span>237</span><span>238</span><span>239</span><span>240</span><span>241</span><span>242</span><span>243</span><span>244</span><span>245</span><span>246</span><span>247</span><span>248</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;The loop you do not have to write.
+
+`run(MyGame())` starts everything in the right order and shuts it down in the
+reverse one:
+
+    .env -&gt; SDL bootstrap -&gt; display -&gt; feed -&gt; wallet/escrow -&gt; round clock
+         -&gt; sound -&gt; your setup() -&gt; 30 FPS loop -&gt; teardown -&gt; close it all
+
+Inside each frame, in this order, and the order matters:
+
+    1. read the feed, fold every tick into the market
+    2. start the clock on the first price; roll it if a bell has passed
+    3. settle the bets on any round that closed, and pay out
+    4. play the generic cues (bell, crossings, countdown, win/miss, stale)
+    5. hand input to your game
+    6. your update(), then your draw()
+
+Prices before the clock, because the clock settles on a price. Settlement
+before input, because a press arriving in the same frame as a bell belongs to
+the round that is now open, not the one that just closed. Draw last, because
+everything above may have changed what is on screen.
+
+Headless
+--------
+
+`Runtime.step()` is the whole frame minus pygame, so a test can drive a
+thousand rounds in a second with no window, no sound and no sleeping. That is
+what `tick.testing` is built on -- and it is why the rules in this SDK are
+tested rather than eyeballed.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">import</span> os
+<span class="t-key">import</span> sys
+<span class="t-key">import</span> time
+
+<span class="t-key">from</span> .bets <span class="t-key">import</span> <span class="t-type">BetBook</span>
+<span class="t-key">from</span> .env <span class="t-key">import</span> flag, load_env_near, number
+<span class="t-key">from</span> .game <span class="t-key">import</span> <span class="t-type">Game</span>, <span class="t-type">GameContext</span>
+<span class="t-key">from</span> .market <span class="t-key">import</span> <span class="t-type">Market</span>
+<span class="t-key">from</span> .money <span class="t-key">import</span> <span class="t-type">Wallet</span>, stake_micro
+<span class="t-key">from</span> .rounds <span class="t-key">import</span> <span class="t-type">RoundClock</span>
+
+
+<span class="t-key">class</span> <span class="t-type">Runtime</span>:
+    <span class="t-doc">&quot;&quot;&quot;Owns everything with a lifetime longer than a frame.&quot;&quot;&quot;</span>
+
+    <span class="t-type">COUNTDOWN_S</span> = <span class="t-num">3.0</span>        <span class="t-com"># pitched ticks this close to the bell</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, game: <span class="t-type">Game</span>, *, feed=<span class="t-key">None</span>, wallet: <span class="t-type">Wallet</span> | <span class="t-key">None</span> = <span class="t-key">None</span>,
+                 source: str | <span class="t-key">None</span> = <span class="t-key">None</span>, seed: int | <span class="t-key">None</span> = <span class="t-key">None</span>,
+                 sound: bool | <span class="t-key">None</span> = <span class="t-key">None</span>, clock=<span class="t-key">None</span>, headless: bool = <span class="t-key">False</span>,
+                 window_s: float | <span class="t-key">None</span> = <span class="t-key">None</span>, stake: int | <span class="t-key">None</span> = <span class="t-key">None</span>,
+                 env: bool = <span class="t-key">True</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">if</span> env:
+            <span class="t-com"># The nearest .env to the game&#x27;s own file, so a game in a folder</span>
+            <span class="t-com"># carries its own settings. Falls back to the working directory for</span>
+            <span class="t-com"># a game defined in a REPL or a notebook, which has no file.</span>
+            module = sys.modules.<span class="t-fn">get</span>(<span class="t-fn">type</span>(game).__module__)
+            <span class="t-fn">load_env_near</span>(<span class="t-fn">getattr</span>(module, <span class="t-str">&#x27;__file__&#x27;</span>, <span class="t-key">None</span>) <span class="t-key">or</span> os.<span class="t-fn">getcwd</span>())
+        <span class="t-key">self</span>.game = game
+        <span class="t-key">self</span>.headless = headless
+        <span class="t-key">self</span>.clock_fn = clock <span class="t-key">or</span> time.monotonic
+        <span class="t-key">self</span>.market = <span class="t-fn">Market</span>(feed=feed, source=source, seed=seed)
+        <span class="t-key">self</span>.wallet = wallet <span class="t-key">if</span> wallet <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span> <span class="t-key">else</span> <span class="t-key">self</span>.<span class="t-fn">_build_wallet</span>()
+        <span class="t-key">self</span>.rounds = <span class="t-fn">RoundClock</span>(window_s <span class="t-key">if</span> window_s <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>
+                                 <span class="t-key">else</span> <span class="t-fn">number</span>(<span class="t-str">&#x27;TICK_WINDOW_S&#x27;</span>, game.window_s))
+        <span class="t-key">self</span>.book = <span class="t-fn">BetBook</span>(<span class="t-key">self</span>.wallet)
+        <span class="t-key">self</span>.sounds = <span class="t-key">None</span>
+        <span class="t-key">if</span> <span class="t-key">not</span> headless <span class="t-key">and</span> (sound <span class="t-key">if</span> sound <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span> <span class="t-key">else</span> <span class="t-fn">flag</span>(<span class="t-str">&#x27;TICK_SOUND&#x27;</span>, <span class="t-key">True</span>)):
+            <span class="t-key">from</span> .ui <span class="t-key">import</span> <span class="t-type">Sounds</span>
+            <span class="t-key">self</span>.sounds = <span class="t-fn">Sounds</span>()
+        <span class="t-key">self</span>.ctx = <span class="t-fn">GameContext</span>(game, <span class="t-key">self</span>.market, <span class="t-key">self</span>.wallet, <span class="t-key">self</span>.rounds, <span class="t-key">self</span>.book,
+                               <span class="t-key">self</span>.sounds, stake <span class="t-key">if</span> stake <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>
+                               <span class="t-key">else</span> <span class="t-fn">stake_micro</span>(game.stake_usdc))
+        <span class="t-key">self</span>.screen = <span class="t-key">None</span>
+        <span class="t-com"># cue state</span>
+        <span class="t-key">self</span>._was_inside: bool | <span class="t-key">None</span> = <span class="t-key">None</span>
+        <span class="t-key">self</span>._was_fresh = <span class="t-key">True</span>
+        <span class="t-key">self</span>._last_countdown: tuple | <span class="t-key">None</span> = <span class="t-key">None</span>
+        <span class="t-key">self</span>.started = <span class="t-key">False</span>
+
+    <span class="t-key">def</span> <span class="t-fn">_build_wallet</span>(<span class="t-key">self</span>) -&gt; <span class="t-type">Wallet</span>:
+        <span class="t-key">from</span> .escrow <span class="t-key">import</span> build_wallet
+        <span class="t-key">return</span> <span class="t-fn">build_wallet</span>()
+
+    <span class="t-com"># ---- one frame, without pygame ---------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">step</span>(<span class="t-key">self</span>, dt: float, actions=(), touches=()) -&gt; <span class="t-key">None</span>:
+        ctx = <span class="t-key">self</span>.ctx
+        ctx.now = <span class="t-key">self</span>.<span class="t-fn">clock_fn</span>()
+        ctx.dt = dt
+        ctx.frame += <span class="t-num">1</span>
+        game = <span class="t-key">self</span>.game
+
+        <span class="t-com"># 1. prices</span>
+        <span class="t-key">for</span> tick <span class="t-key">in</span> <span class="t-key">self</span>.market.<span class="t-fn">poll</span>(dt, ctx.now):
+            <span class="t-key">if</span> <span class="t-key">not</span> <span class="t-key">self</span>.rounds.started:
+                opened = <span class="t-key">self</span>.rounds.<span class="t-fn">start</span>(tick.price, ctx.now)
+                game.<span class="t-fn">on_round_start</span>(ctx, opened)
+            game.<span class="t-fn">on_tick</span>(ctx, tick)
+
+        <span class="t-com"># 2-3. the clock, and settlement</span>
+        <span class="t-key">if</span> <span class="t-key">self</span>.rounds.started:
+            settleable = (<span class="t-key">self</span>.market.tick <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>
+                          <span class="t-key">and</span> <span class="t-key">self</span>.market.tick.received_at &gt;= <span class="t-key">self</span>.rounds.ends_at
+                          <span class="t-key">and</span> <span class="t-key">self</span>.market.<span class="t-fn">fresh</span>(ctx.now))
+            <span class="t-key">for</span> closed <span class="t-key">in</span> <span class="t-key">self</span>.rounds.<span class="t-fn">update</span>(ctx.now, <span class="t-key">self</span>.market.price, settleable):
+                settlements = <span class="t-key">self</span>.book.<span class="t-fn">settle</span>(closed)
+                ctx.armed_at = ctx.now + game.arm_s
+                <span class="t-key">self</span>.<span class="t-fn">_result_cues</span>(settlements)
+                game.<span class="t-fn">on_round_end</span>(ctx, closed)
+                <span class="t-key">for</span> settlement <span class="t-key">in</span> settlements:
+                    game.<span class="t-fn">on_settle</span>(ctx, settlement)
+                <span class="t-key">if</span> <span class="t-key">self</span>.rounds.current <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+                    game.<span class="t-fn">on_round_start</span>(ctx, <span class="t-key">self</span>.rounds.current)
+
+        <span class="t-com"># 4. the cues every game wants and nobody should have to write</span>
+        <span class="t-key">if</span> game.sound_cues:
+            <span class="t-key">self</span>.<span class="t-fn">_cues</span>()
+        <span class="t-key">if</span> game.music:
+            <span class="t-key">self</span>.<span class="t-fn">_music</span>()
+
+        <span class="t-com"># 5. input</span>
+        <span class="t-key">for</span> pos <span class="t-key">in</span> touches:
+            <span class="t-key">if</span> game.<span class="t-fn">on_touch</span>(ctx, pos) == <span class="t-str">&#x27;quit&#x27;</span>:
+                ctx.running = <span class="t-key">False</span>
+        <span class="t-key">for</span> action <span class="t-key">in</span> actions:
+            <span class="t-key">if</span> action.name == <span class="t-str">&#x27;QUIT&#x27;</span>:
+                ctx.running = <span class="t-key">False</span>
+                <span class="t-key">break</span>
+            <span class="t-key">if</span> game.<span class="t-fn">on_action</span>(ctx, action) == <span class="t-str">&#x27;quit&#x27;</span>:
+                ctx.running = <span class="t-key">False</span>
+                <span class="t-key">break</span>
+
+        <span class="t-com"># 6. the game&#x27;s own frame</span>
+        game.<span class="t-fn">update</span>(ctx, dt)
+
+    <span class="t-com"># ---- generic sound ---------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">_result_cues</span>(<span class="t-key">self</span>, settlements) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">if</span> <span class="t-key">self</span>.sounds <span class="t-key">is</span> <span class="t-key">None</span>:
+            <span class="t-key">return</span>
+        <span class="t-key">if</span> <span class="t-key">not</span> settlements:
+            <span class="t-com"># The empty-round heartbeat. A result speaks for the bell instead.</span>
+            <span class="t-key">self</span>.sounds.<span class="t-fn">play</span>(<span class="t-str">&#x27;bell&#x27;</span>)
+            <span class="t-key">return</span>
+        best = <span class="t-fn">max</span>(settlements, key=<span class="t-key">lambda</span> s: (s.hit, s.multiple))
+        <span class="t-key">if</span> best.voided:
+            <span class="t-key">self</span>.sounds.<span class="t-fn">play</span>(<span class="t-str">&#x27;void&#x27;</span>)
+        <span class="t-key">elif</span> best.hit:
+            <span class="t-key">self</span>.sounds.<span class="t-fn">play</span>(<span class="t-str">&#x27;jackpot&#x27;</span> <span class="t-key">if</span> best.multiple &gt;= <span class="t-num">15</span>
+                             <span class="t-key">else</span> <span class="t-str">&#x27;win_big&#x27;</span> <span class="t-key">if</span> best.multiple &gt;= <span class="t-num">5</span> <span class="t-key">else</span> <span class="t-str">&#x27;win_small&#x27;</span>)
+        <span class="t-key">else</span>:
+            <span class="t-key">self</span>.sounds.<span class="t-fn">play</span>(<span class="t-str">&#x27;miss&#x27;</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">_cues</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">if</span> <span class="t-key">self</span>.sounds <span class="t-key">is</span> <span class="t-key">None</span>:
+            <span class="t-key">return</span>
+        ctx = <span class="t-key">self</span>.ctx
+        <span class="t-com"># Crossing into or out of a live bet is the whole tension of a round,</span>
+        <span class="t-com"># so it gets a sound of its own in each direction.</span>
+        inside = ctx.inside
+        <span class="t-key">if</span> inside <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span> <span class="t-key">and</span> <span class="t-key">self</span>._was_inside <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span> <span class="t-key">and</span> inside != <span class="t-key">self</span>._was_inside:
+            <span class="t-key">self</span>.sounds.<span class="t-fn">play</span>(<span class="t-str">&#x27;hot&#x27;</span> <span class="t-key">if</span> inside <span class="t-key">else</span> <span class="t-str">&#x27;cold&#x27;</span>)
+        <span class="t-key">self</span>._was_inside = inside
+        <span class="t-com"># Last seconds: ticks pitched by whether the money is currently winning,</span>
+        <span class="t-com"># and doubling in rate inside the final two, so the bell rushes at you.</span>
+        left = ctx.remaining
+        slot = (<span class="t-str">&#x27;s&#x27;</span>, <span class="t-fn">int</span>(left)) <span class="t-key">if</span> left &gt; <span class="t-num">2</span> <span class="t-key">else</span> (<span class="t-str">&#x27;h&#x27;</span>, <span class="t-fn">int</span>(left * <span class="t-num">2</span>))
+        <span class="t-key">if</span> inside <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span> <span class="t-key">and</span> <span class="t-num">0</span> &lt; left &lt;= <span class="t-key">self</span>.<span class="t-type">COUNTDOWN_S</span> <span class="t-key">and</span> slot != <span class="t-key">self</span>._last_countdown:
+            <span class="t-key">self</span>.sounds.<span class="t-fn">play</span>(<span class="t-str">&#x27;tick_in&#x27;</span> <span class="t-key">if</span> inside <span class="t-key">else</span> <span class="t-str">&#x27;tick_out&#x27;</span>)
+        <span class="t-key">self</span>._last_countdown = slot
+        fresh = <span class="t-key">self</span>.market.<span class="t-fn">fresh</span>(ctx.now)
+        <span class="t-key">if</span> <span class="t-key">self</span>._was_fresh <span class="t-key">and</span> <span class="t-key">not</span> fresh:
+            <span class="t-key">self</span>.sounds.<span class="t-fn">play</span>(<span class="t-str">&#x27;stale&#x27;</span>)
+        <span class="t-key">self</span>._was_fresh = fresh
+
+    <span class="t-key">def</span> <span class="t-fn">_music</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">if</span> <span class="t-key">self</span>.sounds <span class="t-key">is</span> <span class="t-key">None</span>:
+            <span class="t-key">return</span>
+        ctx = <span class="t-key">self</span>.ctx
+        <span class="t-key">if</span> ctx.live_bets:
+            <span class="t-key">self</span>.sounds.<span class="t-fn">music</span>(<span class="t-str">&#x27;final&#x27;</span> <span class="t-key">if</span> ctx.remaining &lt;= <span class="t-num">3</span> <span class="t-key">else</span> <span class="t-str">&#x27;live&#x27;</span>)
+        <span class="t-key">elif</span> ctx.next_bets:
+            <span class="t-key">self</span>.sounds.<span class="t-fn">music</span>(<span class="t-str">&#x27;live&#x27;</span>)
+        <span class="t-key">else</span>:
+            <span class="t-key">self</span>.sounds.<span class="t-fn">music</span>(<span class="t-str">&#x27;idle&#x27;</span>)
+
+    <span class="t-com"># ---- the pygame loop -------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">run</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">from</span> .display <span class="t-key">import</span> <span class="t-type">FPS</span>, bootstrap, init_display, present
+        <span class="t-fn">bootstrap</span>()
+        <span class="t-key">import</span> pygame
+        <span class="t-key">from</span> .input <span class="t-key">import</span> <span class="t-type">ButtonPad</span>, <span class="t-type">EncoderInput</span>, <span class="t-type">HeldKeys</span>, actions_from_event, event_position
+
+        <span class="t-key">self</span>.screen = <span class="t-fn">init_display</span>(<span class="t-key">self</span>.game.title)
+        <span class="t-key">self</span>.ctx.screen = <span class="t-key">self</span>.screen
+        clock = pygame.time.<span class="t-fn">Clock</span>()
+        keys = <span class="t-fn">HeldKeys</span>()
+        encoder = <span class="t-type">EncoderInput</span>.<span class="t-fn">try_open</span>()
+        pad = <span class="t-type">ButtonPad</span>.<span class="t-fn">try_open</span>()
+        <span class="t-key">self</span>.game.<span class="t-fn">setup</span>(<span class="t-key">self</span>.ctx)
+        <span class="t-key">self</span>.started = <span class="t-key">True</span>
+        <span class="t-key">try</span>:
+            <span class="t-key">while</span> <span class="t-key">self</span>.ctx.running:
+                dt = clock.<span class="t-fn">tick</span>(<span class="t-type">FPS</span>) / <span class="t-num">1000.0</span>
+                actions, touches = [], []
+                <span class="t-key">for</span> event <span class="t-key">in</span> pygame.event.<span class="t-fn">get</span>():
+                    keys.<span class="t-fn">handle</span>(event)
+                    actions.<span class="t-fn">extend</span>(<span class="t-fn">actions_from_event</span>(event))
+                    pos = <span class="t-fn">event_position</span>(event)
+                    <span class="t-key">if</span> pos <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+                        touches.<span class="t-fn">append</span>(pos)
+                actions.<span class="t-fn">extend</span>(keys.<span class="t-fn">tick</span>(dt))
+                <span class="t-key">if</span> encoder <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+                    <span class="t-com"># In play every detent counts, so read raw motion.</span>
+                    actions.<span class="t-fn">extend</span>(encoder.<span class="t-fn">poll</span>(continuous=<span class="t-key">True</span>))
+                <span class="t-key">if</span> pad <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+                    actions.<span class="t-fn">extend</span>(pad.<span class="t-fn">poll</span>())
+                <span class="t-key">self</span>.<span class="t-fn">step</span>(dt, actions, touches)
+                <span class="t-key">if</span> <span class="t-key">not</span> <span class="t-key">self</span>.ctx.running:
+                    <span class="t-key">break</span>
+                <span class="t-key">self</span>.game.<span class="t-fn">draw</span>(<span class="t-key">self</span>.ctx, <span class="t-key">self</span>.screen)
+                <span class="t-fn">present</span>()
+        <span class="t-key">finally</span>:
+            <span class="t-key">self</span>.<span class="t-fn">close</span>()
+            <span class="t-key">if</span> encoder <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+                encoder.<span class="t-fn">close</span>()
+            <span class="t-key">if</span> pad <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+                pad.<span class="t-fn">close</span>()
+            pygame.<span class="t-fn">quit</span>()
+
+    <span class="t-key">def</span> <span class="t-fn">close</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">if</span> <span class="t-key">self</span>.started:
+            <span class="t-key">try</span>:
+                <span class="t-key">self</span>.game.<span class="t-fn">teardown</span>(<span class="t-key">self</span>.ctx)
+            <span class="t-key">except</span> <span class="t-type">Exception</span>:      <span class="t-com"># a broken teardown must not strand the feed</span>
+                <span class="t-key">pass</span>
+        <span class="t-key">if</span> <span class="t-key">self</span>.sounds <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+            <span class="t-key">self</span>.sounds.<span class="t-fn">music</span>(<span class="t-str">&#x27;off&#x27;</span>)
+        <span class="t-key">self</span>.market.<span class="t-fn">close</span>()
+        stop = <span class="t-fn">getattr</span>(<span class="t-key">self</span>.wallet.funding, <span class="t-str">&#x27;stop&#x27;</span>, <span class="t-key">None</span>)
+        <span class="t-key">if</span> stop <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+            <span class="t-fn">stop</span>()
+
+
+<span class="t-key">def</span> <span class="t-fn">run</span>(game: <span class="t-type">Game</span>, **kwargs) -&gt; <span class="t-key">None</span>:
+    <span class="t-doc">&quot;&quot;&quot;Start a game and block until it quits. This is the whole entry point.&quot;&quot;&quot;</span>
+    <span class="t-fn">Runtime</span>(game, **kwargs).<span class="t-fn">run</span>()
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

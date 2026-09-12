@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tests/test_bets.py - TICK SDK</title>
+<meta name="description" content="Source of tests/test_bets.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">test_bets.py<a class="anchor" href="#top">#</a></h1><p class="path">tests/test_bets.py &middot; 94 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;Placing, topping up, settling, refunding -- every path money takes.&quot;&quot;&quot;</span>
+<span class="t-key">import</span> unittest
+
+<span class="t-key">from</span> tick.bets <span class="t-key">import</span> <span class="t-type">BetBook</span>
+<span class="t-key">from</span> tick.money <span class="t-key">import</span> <span class="t-type">MICRO</span>, <span class="t-type">DemoFunding</span>, <span class="t-type">Wallet</span>
+<span class="t-key">from</span> tick.rounds <span class="t-key">import</span> <span class="t-type">Round</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">closed_round</span>(index=<span class="t-num">1</span>, price=<span class="t-num">2500.0</span>, voided=<span class="t-key">False</span>):
+    r = <span class="t-fn">Round</span>(index, <span class="t-num">2500.0</span>, <span class="t-num">0.0</span>, <span class="t-num">10.0</span>)
+    r.close_price, r.closed_at, r.voided = price, <span class="t-num">10.0</span>, voided
+    <span class="t-key">return</span> r
+
+
+<span class="t-key">class</span> <span class="t-fn">TestBook</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">setUp</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.wallet = <span class="t-fn">Wallet</span>(<span class="t-num">100</span> * <span class="t-type">MICRO</span>, <span class="t-fn">DemoFunding</span>())
+        <span class="t-key">self</span>.book = <span class="t-fn">BetBook</span>(<span class="t-key">self</span>.wallet)
+
+    <span class="t-key">def</span> <span class="t-fn">test_placing_debits_at_once</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">1</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-num">10</span> * <span class="t-type">MICRO</span>, <span class="t-num">2.0</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-key">self</span>.wallet.balance, <span class="t-num">90</span> * <span class="t-type">MICRO</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_bet_the_wallet_cannot_cover_is_refused_and_costs_nothing</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.<span class="t-fn">assertIsNone</span>(<span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">1</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-num">200</span> * <span class="t-type">MICRO</span>, <span class="t-num">2.0</span>))
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-key">self</span>.wallet.balance, <span class="t-num">100</span> * <span class="t-type">MICRO</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-key">self</span>.book.open, [])
+
+    <span class="t-key">def</span> <span class="t-fn">test_topping_up_blends_the_multiple_at_each_press_own_odds</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">1</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-num">10</span> * <span class="t-type">MICRO</span>, <span class="t-num">2.0</span>)
+        bet = <span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">1</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-num">10</span> * <span class="t-type">MICRO</span>, <span class="t-num">4.0</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(bet.presses, <span class="t-num">2</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(bet.stake, <span class="t-num">20</span> * <span class="t-type">MICRO</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertAlmostEqual</span>(bet.multiple, <span class="t-num">3.0</span>)      <span class="t-com"># not 2.0, and not 4.0</span>
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_hit_pays_the_blended_payout</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">1</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-num">10</span> * <span class="t-type">MICRO</span>, <span class="t-num">2.5</span>)
+        settled = <span class="t-key">self</span>.book.<span class="t-fn">settle</span>(<span class="t-fn">closed_round</span>(price=<span class="t-num">2500.0</span>))
+        <span class="t-key">self</span>.<span class="t-fn">assertTrue</span>(settled[<span class="t-num">0</span>].hit)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(settled[<span class="t-num">0</span>].payout, <span class="t-num">25</span> * <span class="t-type">MICRO</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-key">self</span>.wallet.balance, <span class="t-num">115</span> * <span class="t-type">MICRO</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_the_boundary_counts_as_inside</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">1</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-num">10</span> * <span class="t-type">MICRO</span>, <span class="t-num">2.0</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertTrue</span>(<span class="t-key">self</span>.book.<span class="t-fn">settle</span>(<span class="t-fn">closed_round</span>(price=<span class="t-num">2501.0</span>))[<span class="t-num">0</span>].hit)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_miss_pays_nothing</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">1</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-num">10</span> * <span class="t-type">MICRO</span>, <span class="t-num">2.0</span>)
+        settled = <span class="t-key">self</span>.book.<span class="t-fn">settle</span>(<span class="t-fn">closed_round</span>(price=<span class="t-num">2501.01</span>))
+        <span class="t-key">self</span>.<span class="t-fn">assertFalse</span>(settled[<span class="t-num">0</span>].hit)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(settled[<span class="t-num">0</span>].payout, <span class="t-num">0</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-key">self</span>.wallet.balance, <span class="t-num">90</span> * <span class="t-type">MICRO</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_payout_is_truncated_never_rounded_up</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">1</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-num">3</span>, <span class="t-num">1.5</span>)     <span class="t-com"># 3 micro at 1.5x = 4.5</span>
+        settled = <span class="t-key">self</span>.book.<span class="t-fn">settle</span>(<span class="t-fn">closed_round</span>(price=<span class="t-num">2500.0</span>))
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(settled[<span class="t-num">0</span>].payout, <span class="t-num">4</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_void_refunds_and_counts_as_neither_win_nor_loss</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">1</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-num">10</span> * <span class="t-type">MICRO</span>, <span class="t-num">2.0</span>)
+        settled = <span class="t-key">self</span>.book.<span class="t-fn">settle</span>(<span class="t-fn">closed_round</span>(price=<span class="t-num">2500.0</span>, voided=<span class="t-key">True</span>))
+        <span class="t-key">self</span>.<span class="t-fn">assertTrue</span>(settled[<span class="t-num">0</span>].voided)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-key">self</span>.wallet.balance, <span class="t-num">100</span> * <span class="t-type">MICRO</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-key">self</span>.book.hits, <span class="t-num">0</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_settling_one_round_leaves_another_alone</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">1</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-num">10</span> * <span class="t-type">MICRO</span>, <span class="t-num">2.0</span>)
+        <span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">2</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-num">10</span> * <span class="t-type">MICRO</span>, <span class="t-num">2.0</span>)
+        <span class="t-key">self</span>.book.<span class="t-fn">settle</span>(<span class="t-fn">closed_round</span>(index=<span class="t-num">1</span>, price=<span class="t-num">2500.0</span>))
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">len</span>(<span class="t-key">self</span>.book.open), <span class="t-num">1</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-key">self</span>.book.open[<span class="t-num">0</span>].round_index, <span class="t-num">2</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_refund_returns_a_future_round_stake</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">2</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-num">10</span> * <span class="t-type">MICRO</span>, <span class="t-num">2.0</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-key">self</span>.book.<span class="t-fn">refund</span>(<span class="t-num">2</span>), <span class="t-num">10</span> * <span class="t-type">MICRO</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-key">self</span>.wallet.balance, <span class="t-num">100</span> * <span class="t-type">MICRO</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_best_case_is_what_the_book_owes_if_everything_lands</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">1</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-num">10</span> * <span class="t-type">MICRO</span>, <span class="t-num">2.0</span>)
+        <span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">2</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-num">10</span> * <span class="t-type">MICRO</span>, <span class="t-num">3.0</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertAlmostEqual</span>(<span class="t-key">self</span>.book.<span class="t-fn">best_case</span>(), <span class="t-num">50</span> * <span class="t-type">MICRO</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_streak_counts_consecutive_hits_and_ignores_voids</span>(<span class="t-key">self</span>):
+        <span class="t-key">for</span> _ <span class="t-key">in</span> <span class="t-fn">range</span>(<span class="t-num">3</span>):
+            <span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">1</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-type">MICRO</span>, <span class="t-num">2.0</span>)
+            <span class="t-key">self</span>.book.<span class="t-fn">settle</span>(<span class="t-fn">closed_round</span>(price=<span class="t-num">2500.0</span>))
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-key">self</span>.book.streak, <span class="t-num">3</span>)
+        <span class="t-key">self</span>.book.<span class="t-fn">place</span>(<span class="t-num">1</span>, <span class="t-num">2499</span>, <span class="t-num">2501</span>, <span class="t-type">MICRO</span>, <span class="t-num">2.0</span>)
+        <span class="t-key">self</span>.book.<span class="t-fn">settle</span>(<span class="t-fn">closed_round</span>(price=<span class="t-num">2600.0</span>))
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-key">self</span>.book.streak, <span class="t-num">0</span>)
+
+
+<span class="t-key">if</span> __name__ == <span class="t-str">&#x27;__main__&#x27;</span>:
+    unittest.<span class="t-fn">main</span>()
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

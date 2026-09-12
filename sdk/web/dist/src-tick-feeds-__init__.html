@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/feeds/__init__.py - TICK SDK</title>
+<meta name="description" content="Source of tick/feeds/__init__.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">__init__.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/feeds/__init__.py &middot; 61 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;Feeds: where the number comes from.
+
+    open_feed(&#x27;sim&#x27;)          seeded random walk, no network        (default)
+    open_feed(&#x27;coinbase&#x27;)     live public REST ticker, 5 Hz
+    open_feed(&#x27;substreams&#x27;)   on-chain pools via substreams/relay.py
+    open_feed(&#x27;frozen&#x27;)       a price that never moves              (for tests)
+    open_feed(&#x27;replay&#x27;, path=&#x27;eth.ndjson&#x27;)   a recorded market
+
+Pick one with the TICK_MARKET_SOURCE setting and every game in this SDK
+changes feed without touching a line of game code. That is the whole point of
+the seam: your game reads `ctx.market.price`, and never knows or cares.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">import</span> os
+
+<span class="t-key">from</span> ..ticks <span class="t-key">import</span> <span class="t-type">ASSETS</span>, <span class="t-type">Asset</span>, <span class="t-type">PriceTick</span>, current_asset
+<span class="t-key">from</span> .base <span class="t-key">import</span> <span class="t-type">BaseFeed</span>, <span class="t-type">Feed</span>
+<span class="t-key">from</span> .coinbase <span class="t-key">import</span> <span class="t-type">CoinbaseFeed</span>, parse_coinbase
+<span class="t-key">from</span> .replay <span class="t-key">import</span> <span class="t-type">Recorder</span>, <span class="t-type">ReplayFeed</span>, read_recording
+<span class="t-key">from</span> .sim <span class="t-key">import</span> <span class="t-type">FrozenFeed</span>, <span class="t-type">SimulatedFeed</span>
+<span class="t-key">from</span> .substreams <span class="t-key">import</span> (<span class="t-type">Block</span>, <span class="t-type">PoolBook</span>, <span class="t-type">PoolPrice</span>, <span class="t-type">PoolStream</span>, <span class="t-type">SubstreamsFeed</span>,
+                         parse_block, weighted_median)
+
+<span class="t-type">SOURCES</span> = (<span class="t-str">&#x27;sim&#x27;</span>, <span class="t-str">&#x27;coinbase&#x27;</span>, <span class="t-str">&#x27;substreams&#x27;</span>, <span class="t-str">&#x27;replay&#x27;</span>, <span class="t-str">&#x27;frozen&#x27;</span>)
+
+<span class="t-type">DEFAULT_RELAY</span> = <span class="t-str">&#x27;http://localhost:8787&#x27;</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">open_feed</span>(source: str | <span class="t-key">None</span> = <span class="t-key">None</span>, seed: int | <span class="t-key">None</span> = <span class="t-key">None</span>,
+              asset: <span class="t-type">Asset</span> | <span class="t-key">None</span> = <span class="t-key">None</span>, **kwargs) -&gt; <span class="t-type">BaseFeed</span>:
+    <span class="t-doc">&quot;&quot;&quot;The feed named by `source`, or by TICK_MARKET_SOURCE, for TICK_ASSET.&quot;&quot;&quot;</span>
+    source = (source <span class="t-key">or</span> os.environ.<span class="t-fn">get</span>(<span class="t-str">&#x27;TICK_MARKET_SOURCE&#x27;</span>, <span class="t-str">&#x27;sim&#x27;</span>)).<span class="t-fn">strip</span>().<span class="t-fn">lower</span>()
+    asset = asset <span class="t-key">or</span> <span class="t-fn">current_asset</span>()
+    <span class="t-key">if</span> source == <span class="t-str">&#x27;sim&#x27;</span>:
+        <span class="t-key">return</span> <span class="t-fn">SimulatedFeed</span>(seed, asset, **kwargs)
+    <span class="t-key">if</span> source == <span class="t-str">&#x27;frozen&#x27;</span>:
+        <span class="t-key">return</span> <span class="t-fn">FrozenFeed</span>(kwargs.<span class="t-fn">pop</span>(<span class="t-str">&#x27;price&#x27;</span>, asset.start), asset)
+    <span class="t-key">if</span> source == <span class="t-str">&#x27;coinbase&#x27;</span>:
+        <span class="t-key">return</span> <span class="t-fn">CoinbaseFeed</span>(asset)
+    <span class="t-key">if</span> source == <span class="t-str">&#x27;substreams&#x27;</span>:
+        <span class="t-key">if</span> asset.key != <span class="t-str">&#x27;eth&#x27;</span>:
+            <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(<span class="t-str">&#x27;substreams prices ETH only; use sim or coinbase&#x27;</span>)
+        url = kwargs.<span class="t-fn">pop</span>(<span class="t-str">&#x27;base_url&#x27;</span>, <span class="t-key">None</span>) <span class="t-key">or</span> os.environ.<span class="t-fn">get</span>(<span class="t-str">&#x27;SUBSTREAMS_BASE_URL&#x27;</span>, <span class="t-type">DEFAULT_RELAY</span>)
+        <span class="t-key">return</span> <span class="t-fn">SubstreamsFeed</span>(url)
+    <span class="t-key">if</span> source == <span class="t-str">&#x27;replay&#x27;</span>:
+        path = kwargs.<span class="t-fn">pop</span>(<span class="t-str">&#x27;path&#x27;</span>, <span class="t-key">None</span>) <span class="t-key">or</span> os.environ.<span class="t-fn">get</span>(<span class="t-str">&#x27;TICK_REPLAY_FILE&#x27;</span>)
+        <span class="t-key">if</span> <span class="t-key">not</span> path:
+            <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(<span class="t-str">&#x27;replay needs path= or TICK_REPLAY_FILE&#x27;</span>)
+        <span class="t-key">return</span> <span class="t-fn">ReplayFeed</span>(path, asset=asset, **kwargs)
+    <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(f<span class="t-str">&quot;TICK_MARKET_SOURCE must be one of {&#x27;, &#x27;.join(SOURCES)}&quot;</span>)
+
+
+__all__ = [
+    <span class="t-str">&#x27;ASSETS&#x27;</span>, <span class="t-str">&#x27;Asset&#x27;</span>, <span class="t-str">&#x27;PriceTick&#x27;</span>, <span class="t-str">&#x27;current_asset&#x27;</span>,
+    <span class="t-str">&#x27;BaseFeed&#x27;</span>, <span class="t-str">&#x27;Feed&#x27;</span>, <span class="t-str">&#x27;SOURCES&#x27;</span>, <span class="t-str">&#x27;open_feed&#x27;</span>,
+    <span class="t-str">&#x27;SimulatedFeed&#x27;</span>, <span class="t-str">&#x27;FrozenFeed&#x27;</span>, <span class="t-str">&#x27;CoinbaseFeed&#x27;</span>, <span class="t-str">&#x27;parse_coinbase&#x27;</span>,
+    <span class="t-str">&#x27;SubstreamsFeed&#x27;</span>, <span class="t-str">&#x27;PoolStream&#x27;</span>, <span class="t-str">&#x27;PoolBook&#x27;</span>, <span class="t-str">&#x27;Block&#x27;</span>, <span class="t-str">&#x27;PoolPrice&#x27;</span>,
+    <span class="t-str">&#x27;parse_block&#x27;</span>, <span class="t-str">&#x27;weighted_median&#x27;</span>,
+    <span class="t-str">&#x27;ReplayFeed&#x27;</span>, <span class="t-str">&#x27;Recorder&#x27;</span>, <span class="t-str">&#x27;read_recording&#x27;</span>,
+]
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

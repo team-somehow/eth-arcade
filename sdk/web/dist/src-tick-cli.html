@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/cli.py - TICK SDK</title>
+<meta name="description" content="Source of tick/cli.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">cli.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/cli.py &middot; 273 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span><span>128</span><span>129</span><span>130</span><span>131</span><span>132</span><span>133</span><span>134</span><span>135</span><span>136</span><span>137</span><span>138</span><span>139</span><span>140</span><span>141</span><span>142</span><span>143</span><span>144</span><span>145</span><span>146</span><span>147</span><span>148</span><span>149</span><span>150</span><span>151</span><span>152</span><span>153</span><span>154</span><span>155</span><span>156</span><span>157</span><span>158</span><span>159</span><span>160</span><span>161</span><span>162</span><span>163</span><span>164</span><span>165</span><span>166</span><span>167</span><span>168</span><span>169</span><span>170</span><span>171</span><span>172</span><span>173</span><span>174</span><span>175</span><span>176</span><span>177</span><span>178</span><span>179</span><span>180</span><span>181</span><span>182</span><span>183</span><span>184</span><span>185</span><span>186</span><span>187</span><span>188</span><span>189</span><span>190</span><span>191</span><span>192</span><span>193</span><span>194</span><span>195</span><span>196</span><span>197</span><span>198</span><span>199</span><span>200</span><span>201</span><span>202</span><span>203</span><span>204</span><span>205</span><span>206</span><span>207</span><span>208</span><span>209</span><span>210</span><span>211</span><span>212</span><span>213</span><span>214</span><span>215</span><span>216</span><span>217</span><span>218</span><span>219</span><span>220</span><span>221</span><span>222</span><span>223</span><span>224</span><span>225</span><span>226</span><span>227</span><span>228</span><span>229</span><span>230</span><span>231</span><span>232</span><span>233</span><span>234</span><span>235</span><span>236</span><span>237</span><span>238</span><span>239</span><span>240</span><span>241</span><span>242</span><span>243</span><span>244</span><span>245</span><span>246</span><span>247</span><span>248</span><span>249</span><span>250</span><span>251</span><span>252</span><span>253</span><span>254</span><span>255</span><span>256</span><span>257</span><span>258</span><span>259</span><span>260</span><span>261</span><span>262</span><span>263</span><span>264</span><span>265</span><span>266</span><span>267</span><span>268</span><span>269</span><span>270</span><span>271</span><span>272</span><span>273</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;`tick` -- start a game, watch the data, check the machine.
+
+    tick doctor                 what is installed, configured and reachable
+    tick new mygame             scaffold a game you can run immediately
+    tick run mygame.py          start a game file
+    tick prices --source coinbase --limit 20      print the feed
+    tick pools                  print every pool in the on-chain stream
+    tick record -o eth.ndjson --seconds 120       save a market
+    tick replay eth.ndjson --speed 10             play one back
+    tick board                  the leaderboard, read from ENS
+    tick docs                   build the documentation site and open it
+
+`prices` and `pools` exist because the first question anyone has is &quot;is the
+data actually arriving?&quot;, and the answer should not require writing a game.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">import</span> argparse
+<span class="t-key">import</span> importlib.util
+<span class="t-key">import</span> os
+<span class="t-key">from</span> pathlib <span class="t-key">import</span> <span class="t-type">Path</span>
+<span class="t-key">import</span> sys
+<span class="t-key">import</span> time
+
+<span class="t-type">TEMPLATE</span> = <span class="t-fn">Path</span>(__file__).parent / <span class="t-str">&#x27;templates&#x27;</span> / <span class="t-str">&#x27;game.py&#x27;</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">cmd_doctor</span>(args) -&gt; int:
+    <span class="t-key">from</span> . <span class="t-key">import</span> __version__
+    <span class="t-key">from</span> .env <span class="t-key">import</span> load_env_file
+    <span class="t-fn">load_env_file</span>()
+    <span class="t-fn">print</span>(f<span class="t-str">&#x27;tick-sdk {__version__}   python {sys.version.split()[0]}&#x27;</span>)
+    <span class="t-key">for</span> module, why <span class="t-key">in</span> ((<span class="t-str">&#x27;pygame&#x27;</span>, <span class="t-str">&#x27;the screen and sound&#x27;</span>),
+                        (<span class="t-str">&#x27;eth_account&#x27;</span>, <span class="t-str">&#x27;real funds and ENS&#x27;</span>),
+                        (<span class="t-str">&#x27;eth_abi&#x27;</span>, <span class="t-str">&#x27;real funds and ENS&#x27;</span>),
+                        (<span class="t-str">&#x27;qrcode&#x27;</span>, <span class="t-str">&#x27;the deposit QR code&#x27;</span>),
+                        (<span class="t-str">&#x27;gpiozero&#x27;</span>, <span class="t-str">&#x27;the dial and buttons (Pi only)&#x27;</span>)):
+        found = importlib.util.<span class="t-fn">find_spec</span>(module) <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>
+        <span class="t-fn">print</span>(f<span class="t-str">&#x27;  [{&quot;ok&quot; if found else &quot;--&quot;}] {module:&lt;14} {why}&#x27;</span>)
+    <span class="t-fn">print</span>(<span class="t-str">&#x27;settings&#x27;</span>)
+    <span class="t-key">for</span> key, default <span class="t-key">in</span> ((<span class="t-str">&#x27;TICK_MARKET_SOURCE&#x27;</span>, <span class="t-str">&#x27;sim&#x27;</span>), (<span class="t-str">&#x27;TICK_ASSET&#x27;</span>, <span class="t-str">&#x27;eth&#x27;</span>),
+                         (<span class="t-str">&#x27;TICK_FUNDING&#x27;</span>, <span class="t-str">&#x27;demo&#x27;</span>), (<span class="t-str">&#x27;TICK_STAKE_USDC&#x27;</span>, <span class="t-str">&#x27;10&#x27;</span>),
+                         (<span class="t-str">&#x27;TICK_WINDOW_S&#x27;</span>, <span class="t-str">&#x27;(game)&#x27;</span>), (<span class="t-str">&#x27;TICK_ROTATE&#x27;</span>, <span class="t-str">&#x27;auto&#x27;</span>),
+                         (<span class="t-str">&#x27;SUBSTREAMS_BASE_URL&#x27;</span>, <span class="t-str">&#x27;http://localhost:8787&#x27;</span>)):
+        value = os.environ.<span class="t-fn">get</span>(key)
+        <span class="t-fn">print</span>(f<span class="t-str">&#x27;  {key:&lt;20} {value if value else default + &quot;  (default)&quot;}&#x27;</span>)
+    source = os.environ.<span class="t-fn">get</span>(<span class="t-str">&#x27;TICK_MARKET_SOURCE&#x27;</span>, <span class="t-str">&#x27;sim&#x27;</span>)
+    <span class="t-fn">print</span>(f<span class="t-str">&#x27;feed: {source}&#x27;</span>)
+    <span class="t-key">try</span>:
+        <span class="t-key">from</span> .feeds <span class="t-key">import</span> open_feed
+        feed = <span class="t-fn">open_feed</span>(source)
+        deadline = time.<span class="t-fn">monotonic</span>() + <span class="t-num">6</span>
+        last = time.<span class="t-fn">monotonic</span>()
+        got = []
+        <span class="t-key">while</span> time.<span class="t-fn">monotonic</span>() &lt; deadline <span class="t-key">and</span> <span class="t-key">not</span> got:
+            now = time.<span class="t-fn">monotonic</span>()
+            got = feed.<span class="t-fn">poll</span>(now - last, now)
+            last = now
+            time.<span class="t-fn">sleep</span>(<span class="t-num">0.05</span>)
+        feed.<span class="t-fn">close</span>()
+        <span class="t-fn">print</span>(f<span class="t-str">&#x27;  {feed.status}&#x27;</span>)
+        <span class="t-fn">print</span>(f<span class="t-str">&#x27;  {&quot;got &quot; + str(len(got)) + &quot; ticks, last &quot; + str(got[-1].price) if got else &quot;no ticks in 6s&quot;}&#x27;</span>)
+    <span class="t-key">except</span> <span class="t-type">Exception</span> <span class="t-key">as</span> exc:
+        <span class="t-fn">print</span>(f<span class="t-str">&#x27;  feed failed: {exc}&#x27;</span>)
+        <span class="t-key">return</span> <span class="t-num">1</span>
+    <span class="t-key">return</span> <span class="t-num">0</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">cmd_new</span>(args) -&gt; int:
+    name = args.name
+    target = <span class="t-fn">Path</span>(args.into <span class="t-key">or</span> <span class="t-str">&#x27;.&#x27;</span>) / (name <span class="t-key">if</span> name.<span class="t-fn">endswith</span>(<span class="t-str">&#x27;.py&#x27;</span>) <span class="t-key">else</span> f<span class="t-str">&#x27;{name}.py&#x27;</span>)
+    <span class="t-key">if</span> target.<span class="t-fn">exists</span>() <span class="t-key">and</span> <span class="t-key">not</span> args.force:
+        <span class="t-fn">print</span>(f<span class="t-str">&#x27;{target} exists; pass --force to overwrite&#x27;</span>)
+        <span class="t-key">return</span> <span class="t-num">1</span>
+    title = <span class="t-fn">Path</span>(name).stem.<span class="t-fn">replace</span>(<span class="t-str">&#x27;_&#x27;</span>, <span class="t-str">&#x27; &#x27;</span>).<span class="t-fn">replace</span>(<span class="t-str">&#x27;-&#x27;</span>, <span class="t-str">&#x27; &#x27;</span>).<span class="t-fn">upper</span>()
+    body = <span class="t-type">TEMPLATE</span>.<span class="t-fn">read_text</span>().<span class="t-fn">replace</span>(<span class="t-str">&#x27;GAME_TITLE&#x27;</span>, title)
+    body = body.<span class="t-fn">replace</span>(<span class="t-str">&#x27;ClassName&#x27;</span>, <span class="t-str">&#x27;&#x27;</span>.<span class="t-fn">join</span>(w.<span class="t-fn">capitalize</span>() <span class="t-key">for</span> w <span class="t-key">in</span> <span class="t-fn">Path</span>(name).stem.<span class="t-fn">replace</span>(<span class="t-str">&#x27;-&#x27;</span>, <span class="t-str">&#x27;_&#x27;</span>).<span class="t-fn">split</span>(<span class="t-str">&#x27;_&#x27;</span>)))
+    target.<span class="t-fn">write_text</span>(body)
+    <span class="t-fn">print</span>(f<span class="t-str">&#x27;wrote {target}&#x27;</span>)
+    <span class="t-fn">print</span>(f<span class="t-str">&#x27;run it:  python {target}&#x27;</span>)
+    <span class="t-key">return</span> <span class="t-num">0</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">load_game</span>(path: str):
+    <span class="t-doc">&quot;&quot;&quot;Import a file and return its single `Game` subclass, instantiated.&quot;&quot;&quot;</span>
+    <span class="t-key">from</span> .game <span class="t-key">import</span> <span class="t-type">Game</span>
+    file = <span class="t-fn">Path</span>(path).<span class="t-fn">resolve</span>()
+    <span class="t-key">if</span> <span class="t-key">not</span> file.<span class="t-fn">exists</span>():
+        <span class="t-key">raise</span> <span class="t-fn">SystemExit</span>(f<span class="t-str">&#x27;no such file: {file}&#x27;</span>)
+    spec = importlib.util.<span class="t-fn">spec_from_file_location</span>(file.stem, file)
+    module = importlib.util.<span class="t-fn">module_from_spec</span>(spec)
+    sys.modules[file.stem] = module
+    sys.path.<span class="t-fn">insert</span>(<span class="t-num">0</span>, <span class="t-fn">str</span>(file.parent))
+    spec.loader.<span class="t-fn">exec_module</span>(module)
+    found = [value <span class="t-key">for</span> value <span class="t-key">in</span> <span class="t-fn">vars</span>(module).<span class="t-fn">values</span>()
+             <span class="t-key">if</span> <span class="t-fn">isinstance</span>(value, type) <span class="t-key">and</span> <span class="t-fn">issubclass</span>(value, <span class="t-type">Game</span>) <span class="t-key">and</span> value <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-type">Game</span>]
+    <span class="t-key">if</span> <span class="t-key">not</span> found:
+        <span class="t-key">raise</span> <span class="t-fn">SystemExit</span>(f<span class="t-str">&#x27;{file} defines no Game subclass&#x27;</span>)
+    <span class="t-key">return</span> found[-<span class="t-num">1</span>]()
+
+
+<span class="t-key">def</span> <span class="t-fn">cmd_run</span>(args) -&gt; int:
+    <span class="t-key">from</span> .runtime <span class="t-key">import</span> run
+    <span class="t-key">if</span> args.source:
+        os.environ[<span class="t-str">&#x27;TICK_MARKET_SOURCE&#x27;</span>] = args.source
+    <span class="t-key">if</span> args.stake:
+        os.environ[<span class="t-str">&#x27;TICK_STAKE_USDC&#x27;</span>] = args.stake
+    <span class="t-fn">run</span>(<span class="t-fn">load_game</span>(args.path), seed=args.seed)
+    <span class="t-key">return</span> <span class="t-num">0</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">cmd_prices</span>(args) -&gt; int:
+    <span class="t-key">from</span> .feeds <span class="t-key">import</span> open_feed
+    feed = <span class="t-fn">open_feed</span>(args.source, seed=args.seed, **({<span class="t-str">&#x27;path&#x27;</span>: args.file} <span class="t-key">if</span> args.file <span class="t-key">else</span> {}))
+    <span class="t-fn">print</span>(f<span class="t-str">&#x27;{feed.name}: {feed.status}&#x27;</span>, file=sys.stderr)
+    started = time.<span class="t-fn">time</span>()
+    <span class="t-key">try</span>:
+        <span class="t-key">for</span> tick <span class="t-key">in</span> feed.<span class="t-fn">stream</span>(limit=args.limit):
+            <span class="t-fn">print</span>(f<span class="t-str">&#x27;{time.time() - started:8.2f}s  {tick.price:&gt;14,.4f}  &#x27;</span>
+                  f<span class="t-str">&#x27;seq {tick.sequence:&gt;6}  age {tick.source_age:.2f}s&#x27;</span>, flush=<span class="t-key">True</span>)
+    <span class="t-key">except</span> <span class="t-type">KeyboardInterrupt</span>:
+        <span class="t-key">pass</span>
+    <span class="t-key">finally</span>:
+        feed.<span class="t-fn">close</span>()
+    <span class="t-key">return</span> <span class="t-num">0</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">cmd_pools</span>(args) -&gt; int:
+    <span class="t-key">from</span> .feeds <span class="t-key">import</span> <span class="t-type">PoolStream</span>
+    stream = <span class="t-fn">PoolStream</span>(args.url)
+    <span class="t-fn">print</span>(f<span class="t-str">&#x27;reading {stream.url}&#x27;</span>, file=sys.stderr)
+    seen = <span class="t-num">0</span>
+    <span class="t-key">try</span>:
+        <span class="t-key">for</span> block <span class="t-key">in</span> stream.<span class="t-fn">blocks</span>():
+            seen += <span class="t-num">1</span>
+            age = block.<span class="t-fn">age</span>(time.<span class="t-fn">time</span>())
+            <span class="t-fn">print</span>(f<span class="t-str">&#x27;{block.chain:&lt;10} block {block.number:&lt;12} {age:5.1f}s old  &#x27;</span>
+                  f<span class="t-str">&#x27;{len(block.prices)} pools&#x27;</span>, flush=<span class="t-key">True</span>)
+            <span class="t-key">if</span> args.verbose:
+                <span class="t-key">for</span> pool <span class="t-key">in</span> block.prices:
+                    <span class="t-fn">print</span>(f<span class="t-str">&#x27;    {pool.pool[:10]}  {pool.price:&gt;12,.4f}  liq {pool.liquidity:.3e}&#x27;</span>)
+            <span class="t-key">if</span> args.limit <span class="t-key">and</span> seen &gt;= args.limit:
+                <span class="t-key">return</span> <span class="t-num">0</span>
+    <span class="t-key">except</span> <span class="t-type">KeyboardInterrupt</span>:
+        <span class="t-key">pass</span>
+    <span class="t-key">return</span> <span class="t-num">0</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">cmd_record</span>(args) -&gt; int:
+    <span class="t-key">from</span> .feeds <span class="t-key">import</span> <span class="t-type">Recorder</span>, open_feed
+    feed = <span class="t-fn">Recorder</span>(<span class="t-fn">open_feed</span>(args.source, seed=args.seed), args.out)
+    <span class="t-fn">print</span>(f<span class="t-str">&#x27;recording {args.source} to {args.out} for {args.seconds}s&#x27;</span>, file=sys.stderr)
+    deadline = time.<span class="t-fn">monotonic</span>() + args.seconds
+    last = time.<span class="t-fn">monotonic</span>()
+    <span class="t-key">try</span>:
+        <span class="t-key">while</span> time.<span class="t-fn">monotonic</span>() &lt; deadline:
+            now = time.<span class="t-fn">monotonic</span>()
+            feed.<span class="t-fn">poll</span>(now - last, now)
+            last = now
+            time.<span class="t-fn">sleep</span>(<span class="t-num">0.05</span>)
+    <span class="t-key">except</span> <span class="t-type">KeyboardInterrupt</span>:
+        <span class="t-key">pass</span>
+    <span class="t-key">finally</span>:
+        feed.<span class="t-fn">close</span>()
+    <span class="t-fn">print</span>(f<span class="t-str">&#x27;wrote {feed.count} ticks to {args.out}&#x27;</span>, file=sys.stderr)
+    <span class="t-key">return</span> <span class="t-num">0</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">cmd_replay</span>(args) -&gt; int:
+    <span class="t-key">from</span> .feeds <span class="t-key">import</span> <span class="t-type">ReplayFeed</span>
+    feed = <span class="t-fn">ReplayFeed</span>(args.file, speed=args.speed)
+    <span class="t-fn">print</span>(feed.status, file=sys.stderr)
+    <span class="t-key">try</span>:
+        <span class="t-key">for</span> tick <span class="t-key">in</span> feed.<span class="t-fn">stream</span>():
+            <span class="t-fn">print</span>(f<span class="t-str">&#x27;{tick.price:&gt;14,.4f}  seq {tick.sequence}&#x27;</span>, flush=<span class="t-key">True</span>)
+    <span class="t-key">except</span> <span class="t-type">KeyboardInterrupt</span>:
+        <span class="t-key">pass</span>
+    <span class="t-key">return</span> <span class="t-num">0</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">cmd_docs</span>(args) -&gt; int:
+    <span class="t-doc">&quot;&quot;&quot;Build the documentation site and, unless told not to, serve it.&quot;&quot;&quot;</span>
+    <span class="t-key">import</span> subprocess
+    builder = <span class="t-fn">Path</span>(__file__).<span class="t-fn">resolve</span>().parent.parent / <span class="t-str">&#x27;web&#x27;</span> / <span class="t-str">&#x27;build.py&#x27;</span>
+    <span class="t-key">if</span> <span class="t-key">not</span> builder.<span class="t-fn">exists</span>():
+        <span class="t-fn">print</span>(f<span class="t-str">&#x27;no docs builder at {builder} (installed without the web/ folder?)&#x27;</span>)
+        <span class="t-key">return</span> <span class="t-num">1</span>
+    command = [sys.executable, <span class="t-fn">str</span>(builder)]
+    <span class="t-key">if</span> <span class="t-key">not</span> args.build_only:
+        command.<span class="t-fn">append</span>(<span class="t-str">&#x27;--serve&#x27;</span>)
+        command += [<span class="t-str">&#x27;--port&#x27;</span>, <span class="t-fn">str</span>(args.port)]
+        <span class="t-key">if</span> args.no_open:
+            command.<span class="t-fn">append</span>(<span class="t-str">&#x27;--no-open&#x27;</span>)
+    <span class="t-key">return</span> subprocess.<span class="t-fn">call</span>(command, cwd=<span class="t-fn">str</span>(builder.parent))
+
+
+<span class="t-key">def</span> <span class="t-fn">cmd_board</span>(args) -&gt; int:
+    <span class="t-key">from</span> .identity <span class="t-key">import</span> <span class="t-type">Standings</span>
+    rows = <span class="t-fn">Standings</span>().<span class="t-fn">read</span>()
+    <span class="t-key">if</span> <span class="t-key">not</span> rows:
+        <span class="t-fn">print</span>(<span class="t-str">&#x27;no ranked players yet&#x27;</span>)
+        <span class="t-key">return</span> <span class="t-num">0</span>
+    <span class="t-fn">print</span>(f<span class="t-str">&#x27;{&quot;#&quot;:&gt;2}  {&quot;name&quot;:&lt;28} {&quot;pnl&quot;:&gt;12} {&quot;best&quot;:&gt;10} {&quot;wins&quot;:&gt;5} {&quot;plays&quot;:&gt;5}&#x27;</span>)
+    <span class="t-key">for</span> rank, row <span class="t-key">in</span> <span class="t-fn">enumerate</span>(rows, <span class="t-num">1</span>):
+        <span class="t-fn">print</span>(f<span class="t-str">&#x27;{rank:&gt;2}  {row.name:&lt;28} {row.pnl:&gt;12} {row.best:&gt;10} &#x27;</span>
+              f<span class="t-str">&#x27;{row.wins:&gt;5} {row.sessions:&gt;5}&#x27;</span>)
+    <span class="t-key">return</span> <span class="t-num">0</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">main</span>(argv: list[str] | <span class="t-key">None</span> = <span class="t-key">None</span>) -&gt; int:
+    parser = argparse.<span class="t-fn">ArgumentParser</span>(prog=<span class="t-str">&#x27;tick&#x27;</span>, description=__doc__.<span class="t-fn">splitlines</span>()[<span class="t-num">0</span>])
+    subs = parser.<span class="t-fn">add_subparsers</span>(dest=<span class="t-str">&#x27;command&#x27;</span>, required=<span class="t-key">True</span>)
+
+    subs.<span class="t-fn">add_parser</span>(<span class="t-str">&#x27;doctor&#x27;</span>, help=<span class="t-str">&#x27;what is installed and whether the feed answers&#x27;</span>
+                    ).<span class="t-fn">set_defaults</span>(func=cmd_doctor)
+
+    new = subs.<span class="t-fn">add_parser</span>(<span class="t-str">&#x27;new&#x27;</span>, help=<span class="t-str">&#x27;scaffold a game&#x27;</span>)
+    new.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;name&#x27;</span>)
+    new.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--into&#x27;</span>, default=<span class="t-str">&#x27;.&#x27;</span>)
+    new.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--force&#x27;</span>, action=<span class="t-str">&#x27;store_true&#x27;</span>)
+    new.<span class="t-fn">set_defaults</span>(func=cmd_new)
+
+    run_ = subs.<span class="t-fn">add_parser</span>(<span class="t-str">&#x27;run&#x27;</span>, help=<span class="t-str">&#x27;run a game file&#x27;</span>)
+    run_.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;path&#x27;</span>)
+    run_.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--source&#x27;</span>)
+    run_.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--stake&#x27;</span>)
+    run_.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--seed&#x27;</span>, type=int)
+    run_.<span class="t-fn">set_defaults</span>(func=cmd_run)
+
+    prices = subs.<span class="t-fn">add_parser</span>(<span class="t-str">&#x27;prices&#x27;</span>, help=<span class="t-str">&#x27;print ticks from a feed&#x27;</span>)
+    prices.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--source&#x27;</span>, default=<span class="t-key">None</span>)
+    prices.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--limit&#x27;</span>, type=int, default=<span class="t-num">0</span>)
+    prices.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--seed&#x27;</span>, type=int)
+    prices.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--file&#x27;</span>, help=<span class="t-str">&#x27;recording, with --source replay&#x27;</span>)
+    prices.<span class="t-fn">set_defaults</span>(func=cmd_prices)
+
+    pools = subs.<span class="t-fn">add_parser</span>(<span class="t-str">&#x27;pools&#x27;</span>, help=<span class="t-str">&#x27;print the on-chain pool stream&#x27;</span>)
+    pools.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--url&#x27;</span>, default=os.environ.<span class="t-fn">get</span>(<span class="t-str">&#x27;SUBSTREAMS_BASE_URL&#x27;</span>,
+                                                       <span class="t-str">&#x27;http://localhost:8787&#x27;</span>))
+    pools.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--limit&#x27;</span>, type=int, default=<span class="t-num">0</span>)
+    pools.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;-v&#x27;</span>, <span class="t-str">&#x27;--verbose&#x27;</span>, action=<span class="t-str">&#x27;store_true&#x27;</span>)
+    pools.<span class="t-fn">set_defaults</span>(func=cmd_pools)
+
+    record = subs.<span class="t-fn">add_parser</span>(<span class="t-str">&#x27;record&#x27;</span>, help=<span class="t-str">&#x27;save a market to a file&#x27;</span>)
+    record.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;-o&#x27;</span>, <span class="t-str">&#x27;--out&#x27;</span>, required=<span class="t-key">True</span>)
+    record.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--source&#x27;</span>, default=<span class="t-str">&#x27;coinbase&#x27;</span>)
+    record.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--seconds&#x27;</span>, type=float, default=<span class="t-num">120</span>)
+    record.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--seed&#x27;</span>, type=int)
+    record.<span class="t-fn">set_defaults</span>(func=cmd_record)
+
+    replay = subs.<span class="t-fn">add_parser</span>(<span class="t-str">&#x27;replay&#x27;</span>, help=<span class="t-str">&#x27;play a recording back&#x27;</span>)
+    replay.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;file&#x27;</span>)
+    replay.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--speed&#x27;</span>, type=float, default=<span class="t-num">1.0</span>)
+    replay.<span class="t-fn">set_defaults</span>(func=cmd_replay)
+
+    subs.<span class="t-fn">add_parser</span>(<span class="t-str">&#x27;board&#x27;</span>, help=<span class="t-str">&#x27;the leaderboard, read from ENS&#x27;</span>
+                    ).<span class="t-fn">set_defaults</span>(func=cmd_board)
+
+    docs = subs.<span class="t-fn">add_parser</span>(<span class="t-str">&#x27;docs&#x27;</span>, help=<span class="t-str">&#x27;build and serve the documentation site&#x27;</span>)
+    docs.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--port&#x27;</span>, type=int, default=<span class="t-num">8000</span>)
+    docs.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--build-only&#x27;</span>, action=<span class="t-str">&#x27;store_true&#x27;</span>, help=<span class="t-str">&#x27;write web/dist and stop&#x27;</span>)
+    docs.<span class="t-fn">add_argument</span>(<span class="t-str">&#x27;--no-open&#x27;</span>, action=<span class="t-str">&#x27;store_true&#x27;</span>)
+    docs.<span class="t-fn">set_defaults</span>(func=cmd_docs)
+
+    args = parser.<span class="t-fn">parse_args</span>(argv)
+    limit = <span class="t-fn">getattr</span>(args, <span class="t-str">&#x27;limit&#x27;</span>, <span class="t-key">None</span>)
+    <span class="t-key">if</span> limit == <span class="t-num">0</span>:
+        args.limit = <span class="t-key">None</span>
+    <span class="t-key">return</span> args.<span class="t-fn">func</span>(args) <span class="t-key">or</span> <span class="t-num">0</span>
+
+
+<span class="t-key">if</span> __name__ == <span class="t-str">&#x27;__main__&#x27;</span>:
+    <span class="t-key">raise</span> <span class="t-fn">SystemExit</span>(<span class="t-fn">main</span>())
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

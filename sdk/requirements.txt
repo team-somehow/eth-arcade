@@ -1,0 +1,7 @@
+# The game loop and the screen.
+pygame>=2.5.0
+# Only for TICK_FUNDING=arc-testnet and ENS names/leaderboard.
+eth-account>=0.13
+eth-abi>=5.0
+eth-utils>=4.0
+qrcode>=8

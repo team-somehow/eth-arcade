@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Real money, without asking anyone to trust the box - TICK SDK</title>
+<meta name="description" content="Escrowed USDC sessions, and why there is no transaction per bet.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html" class="on">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="real-money-without-asking-anyone-to-trust-the-box">Real money, without asking anyone to trust the box<a class="anchor" href="#real-money-without-asking-anyone-to-trust-the-box" aria-label="Link">#</a></h1>
+<p>A game with paper money is a demo. The moment it holds real funds, four questions appear, and they have to be answered in the design rather than in a disclaimer:</p>
+<ol><li>How does money get <strong>in</strong>, from a wallet the device has never met?</li><li>How does a ten-second round settle <strong>without a transaction per bet</strong>?</li><li>How does a player get their money <strong>out</strong>, without trusting the device?</li><li>What stops the screen promising a payout that cannot be funded?</li></ol>
+<p>This page is how the SDK answers them, and how you point it at your own chain or your own contract.</p>
+<hr>
+<h2 id="the-session-model">The session model<a class="anchor" href="#the-session-model" aria-label="Link">#</a></h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>  player&#x27;s wallet ──(1) plain USDC send──▶ device address
+                                             │
+                                    (2) openFor(player, amount, device)
+                                             ▼
+                                        TickEscrow  ── holds the deposit, in the player&#x27;s name,
+                                             │         plus reserved house money for the win
+                       (3) rounds run on the device, off-chain, for as long as they play
+                                             │
+                                    (4) close(sessionId, finalBalance)
+                                             ▼
+                                   payout ──────────▶ player&#x27;s wallet</code></pre></div>
+<p><strong>One deposit in, one settlement out.</strong> Everything between is the device&#x27;s, and that is deliberate: a ten-second round cannot wait for a block, and nobody will approve forty transactions an hour. Sessions are what make an arcade cadence possible on-chain at all.</p>
+<hr>
+<h2 id="1-money-in-a-send-not-a-connect">1. Money in: a send, not a connect<a class="anchor" href="#1-money-in-a-send-not-a-connect" aria-label="Link">#</a></h2>
+<p>The device shows <strong>its own address as a QR code</strong> (EIP-681, so scanning it opens a send screen prefilled with the right chain). The player sends USDC from their own wallet. No dApp, no WalletConnect, no signature prompt on a 480×320 screen, no app to install.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>funding.qr_text      <span class="t-com"># &#x27;ethereum:0x11ab...@5042002&#x27;</span></code></pre></div>
+<p>The device watches the chain for transfers to itself, keeps a small fixed gas fee, and locks the rest in escrow <strong>in the sender&#x27;s name</strong>:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>sid, deposit, reserve, tx = chain.<span class="t-fn">open_for</span>(player=sender, amount=amount)</code></pre></div>
+<p>Two details that make this work in practice:</p>
+<ul><li><strong>USDC is the gas token</strong>, so the device never needs a second coin and a player never has to be told to &quot;get some ETH first&quot;. The fee kept from each deposit (<code>TICK_GAS_FEE_USDC</code>, 0.01 by default) pays for the open and the close.</li><li>Every USDC movement — a plain native send <em>and</em> an ERC-20 transfer — is logged as a <code>Transfer</code> from one system address. Watching that catches both kinds exactly once. Watching the token contract&#x27;s own log would miss the plain send, which is exactly what a wallet&#x27;s send screen produces.</li></ul>
+<p>Deposits the house cannot back are <strong>sent straight home</strong>, not held:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">if</span> house.paused <span class="t-key">or</span> amount &gt; house.max_deposit <span class="t-key">or</span> reserve &gt; house.free:
+    chain.<span class="t-fn">transfer</span>(sender, amount)        <span class="t-com"># refunded, with the reason recorded</span></code></pre></div>
+<h2 id="2-rounds-run-off-chain">2. Rounds run off-chain<a class="anchor" href="#2-rounds-run-off-chain" aria-label="Link">#</a></h2>
+<p>Bets are placed, topped up and settled entirely on the device against <code>wallet.balance</code>. The chain sees none of it, which is why a round can be ten seconds long.</p>
+<p>This is the honest trade: the device is trusted to run the rounds for the length of a session, and the contract is trusted with the money. If you need the rounds trusted too, the seam to use is a signed price attestation the escrow checks at close — the settlement path already takes a signature (see below), so that is an extension rather than a redesign.</p>
+<h2 id="3-money-out-the-contract-pays-not-the-device">3. Money out: the contract pays, not the device<a class="anchor" href="#3-money-out-the-contract-pays-not-the-device" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>funding.<span class="t-fn">cash_out</span>(wallet)     <span class="t-com"># the worker closes each session at the final balance</span></code></pre></div>
+<p><code>close(sessionId, finalBalance)</code> pays <strong>the address the USDC came from</strong>. The device cannot redirect it, cannot skim it, and cannot keep it: the payout target was fixed when the session opened.</p>
+<p>Two safety valves in the contract matter to your game&#x27;s UX:</p>
+<ul><li>The device can either send <code>close</code> itself, or sign an EIP-712 <code>Close(sessionId, finalBalance)</code> that anyone submits — so a device with no gas left can still settle.</li><li>If a device never closes at all, the player can <code>reclaim</code> their deposit after a timeout fixed when the session opened. A bricked handheld is an inconvenience, not a loss.</li></ul>
+<h2 id="4-the-cap-never-promise-what-cannot-be-paid">4. The cap: never promise what cannot be paid<a class="anchor" href="#4-the-cap-never-promise-what-cannot-be-paid" aria-label="Link">#</a></h2>
+<p>Opening a session reserves house money — <code>deposit × winCapBps</code>, 4x by default — so a win is always payable. That ceiling is exposed all the way up to your game:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>wallet.cap                 <span class="t-com"># deposit + reserve, or None with no session open</span>
+ctx.<span class="t-fn">would_exceed_cap</span>(...)  <span class="t-com"># would one more bet&#x27;s best case go past it?</span></code></pre></div>
+<p>and <code>ctx.bet</code> refuses with <code>MAX WIN REACHED / CASH OUT</code> before taking the stake. Without this check the screen quotes a 20x payout the contract will cap, and the player finds out at settlement — which is the single worst moment to discover it.</p>
+<hr>
+<h2 id="using-it">Using it<a class="anchor" href="#using-it" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">pip</span> install <span class="t-key">-e</span> <span class="t-str">&quot;.[chain]&quot;</span>
+
+cat &gt;&gt; .env &lt;&lt;&#x27;EOF&#x27;
+<span class="t-type">TICK_FUNDING</span>=arc-testnet
+<span class="t-type">TICK_STAKE_USDC</span>=0.001<span class="t-com">          # real money: make the stakes small while you test</span>
+EOF
+
+<span class="t-fn">python</span> mygame.py</code></pre></div>
+<p>Your game code does not change. <code>TICK_FUNDING</code> swaps the wallet&#x27;s funding backend; <code>ctx.wallet</code> behaves identically either way.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-com"># the only place a game usually cares:</span>
+<span class="t-key">if</span> ctx.wallet.onchain:
+    <span class="t-fn">draw_qr</span>(screen, ctx.wallet.funding.qr_text)</code></pre></div>
+<h3 id="state-restarts-and-threads">State, restarts, and threads<a class="anchor" href="#state-restarts-and-threads" aria-label="Link">#</a></h3>
+<ul><li>Every chain call runs on <strong>one worker thread</strong>. The game thread only drains a queue in <code>sync()</code>. A slow RPC can never cost a frame, and a dropped frame on a handheld is felt immediately.</li><li>Open sessions, the balance and the last block read are saved atomically under <code>.tick/</code>. A restart resumes play and <strong>finishes an interrupted cash-out</strong> rather than stranding a session.</li><li>The device key is created on first run in <code>.tick/device.json</code>, mode 0600, and never leaves. It is not the player&#x27;s key and holds nothing but gas.</li></ul>
+<h3 id="pointing-it-somewhere-else">Pointing it somewhere else<a class="anchor" href="#pointing-it-somewhere-else" aria-label="Link">#</a></h3>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-com"># tick/chain.py</span>
+<span class="t-type">NETWORKS</span>[<span class="t-str">&#x27;my-chain&#x27;</span>] = <span class="t-fn">Network</span>(
+    name=<span class="t-str">&#x27;MY CHAIN&#x27;</span>, chain_id=<span class="t-num">1234</span>,
+    rpc=<span class="t-str">&#x27;https://rpc.example&#x27;</span>, explorer=<span class="t-str">&#x27;https://explorer.example&#x27;</span>,
+    usdc=<span class="t-str">&#x27;0x...&#x27;</span>, escrow=<span class="t-str">&#x27;0x...&#x27;</span>)</code></pre></div>
+<p>or, without touching code:</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-type">TICK_ARC_RPC</span>=https://my-rpc TICK_ESCROW_ADDRESS=0xMyEscrow python mygame.py</code></pre></div>
+<p>The escrow interface the SDK needs is four calls — <code>openFor</code>, <code>close</code>, <code>sessions</code>, and the house view (<code>freeHouse</code>, <code>winCapBps</code>, <code>maxSessionDeposit</code>, <code>paused</code>) — so a different contract with the same shape drops in.</p>
+<hr>
+<h2 id="testing-it-without-a-chain">Testing it without a chain<a class="anchor" href="#testing-it-without-a-chain" aria-label="Link">#</a></h2>
+<p>Every on-chain call sits behind <code>Chain</code>, so the whole money state machine is testable offline with a fake:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">class</span> <span class="t-type">FakeChain</span>:
+    <span class="t-key">def</span> <span class="t-fn">block</span>(<span class="t-key">self</span>): <span class="t-key">return</span> <span class="t-key">self</span>.head
+    <span class="t-key">def</span> <span class="t-fn">incoming</span>(<span class="t-key">self</span>, first, last): ...
+    <span class="t-key">def</span> <span class="t-fn">house</span>(<span class="t-key">self</span>): <span class="t-key">return</span> <span class="t-fn">House</span>(free, cap_bps, most, paused)
+    <span class="t-key">def</span> <span class="t-fn">open_for</span>(<span class="t-key">self</span>, player, amount): ...
+    <span class="t-key">def</span> <span class="t-fn">close</span>(<span class="t-key">self</span>, sid, final): ...
+
+funding = <span class="t-fn">EscrowFunding</span>(<span class="t-str">&#x27;arc-testnet&#x27;</span>, chain=<span class="t-fn">FakeChain</span>(), start=<span class="t-key">False</span>)
+funding.<span class="t-fn">step</span>()</code></pre></div>
+<p><a href="src-tests-test_escrow.html"><code>tests/test_escrow.py</code></a> covers, in milliseconds and with no network: a deposit opening a session in the sender&#x27;s name, the same transfer never being taken twice, dust below the gas fee, money the house cannot back going home, cash-out paying the final balance, an interrupted cash-out finishing after a restart, and a session closed while the device was off being forgotten.</p>
+<p>That is the argument for the seam. The path that touches real money is the one you least want to test by hand on a testnet.</p></article>
+    <nav class="pager"><a class="prev" href="prices-substreams.html"><span>Previous</span>Prices on-chain</a><a class="next" href="identity-ens.html"><span>Next</span>Player names</a></nav>
+  </main>
+  <aside class="toc"><h4>On this page</h4><ul><li class="l2"><a href="#the-session-model">The session model</a></li><li class="l2"><a href="#1-money-in-a-send-not-a-connect">1. Money in: a send, not a connect</a></li><li class="l2"><a href="#2-rounds-run-off-chain">2. Rounds run off-chain</a></li><li class="l2"><a href="#3-money-out-the-contract-pays-not-the-device">3. Money out: the contract pays, not the device</a></li><li class="l2"><a href="#4-the-cap-never-promise-what-cannot-be-paid">4. The cap: never promise what cannot be paid</a></li><li class="l2"><a href="#using-it">Using it</a></li><li class="l3"><a href="#state-restarts-and-threads">State, restarts, and threads</a></li><li class="l3"><a href="#pointing-it-somewhere-else">Pointing it somewhere else</a></li><li class="l2"><a href="#testing-it-without-a-chain">Testing it without a chain</a></li></ul></aside>
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

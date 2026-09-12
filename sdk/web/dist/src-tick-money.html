@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/money.py - TICK SDK</title>
+<meta name="description" content="Source of tick/money.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">money.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/money.py &middot; 175 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span><span>128</span><span>129</span><span>130</span><span>131</span><span>132</span><span>133</span><span>134</span><span>135</span><span>136</span><span>137</span><span>138</span><span>139</span><span>140</span><span>141</span><span>142</span><span>143</span><span>144</span><span>145</span><span>146</span><span>147</span><span>148</span><span>149</span><span>150</span><span>151</span><span>152</span><span>153</span><span>154</span><span>155</span><span>156</span><span>157</span><span>158</span><span>159</span><span>160</span><span>161</span><span>162</span><span>163</span><span>164</span><span>165</span><span>166</span><span>167</span><span>168</span><span>169</span><span>170</span><span>171</span><span>172</span><span>173</span><span>174</span><span>175</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;Money, in integers, because floats lose it.
+
+Everything here is **micro-USDC**: whole units of 0.000001 USDC, the real
+on-chain unit. A balance that is an int cannot drift the way repeated float
+addition does, and `0.1 + 0.2` never has to be explained to a player. Only
+mark-to-market maths runs in floats, and it is truncated back to an int the
+moment it becomes a balance -- truncated, never rounded, so a payout can never
+round money into existence that the book did not owe.
+
+The funding seam
+----------------
+
+`Wallet` holds the balance. *Where the balance comes from* is a separate object
+with three members:
+
+    name    what to put on screen        &#x27;DEMO&#x27; / &#x27;USDC&#x27;
+    live    is this real money?
+    load(amount) -&gt; Deposit
+
+`DemoFunding` mints play money. `tick.escrow.EscrowFunding` is real testnet
+USDC locked in a contract. A game imports neither: it reads `ctx.wallet`, and
+the runtime picks the backend from TICK_FUNDING. That is why the same game is
+both a demo and a real-money product without an `if` in it.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">from</span> dataclasses <span class="t-key">import</span> dataclass, field
+<span class="t-key">from</span> decimal <span class="t-key">import</span> <span class="t-type">Decimal</span>, <span class="t-type">InvalidOperation</span>
+<span class="t-key">from</span> functools <span class="t-key">import</span> lru_cache
+<span class="t-key">import</span> os
+<span class="t-key">import</span> time
+
+<span class="t-type">MICRO</span> = <span class="t-num">1_000_000</span>
+<span class="t-type">LOAD_CHOICES</span> = (<span class="t-num">10</span>, <span class="t-num">25</span>, <span class="t-num">100</span>)      <span class="t-com"># the load buttons, in whole USDC</span>
+<span class="t-type">DEFAULT_STAKE_USDC</span> = <span class="t-str">&#x27;10&#x27;</span>
+<span class="t-type">MAX_USDC</span> = <span class="t-num">10</span> ** <span class="t-num">12</span>          <span class="t-com"># a sanity bound, far above anything a session holds</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">to_micro</span>(usdc: float) -&gt; int:
+    <span class="t-doc">&quot;&quot;&quot;Whole/decimal USDC to micro-USDC, truncated.&quot;&quot;&quot;</span>
+    <span class="t-key">return</span> <span class="t-fn">int</span>(usdc * <span class="t-type">MICRO</span>)
+
+
+@<span class="t-fn">lru_cache</span>(maxsize=<span class="t-num">16</span>)
+<span class="t-key">def</span> <span class="t-fn">parse_usdc</span>(text: str) -&gt; int:
+    <span class="t-doc">&quot;&quot;&quot;A typed USDC amount to micro-USDC, exactly.
+
+    Decimal, not float: `float(&#x27;0.57&#x27;) * 1e6` is 569999.9999999999, and a book
+    that credits 569_999 micro for 0.57 USDC is a book with a bug in it.
+    &quot;&quot;&quot;</span>
+    <span class="t-key">try</span>:
+        value = <span class="t-fn">Decimal</span>(<span class="t-fn">str</span>(text).<span class="t-fn">strip</span>())
+    <span class="t-key">except</span> <span class="t-type">InvalidOperation</span>:
+        <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(f<span class="t-str">&#x27;Not a USDC amount: {text!r}&#x27;</span>) <span class="t-key">from</span> <span class="t-key">None</span>
+    <span class="t-key">if</span> <span class="t-key">not</span> value.<span class="t-fn">is_finite</span>():
+        <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(f<span class="t-str">&#x27;Not a USDC amount: {text!r}&#x27;</span>)
+    micro = value * <span class="t-type">MICRO</span>
+    <span class="t-key">if</span> micro != micro.<span class="t-fn">to_integral_value</span>():
+        <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(f<span class="t-str">&#x27;USDC has six decimals at most: {text!r}&#x27;</span>)
+    <span class="t-com"># Nothing real is this large. An unbounded amount here becomes an unbounded</span>
+    <span class="t-com"># balance downstream, and a balance no escrow could ever pay.</span>
+    <span class="t-key">if</span> <span class="t-fn">abs</span>(value) &gt; <span class="t-type">MAX_USDC</span>:
+        <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(f<span class="t-str">&#x27;USDC amount out of range: {text!r}&#x27;</span>)
+    <span class="t-key">return</span> <span class="t-fn">int</span>(micro)
+
+
+<span class="t-key">def</span> <span class="t-fn">stake_micro</span>(default: str | <span class="t-key">None</span> = <span class="t-key">None</span>) -&gt; int:
+    <span class="t-doc">&quot;&quot;&quot;Micro-USDC per bet, from TICK_STAKE_USDC (10 USDC by default).&quot;&quot;&quot;</span>
+    micro = <span class="t-fn">parse_usdc</span>(os.environ.<span class="t-fn">get</span>(<span class="t-str">&#x27;TICK_STAKE_USDC&#x27;</span>, default <span class="t-key">or</span> <span class="t-type">DEFAULT_STAKE_USDC</span>))
+    <span class="t-key">if</span> micro &lt;= <span class="t-num">0</span>:
+        <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(<span class="t-str">&#x27;TICK_STAKE_USDC must be above zero&#x27;</span>)
+    <span class="t-key">return</span> micro
+
+
+<span class="t-key">def</span> <span class="t-fn">places_for</span>(micro: int) -&gt; int:
+    <span class="t-doc">&quot;&quot;&quot;Fewest decimals that show `micro` exactly: 0 for whole USDC, up to 6.&quot;&quot;&quot;</span>
+    places = <span class="t-num">6</span>
+    <span class="t-key">while</span> places <span class="t-key">and</span> micro % <span class="t-num">10</span> ** (<span class="t-num">7</span> - places) == <span class="t-num">0</span>:
+        places -= <span class="t-num">1</span>
+    <span class="t-key">return</span> places
+
+
+<span class="t-key">def</span> <span class="t-fn">format_usdc</span>(micro: int, places: int | <span class="t-key">None</span> = <span class="t-key">None</span>) -&gt; str:
+    <span class="t-doc">&quot;&quot;&quot;Two decimals, or as many as the stake needs, so a 0.001 bet is visible.&quot;&quot;&quot;</span>
+    <span class="t-key">if</span> places <span class="t-key">is</span> <span class="t-key">None</span>:
+        places = <span class="t-fn">max</span>(<span class="t-num">2</span>, <span class="t-fn">places_for</span>(<span class="t-fn">stake_micro</span>()))
+    <span class="t-key">return</span> f<span class="t-str">&#x27;{micro / MICRO:,.{places}f}&#x27;</span>
+
+
+@<span class="t-fn">dataclass</span>(frozen=<span class="t-key">True</span>)
+<span class="t-key">class</span> <span class="t-type">Deposit</span>:
+    <span class="t-doc">&quot;&quot;&quot;One funding attempt. `reference` is a tx hash for real backends.&quot;&quot;&quot;</span>
+    amount: int
+    status: str                <span class="t-com"># &#x27;confirmed&#x27; | &#x27;pending&#x27; | &#x27;failed&#x27;</span>
+    reference: str
+    at: float = <span class="t-fn">field</span>(default_factory=time.time)
+
+
+<span class="t-key">class</span> <span class="t-type">DemoFunding</span>:
+    <span class="t-doc">&quot;&quot;&quot;Local play money. No address, no network, nothing to lose.&quot;&quot;&quot;</span>
+    name = <span class="t-str">&#x27;DEMO&#x27;</span>
+    live = <span class="t-key">False</span>
+    onchain = <span class="t-key">False</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.count = <span class="t-num">0</span>
+
+    <span class="t-key">def</span> <span class="t-fn">load</span>(<span class="t-key">self</span>, amount: int) -&gt; <span class="t-type">Deposit</span>:
+        <span class="t-key">self</span>.count += <span class="t-num">1</span>
+        <span class="t-key">return</span> <span class="t-fn">Deposit</span>(amount, <span class="t-str">&#x27;confirmed&#x27;</span>, f<span class="t-str">&#x27;demo-{self.count}&#x27;</span>)
+
+
+<span class="t-key">class</span> <span class="t-type">Wallet</span>:
+    <span class="t-doc">&quot;&quot;&quot;Spendable balance in micro-USDC, plus a log of every funding attempt.&quot;&quot;&quot;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, balance: int = <span class="t-num">100</span> * <span class="t-type">MICRO</span>, funding: object | <span class="t-key">None</span> = <span class="t-key">None</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">if</span> balance &lt; <span class="t-num">0</span>:
+            <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(<span class="t-str">&#x27;Balance cannot start negative&#x27;</span>)
+        <span class="t-key">self</span>.balance = <span class="t-fn">int</span>(balance)
+        <span class="t-key">self</span>.funding = funding <span class="t-key">or</span> <span class="t-fn">DemoFunding</span>()
+        <span class="t-key">self</span>.deposits: list[<span class="t-type">Deposit</span>] = []
+        <span class="t-key">self</span>.staked_total = <span class="t-num">0</span>
+        <span class="t-key">self</span>.paid_total = <span class="t-num">0</span>
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">live</span>(<span class="t-key">self</span>) -&gt; bool:
+        <span class="t-key">return</span> <span class="t-fn">bool</span>(<span class="t-fn">getattr</span>(<span class="t-key">self</span>.funding, <span class="t-str">&#x27;live&#x27;</span>, <span class="t-key">False</span>))
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">onchain</span>(<span class="t-key">self</span>) -&gt; bool:
+        <span class="t-key">return</span> <span class="t-fn">bool</span>(<span class="t-fn">getattr</span>(<span class="t-key">self</span>.funding, <span class="t-str">&#x27;onchain&#x27;</span>, <span class="t-key">False</span>))
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">cap</span>(<span class="t-key">self</span>) -&gt; int | <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;The most the balance may grow to and still be paid out, if anything limits it.
+
+        Real escrow can only pay what it holds. A game must refuse a bet whose
+        best case would win past this, or the screen promises what the contract
+        will not send.
+        &quot;&quot;&quot;</span>
+        <span class="t-key">return</span> <span class="t-fn">getattr</span>(<span class="t-key">self</span>.funding, <span class="t-str">&#x27;cap&#x27;</span>, <span class="t-key">None</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">load</span>(<span class="t-key">self</span>, usdc: int) -&gt; <span class="t-type">Deposit</span>:
+        <span class="t-doc">&quot;&quot;&quot;Fund the balance through the configured backend.&quot;&quot;&quot;</span>
+        deposit = <span class="t-key">self</span>.funding.<span class="t-fn">load</span>(usdc * <span class="t-type">MICRO</span>)
+        <span class="t-key">self</span>.deposits.<span class="t-fn">append</span>(deposit)
+        <span class="t-com"># Only a confirmed deposit is spendable: pending and failed leave the</span>
+        <span class="t-com"># balance alone, so a player never stakes money that never arrived.</span>
+        <span class="t-key">if</span> deposit.status == <span class="t-str">&#x27;confirmed&#x27;</span>:
+            <span class="t-key">self</span>.balance += deposit.amount
+        <span class="t-key">return</span> deposit
+
+    <span class="t-key">def</span> <span class="t-fn">debit</span>(<span class="t-key">self</span>, amount: int) -&gt; bool:
+        <span class="t-key">if</span> amount &lt;= <span class="t-num">0</span> <span class="t-key">or</span> amount &gt; <span class="t-key">self</span>.balance:
+            <span class="t-key">return</span> <span class="t-key">False</span>
+        <span class="t-key">self</span>.balance -= amount
+        <span class="t-key">self</span>.staked_total += amount
+        <span class="t-key">return</span> <span class="t-key">True</span>
+
+    <span class="t-key">def</span> <span class="t-fn">credit</span>(<span class="t-key">self</span>, amount: int) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">if</span> amount &lt; <span class="t-num">0</span>:
+            <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(<span class="t-str">&#x27;Cannot credit a negative amount&#x27;</span>)
+        <span class="t-key">self</span>.balance += amount
+        <span class="t-key">self</span>.paid_total += amount
+
+    <span class="t-key">def</span> <span class="t-fn">can_afford</span>(<span class="t-key">self</span>, amount: int) -&gt; bool:
+        <span class="t-key">return</span> <span class="t-key">self</span>.balance &gt;= amount
+
+    <span class="t-key">def</span> <span class="t-fn">would_exceed_cap</span>(<span class="t-key">self</span>, best_case: int) -&gt; bool:
+        <span class="t-doc">&quot;&quot;&quot;Would a best case of `best_case` micro win past what can be paid out?&quot;&quot;&quot;</span>
+        cap = <span class="t-key">self</span>.cap
+        <span class="t-key">return</span> cap <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span> <span class="t-key">and</span> best_case &gt; cap
+
+    <span class="t-key">def</span> <span class="t-fn">__repr__</span>(<span class="t-key">self</span>) -&gt; str:
+        <span class="t-key">return</span> f<span class="t-str">&#x27;&lt;Wallet {format_usdc(self.balance)} {getattr(self.funding, &quot;name&quot;, &quot;?&quot;)}&gt;&#x27;</span>
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

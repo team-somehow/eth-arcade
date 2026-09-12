@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.tick/
+*.ndjson
+.env
+*.egg-info/
+# Python build output only -- web/dist is the built docs site and is committed,
+# so the docs can be opened straight from a checkout with nothing installed.
+/build/
+/dist/

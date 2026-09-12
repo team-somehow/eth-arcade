@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tests/test_identity.py - TICK SDK</title>
+<meta name="description" content="Source of tests/test_identity.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">test_identity.py<a class="anchor" href="#top">#</a></h1><p class="path">tests/test_identity.py &middot; 111 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;Names, without touching a network: the parts that are pure functions.&quot;&quot;&quot;</span>
+<span class="t-key">import</span> unittest
+
+<span class="t-key">from</span> tick.identity <span class="t-key">import</span> (<span class="t-type">ADJECTIVES</span>, <span class="t-type">NOUNS</span>, coin_type, dns_encode, ens, handle,
+                           name_of, namehash)
+
+
+<span class="t-key">class</span> <span class="t-type">FakeRpc</span>:
+    <span class="t-doc">&quot;&quot;&quot;Answers `addr(bytes32)` from a table of name -&gt; address.&quot;&quot;&quot;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, owners):
+        <span class="t-key">self</span>.owners = owners
+        <span class="t-key">self</span>.calls = <span class="t-num">0</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__call__</span>(<span class="t-key">self</span>, method, *params):
+        <span class="t-key">self</span>.calls += <span class="t-num">1</span>
+        <span class="t-com"># The last 20 bytes of the 32-byte return value are the address.</span>
+        <span class="t-key">for</span> name, address <span class="t-key">in</span> <span class="t-key">self</span>.owners.<span class="t-fn">items</span>():
+            <span class="t-key">if</span> <span class="t-fn">namehash</span>(name).<span class="t-fn">hex</span>() <span class="t-key">in</span> params[<span class="t-num">0</span>][<span class="t-str">&#x27;data&#x27;</span>]:
+                <span class="t-key">return</span> <span class="t-str">&#x27;0x&#x27;</span> + address[<span class="t-num">2</span>:].<span class="t-fn">rjust</span>(<span class="t-num">64</span>, <span class="t-str">&#x27;0&#x27;</span>)
+        <span class="t-key">return</span> <span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;0&#x27;</span> * <span class="t-num">64</span>
+
+
+<span class="t-key">class</span> <span class="t-fn">TestHandles</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_a_handle_is_derived_from_the_address_and_is_stable</span>(<span class="t-key">self</span>):
+        address = <span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;ab&#x27;</span> * <span class="t-num">20</span>
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">handle</span>(address), <span class="t-fn">handle</span>(address))
+        adjective, noun = <span class="t-fn">handle</span>(address).<span class="t-fn">split</span>(<span class="t-str">&#x27;-&#x27;</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertIn</span>(adjective, <span class="t-type">ADJECTIVES</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertIn</span>(noun, <span class="t-type">NOUNS</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_different_wallets_get_different_handles</span>(<span class="t-key">self</span>):
+        made = {<span class="t-fn">handle</span>(<span class="t-str">&#x27;0x&#x27;</span> + f<span class="t-str">&#x27;{i:040x}&#x27;</span>) <span class="t-key">for</span> i <span class="t-key">in</span> <span class="t-fn">range</span>(<span class="t-num">200</span>)}
+        <span class="t-key">self</span>.<span class="t-fn">assertGreater</span>(<span class="t-fn">len</span>(made), <span class="t-num">150</span>)     <span class="t-com"># collisions exist, and fall through to -2</span>
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_later_attempt_is_numbered</span>(<span class="t-key">self</span>):
+        address = <span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;ab&#x27;</span> * <span class="t-num">20</span>
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">handle</span>(address, <span class="t-num">1</span>), <span class="t-fn">handle</span>(address) + <span class="t-str">&#x27;-2&#x27;</span>)
+
+
+<span class="t-key">class</span> <span class="t-fn">TestNames</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_namehash_matches_the_ens_specification</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">namehash</span>(<span class="t-str">&#x27;&#x27;</span>).<span class="t-fn">hex</span>(), <span class="t-str">&#x27;00&#x27;</span> * <span class="t-num">32</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(
+            <span class="t-fn">namehash</span>(<span class="t-str">&#x27;eth&#x27;</span>).<span class="t-fn">hex</span>(),
+            <span class="t-str">&#x27;93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae&#x27;</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_dns_encoding_is_length_prefixed</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">dns_encode</span>(<span class="t-str">&#x27;a.eth&#x27;</span>), b<span class="t-str">&#x27;\x01a\x03eth\x00&#x27;</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">dns_encode</span>(<span class="t-str">&#x27;&#x27;</span>), b<span class="t-str">&#x27;\x00&#x27;</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_name_is_trusted_only_when_it_points_back</span>(<span class="t-key">self</span>):
+        wallet = <span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;AB&#x27;</span> * <span class="t-num">20</span>
+        mine = f<span class="t-str">&#x27;{handle(wallet)}.tick.eth&#x27;</span>
+        rpc = <span class="t-fn">FakeRpc</span>({mine: wallet})
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">name_of</span>(wallet, rpc=rpc), mine)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_handle_owned_by_someone_else_falls_through</span>(<span class="t-key">self</span>):
+        wallet = <span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;AB&#x27;</span> * <span class="t-num">20</span>
+        other = <span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;CD&#x27;</span> * <span class="t-num">20</span>
+        first = f<span class="t-str">&#x27;{handle(wallet)}.tick.eth&#x27;</span>
+        second = f<span class="t-str">&#x27;{handle(wallet, 1)}.tick.eth&#x27;</span>
+        rpc = <span class="t-fn">FakeRpc</span>({first: other, second: wallet})
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">name_of</span>(wallet, rpc=rpc), second)
+
+    <span class="t-key">def</span> <span class="t-fn">test_an_unregistered_handle_stops_the_search_at_once</span>(<span class="t-key">self</span>):
+        wallet = <span class="t-str">&#x27;0x&#x27;</span> + <span class="t-str">&#x27;AB&#x27;</span> * <span class="t-num">20</span>
+        rpc = <span class="t-fn">FakeRpc</span>({})
+        <span class="t-key">self</span>.<span class="t-fn">assertIsNone</span>(<span class="t-fn">name_of</span>(wallet, rpc=rpc))
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(rpc.calls, <span class="t-num">1</span>)       <span class="t-com"># no point asking about -2 and -3</span>
+
+
+<span class="t-key">class</span> <span class="t-fn">TestConfig</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_the_coin_type_follows_ensip_11</span>(<span class="t-key">self</span>):
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">coin_type</span>(<span class="t-num">1</span>), <span class="t-num">0x80000001</span>)
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">coin_type</span>(<span class="t-num">5042002</span>), <span class="t-num">0x80000000</span> | <span class="t-num">5042002</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_settings_override_every_address</span>(<span class="t-key">self</span>):
+        <span class="t-key">import</span> os
+        os.environ[<span class="t-str">&#x27;TICK_ENS_PARENT&#x27;</span>] = <span class="t-str">&#x27;mygame.eth&#x27;</span>
+        <span class="t-key">try</span>:
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">ens</span>().parent, <span class="t-str">&#x27;mygame.eth&#x27;</span>)
+        <span class="t-key">finally</span>:
+            os.environ.<span class="t-fn">pop</span>(<span class="t-str">&#x27;TICK_ENS_PARENT&#x27;</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_leaderboard_reads_nothing_until_asked</span>(<span class="t-key">self</span>):
+        <span class="t-key">from</span> tick.identity <span class="t-key">import</span> <span class="t-type">Leaderboard</span>
+        board = <span class="t-fn">Leaderboard</span>(read=<span class="t-key">lambda</span>: [])
+        <span class="t-key">self</span>.<span class="t-fn">assertIsNone</span>(board.rows)
+        board.<span class="t-fn">refresh</span>()
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(board.rows, [])
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_leaderboard_keeps_its_last_rows_when_the_rpc_dies</span>(<span class="t-key">self</span>):
+        <span class="t-key">from</span> tick.identity <span class="t-key">import</span> <span class="t-type">Leaderboard</span>
+        state = {<span class="t-str">&#x27;fail&#x27;</span>: <span class="t-key">False</span>}
+
+        <span class="t-key">def</span> <span class="t-fn">read</span>():
+            <span class="t-key">if</span> state[<span class="t-str">&#x27;fail&#x27;</span>]:
+                <span class="t-key">raise</span> <span class="t-fn">OSError</span>(<span class="t-str">&#x27;sepolia is down&#x27;</span>)
+            <span class="t-key">return</span> [<span class="t-str">&#x27;a row&#x27;</span>]
+
+        board = <span class="t-fn">Leaderboard</span>(read=read)
+        board.<span class="t-fn">refresh</span>()
+        state[<span class="t-str">&#x27;fail&#x27;</span>] = <span class="t-key">True</span>
+        <span class="t-key">self</span>.<span class="t-fn">assertFalse</span>(board.<span class="t-fn">refresh</span>())
+        <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(board.rows, [<span class="t-str">&#x27;a row&#x27;</span>])
+        <span class="t-key">self</span>.<span class="t-fn">assertIn</span>(<span class="t-str">&#x27;sepolia&#x27;</span>, board.error)
+
+
+<span class="t-key">if</span> __name__ == <span class="t-str">&#x27;__main__&#x27;</span>:
+    unittest.<span class="t-fn">main</span>()
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

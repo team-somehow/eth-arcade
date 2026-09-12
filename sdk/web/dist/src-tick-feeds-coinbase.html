@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/feeds/coinbase.py - TICK SDK</title>
+<meta name="description" content="Source of tick/feeds/coinbase.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">coinbase.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/feeds/coinbase.py &middot; 117 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;Live trades from a public exchange, with no key and no account.
+
+Read-only REST, polled at 5 Hz on a worker thread. Kept dependency-free (no
+requests, no websockets) so it installs on a Pi with the stock Python.
+
+Two decisions worth knowing, because both were bugs first:
+
+* **Every successful poll is a tick, even one repeating the last trade.**
+  ETH-USD can go seconds without a trade. Aging the price by its last *trade*
+  made a quiet book look like a dead feed, and bets were refused as stale while
+  the connection was perfectly fine.
+* **A trade id older than one already seen is dropped, not replayed.** That is
+  a lagging cache node, and honouring it walks the price backwards.
+
+A production adapter should use the venue&#x27;s WebSocket trade stream; this one
+is here so a game is playable on real prices with zero setup.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">from</span> dataclasses <span class="t-key">import</span> replace
+<span class="t-key">from</span> datetime <span class="t-key">import</span> datetime
+<span class="t-key">import</span> json
+<span class="t-key">import</span> math
+<span class="t-key">import</span> queue
+<span class="t-key">import</span> re
+<span class="t-key">import</span> threading
+<span class="t-key">import</span> time
+<span class="t-key">import</span> urllib.request
+
+<span class="t-key">from</span> ..ticks <span class="t-key">import</span> <span class="t-type">ASSETS</span>, <span class="t-type">Asset</span>, <span class="t-type">PriceTick</span>
+<span class="t-key">from</span> .base <span class="t-key">import</span> <span class="t-type">BaseFeed</span>
+
+<span class="t-type">USER_AGENT</span> = <span class="t-str">&#x27;tick-sdk/0.1&#x27;</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">parse_coinbase</span>(data: dict, now: float, wall_now: float) -&gt; <span class="t-type">PriceTick</span>:
+    <span class="t-doc">&quot;&quot;&quot;Validate one ticker payload into a tick, or raise.
+
+    Everything that reaches the pricing model is checked here: finite positive
+    price, timezone-aware timestamp, no stamp from the future.
+    &quot;&quot;&quot;</span>
+    price = <span class="t-fn">float</span>(data[<span class="t-str">&#x27;price&#x27;</span>])
+    sequence = <span class="t-fn">int</span>(data[<span class="t-str">&#x27;trade_id&#x27;</span>])
+    <span class="t-com"># Coinbase stamps nanoseconds; fromisoformat takes at most six digits.</span>
+    stamp = re.<span class="t-fn">sub</span>(r<span class="t-str">&#x27;(\.\d{6})\d+&#x27;</span>, r<span class="t-str">&#x27;\1&#x27;</span>, data[<span class="t-str">&#x27;time&#x27;</span>]).<span class="t-fn">replace</span>(<span class="t-str">&#x27;Z&#x27;</span>, <span class="t-str">&#x27;+00:00&#x27;</span>)
+    timestamp = datetime.<span class="t-fn">fromisoformat</span>(stamp)
+    <span class="t-key">if</span> timestamp.tzinfo <span class="t-key">is</span> <span class="t-key">None</span>:
+        <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(<span class="t-str">&#x27;Missing timestamp timezone&#x27;</span>)
+    source_time = timestamp.<span class="t-fn">timestamp</span>()
+    <span class="t-key">if</span> <span class="t-key">not</span> math.<span class="t-fn">isfinite</span>(price) <span class="t-key">or</span> price &lt;= <span class="t-num">0</span> <span class="t-key">or</span> sequence &lt; <span class="t-num">0</span> <span class="t-key">or</span> source_time &gt; wall_now + <span class="t-num">5</span>:
+        <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(<span class="t-str">&#x27;Invalid market tick&#x27;</span>)
+    <span class="t-key">return</span> <span class="t-fn">PriceTick</span>(price, sequence, now, <span class="t-fn">max</span>(<span class="t-num">0.0</span>, wall_now - source_time))
+
+
+<span class="t-key">class</span> <span class="t-fn">CoinbaseFeed</span>(<span class="t-type">BaseFeed</span>):
+    name = <span class="t-str">&#x27;COINBASE LIVE&#x27;</span>
+    <span class="t-type">URL</span> = <span class="t-str">&#x27;https://api.exchange.coinbase.com/products/{product}/ticker&#x27;</span>
+    <span class="t-type">INTERVAL</span> = <span class="t-num">0.2</span>
+    <span class="t-type">CACHE_S</span> = <span class="t-num">1.0</span>    <span class="t-com"># the ticker answers with cache-control max-age=1</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, asset: <span class="t-type">Asset</span> = <span class="t-type">ASSETS</span>[<span class="t-str">&#x27;eth&#x27;</span>]) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.asset = asset
+        <span class="t-key">self</span>.url = <span class="t-key">self</span>.<span class="t-type">URL</span>.<span class="t-fn">format</span>(product=asset.coinbase)
+        <span class="t-key">self</span>.status = <span class="t-str">&#x27;Connecting to Coinbase&#x27;</span>
+        <span class="t-key">self</span>.items: queue.<span class="t-type">Queue</span>[<span class="t-type">PriceTick</span>] = queue.<span class="t-fn">Queue</span>(maxsize=<span class="t-num">32</span>)
+        <span class="t-key">self</span>.stop = threading.<span class="t-fn">Event</span>()
+        <span class="t-key">self</span>.worker = threading.<span class="t-fn">Thread</span>(target=<span class="t-key">self</span>._run, name=<span class="t-str">&#x27;coinbase-prices&#x27;</span>, daemon=<span class="t-key">True</span>)
+        <span class="t-key">self</span>.worker.<span class="t-fn">start</span>()
+
+    <span class="t-key">def</span> <span class="t-fn">_run</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        last_trade = -<span class="t-num">1</span>
+        sequence = <span class="t-num">0</span>
+        retry = <span class="t-key">self</span>.<span class="t-type">INTERVAL</span>
+        <span class="t-key">while</span> <span class="t-key">not</span> <span class="t-key">self</span>.stop.<span class="t-fn">is_set</span>():
+            <span class="t-key">try</span>:
+                request = urllib.request.<span class="t-fn">Request</span>(<span class="t-key">self</span>.url, headers={<span class="t-str">&#x27;User-Agent&#x27;</span>: <span class="t-type">USER_AGENT</span>})
+                <span class="t-key">with</span> urllib.request.<span class="t-fn">urlopen</span>(request, timeout=<span class="t-num">3</span>) <span class="t-key">as</span> response:
+                    data = json.<span class="t-fn">load</span>(response)
+                tick = <span class="t-fn">parse_coinbase</span>(data, time.<span class="t-fn">monotonic</span>(), time.<span class="t-fn">time</span>())
+                <span class="t-key">if</span> tick.sequence &gt;= last_trade:
+                    last_trade = tick.sequence
+                    sequence += <span class="t-num">1</span>
+                    tick = <span class="t-fn">replace</span>(tick, sequence=sequence,
+                                   source_age=<span class="t-fn">min</span>(tick.source_age, <span class="t-key">self</span>.<span class="t-type">CACHE_S</span>))
+                    <span class="t-fn">_offer</span>(<span class="t-key">self</span>.items, tick)
+                <span class="t-key">self</span>.status = f<span class="t-str">&#x27;Coinbase {self.asset.symbol}/USD / 5 Hz&#x27;</span>
+                retry = <span class="t-key">self</span>.<span class="t-type">INTERVAL</span>
+            <span class="t-key">except</span> (<span class="t-type">OSError</span>, <span class="t-type">ValueError</span>, <span class="t-type">KeyError</span>, <span class="t-type">TypeError</span>, queue.<span class="t-type">Full</span>):
+                <span class="t-key">self</span>.status = <span class="t-str">&#x27;Feed unavailable / retrying&#x27;</span>
+                retry = <span class="t-fn">min</span>(<span class="t-num">10.0</span>, <span class="t-fn">max</span>(<span class="t-num">1.0</span>, retry * <span class="t-num">2</span>))    <span class="t-com"># never hammer a dead network</span>
+            <span class="t-key">self</span>.stop.<span class="t-fn">wait</span>(retry)
+
+    <span class="t-key">def</span> <span class="t-fn">poll</span>(<span class="t-key">self</span>, _dt: float = <span class="t-num">0.0</span>, _now: float = <span class="t-num">0.0</span>) -&gt; list[<span class="t-type">PriceTick</span>]:
+        <span class="t-key">return</span> <span class="t-fn">_drain</span>(<span class="t-key">self</span>.items)
+
+    <span class="t-key">def</span> <span class="t-fn">close</span>(<span class="t-key">self</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.stop.<span class="t-fn">set</span>()
+        <span class="t-key">self</span>.worker.<span class="t-fn">join</span>(timeout=<span class="t-num">0.1</span>)
+
+
+<span class="t-key">def</span> <span class="t-fn">_offer</span>(items: <span class="t-str">&#x27;queue.Queue[PriceTick]&#x27;</span>, tick: <span class="t-type">PriceTick</span>) -&gt; <span class="t-key">None</span>:
+    <span class="t-doc">&quot;&quot;&quot;Put a tick on a full queue by dropping the oldest: news beats history.&quot;&quot;&quot;</span>
+    <span class="t-key">if</span> items.<span class="t-fn">full</span>():
+        <span class="t-key">try</span>:
+            items.<span class="t-fn">get_nowait</span>()
+        <span class="t-key">except</span> queue.<span class="t-type">Empty</span>:
+            <span class="t-key">pass</span>
+    items.<span class="t-fn">put_nowait</span>(tick)
+
+
+<span class="t-key">def</span> <span class="t-fn">_drain</span>(items: <span class="t-str">&#x27;queue.Queue[PriceTick]&#x27;</span>) -&gt; list[<span class="t-type">PriceTick</span>]:
+    out: list[<span class="t-type">PriceTick</span>] = []
+    <span class="t-key">while</span> <span class="t-key">True</span>:
+        <span class="t-key">try</span>:
+            out.<span class="t-fn">append</span>(items.<span class="t-fn">get_nowait</span>())
+        <span class="t-key">except</span> queue.<span class="t-type">Empty</span>:
+            <span class="t-key">return</span> out
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

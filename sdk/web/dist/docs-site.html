@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The docs site - TICK SDK</title>
+<meta name="description" content="How the docs site is generated, and how to add a page.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html" class="on">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="the-docs-site">The docs site<a class="anchor" href="#the-docs-site" aria-label="Link">#</a></h1>
+<p><code>web/</code> turns the Markdown already in this repo into a small static site, so the documentation can be read in a browser with a sidebar, a contents rail and search — instead of scrolling through raw <code>.md</code> files.</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">tick</span> docs<span class="t-com">                      # build and open it</span>
+<span class="t-fn">python</span> web/build.py<span class="t-com">            # build only, into web/dist/</span>
+<span class="t-fn">python</span> web/build.py <span class="t-key">--serve</span><span class="t-com">    # build, serve on :8000, open a browser</span>
+open web/dist/index.html<span class="t-com">       # or just open the file; no server needed</span></code></pre></div>
+<h2 id="how-it-works">How it works<a class="anchor" href="#how-it-works" aria-label="Link">#</a></h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>README.md, PLAN.md, docs/*.md   ──┐
+tick/**.py, examples/*.py,        ├─► build.py ─► web/dist/*.html + style.css + app.js
+tests/*.py                      ──┘              + search-index.js</code></pre></div>
+<ul><li><strong>The Markdown stays the single source of truth.</strong> Nothing is written twice: edit a <code>.md</code>, run the build, and the site follows. There is no separate copy of the docs to drift.</li><li><strong>Every Python file is rendered too.</strong> A link in the prose to <code>tick/market.py</code> lands on the actual code with its docstrings intact, which is where a good deal of the reasoning lives. <code>source.html</code> lists them all.</li><li><strong>Dead links are dropped, not published.</strong> <code>build.py</code> rewrites every relative link into a page in the site; anything that does not resolve renders as plain text rather than as a link that wastes a click.</li><li><strong>Search is generated at build time</strong> into <code>search-index.js</code> — one entry per heading, plus each module&#x27;s docstring. It is a plain <code>&lt;script src&gt;</code> rather than a <code>fetch</code>, so search works from <code>file://</code> with no server.</li></ul>
+<h2 id="why-it-has-no-dependencies">Why it has no dependencies<a class="anchor" href="#why-it-has-no-dependencies" aria-label="Link">#</a></h2>
+<p><code>mdlite.py</code> is a small Markdown renderer and syntax highlighter, standard library only. A real Markdown library would parse better, but then reading the docs would require installing something first — and the whole argument of this SDK is that it runs with what is already on the machine. It handles exactly what these docs use: headings, fenced code, pipe tables, nested and task lists, blockquotes, rules, and inline code, bold, italic and links.</p>
+<p>The same goes for the page itself: no framework, no bundler, no CDN. <code>app.js</code> is about 150 lines of plain JavaScript for search, the contents rail, copy buttons and the theme toggle.</p>
+<h2 id="files">Files<a class="anchor" href="#files" aria-label="Link">#</a></h2>
+<div class="table"><table><thead><tr><th>Path</th><th>What</th></tr></thead><tbody><tr><td><code>build.py</code></td><td>assembles the site: pages, nav, source rendering, search index</td></tr><tr><td><code>mdlite.py</code></td><td>Markdown → HTML, and the code highlighter</td></tr><tr><td><code>theme/style.css</code></td><td>the design — the device&#x27;s own palette, light and dark</td></tr><tr><td><code>theme/app.js</code></td><td>search, contents rail, copy buttons, theme, mobile nav</td></tr><tr><td><code>dist/</code></td><td>the built site, committed so a checkout can be read immediately</td></tr></tbody></table></div>
+<h2 id="adding-a-page">Adding a page<a class="anchor" href="#adding-a-page" aria-label="Link">#</a></h2>
+<p>Write the Markdown in <code>docs/</code>, then add one row to <code>PAGES</code> in <code>build.py</code>:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>(<span class="t-str">&#x27;tuning.html&#x27;</span>, <span class="t-str">&#x27;docs/tuning.md&#x27;</span>, <span class="t-str">&#x27;Reference&#x27;</span>, <span class="t-str">&#x27;Tuning&#x27;</span>, <span class="t-str">&#x27;Knobs worth turning.&#x27;</span>),</code></pre></div>
+<p>The nav group, the previous/next links and the search entries follow from that row. Rebuild and the page is in the site.</p>
+<h2 id="keeping-it-honest">Keeping it honest<a class="anchor" href="#keeping-it-honest" aria-label="Link">#</a></h2>
+<p><a href="src-tests-test_web.html"><code>tests/test_web.py</code></a> builds the site and checks that every page renders, every internal link resolves to a file that exists, every <code>#anchor</code> matches a real heading id, and no documented link was silently dropped. Broken documentation links are a slow leak; this closes it.</p></article>
+    <nav class="pager"><a class="prev" href="device.html"><span>Previous</span>The device</a><a class="next" href="src-examples-coinflip.html"><span>Next</span>Coinflip</a></nav>
+  </main>
+  <aside class="toc"><h4>On this page</h4><ul><li class="l2"><a href="#how-it-works">How it works</a></li><li class="l2"><a href="#why-it-has-no-dependencies">Why it has no dependencies</a></li><li class="l2"><a href="#files">Files</a></li><li class="l2"><a href="#adding-a-page">Adding a page</a></li><li class="l2"><a href="#keeping-it-honest">Keeping it honest</a></li></ul></aside>
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

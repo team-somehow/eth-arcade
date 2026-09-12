@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A price your game can settle on - TICK SDK</title>
+<meta name="description" content="A price your game can settle on: Substreams, pools, and one number.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html" class="on">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="a-price-your-game-can-settle-on">A price your game can settle on<a class="anchor" href="#a-price-your-game-can-settle-on" aria-label="Link">#</a></h1>
+<p>Every bet in this SDK settles on one number at one moment. That number has to be <strong>live</strong>, <strong>hard to push</strong>, and <strong>honest about its own age</strong> — otherwise the fairest odds in the world are being applied to the wrong price.</p>
+<p>This page is how the SDK gets such a number out of live chain data, and how you point it at a different market, a different chain, or a different set of pools.</p>
+<hr>
+<h2 id="why-an-exchange-ticker-is-not-enough">Why an exchange ticker is not enough<a class="anchor" href="#why-an-exchange-ticker-is-not-enough" aria-label="Link">#</a></h2>
+<p><code>TICK_MARKET_SOURCE=coinbase</code> is fine while you build. It is one venue, behind a REST cache, with an unknown number of hops between the trade and you. For a game that pays out on the price at a bell, three problems matter:</p>
+<ol><li><strong>It goes quiet.</strong> A quiet ticker looks exactly like a dead one.</li><li><strong>It is one book.</strong> One venue&#x27;s price at one instant is one venue&#x27;s opinion.</li><li><strong>You cannot check it afterwards.</strong> A player who thinks they were robbed has nothing to look at.</li></ol>
+<p>Reading swaps directly off-chain fixes all three: the data is public, it is timestamped by the block, and a settled round can be traced to the exact transaction that set the price.</p>
+<hr>
+<h2 id="the-shape-of-it">The shape of it<a class="anchor" href="#the-shape-of-it" aria-label="Link">#</a></h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>  chain blocks
+       │
+       ▼
+  Substreams module  (tick_eth_price)     runs on The Graph&#x27;s network
+       │   per block, per pool: price, in-range liquidity, tx hash
+       ▼
+  substreams run --output jsonl   ×N chains
+       │   JSON lines on stdout
+       ▼
+  relay.py           (your laptop or a small server)
+       │   GET /stream  →  newline-delimited JSON over one long-lived connection
+       ▼
+  tick.feeds.SubstreamsFeed      →  PriceTick  →  your game
+  tick.feeds.PoolStream          →  Block / PoolPrice (raw, per pool)</code></pre></div>
+<p>The relay exists for one reason: <strong>the API key must not live on a handheld somebody can pick up</strong>. The device holds a plain HTTP connection and receives blocks as they are produced; it authenticates to nothing and can be handed to a stranger.</p>
+<hr>
+<h2 id="the-module">The module<a class="anchor" href="#the-module" aria-label="Link">#</a></h2>
+<p>The Substreams module reads Uniswap v3 and v4 swaps and emits, for every block, each watched pool&#x27;s price and in-range liquidity.</p>
+<p>Three properties of it are what make the SDK&#x27;s rules work:</p>
+<ul><li><strong>It emits on every block, traded or not.</strong> That is what lets <code>Market</code> tell a <em>calm</em> market from a <em>dead</em> one — the distinction the whole &quot;quiet market sells nothing&quot; rule rests on. A feed that only speaks when something happens cannot make that distinction, and a game built on one will eventually sell a certainty at 2x.</li><li><strong>Every message carries its own block time.</strong> <code>SubstreamsFeed</code> turns that into <code>PriceTick.source_age</code>, so the chain&#x27;s own delay counts against staleness. A relay that falls two seconds behind stops the betting; it does not quietly settle rounds on old blocks.</li><li><strong>It keeps no state between blocks</strong>, so it starts at the chain head with nothing to backfill — which is what makes a cold start take seconds rather than minutes.</li></ul>
+<p>It builds on Pinax&#x27;s <code>uniswap_v3</code> and <code>uniswap_v4</code> packages rather than decoding logs itself, so the same compiled module runs on any EVM chain those packages support, with only the pool list changed. Pools that emit the same swap event as Uniswap v3 — Aerodrome Slipstream, Sushiswap V3 — are priced with no change at all.</p>
+<hr>
+<h2 id="where-the-pool-list-comes-from">Where the pool list comes from<a class="anchor" href="#where-the-pool-list-comes-from" aria-label="Link">#</a></h2>
+<p>A pool&#x27;s <code>sqrtPriceX96</code> is meaningless without its <strong>token order and decimals</strong>. Get either wrong and the price is off by a factor of 10¹² and the game happily settles on it.</p>
+<p>Standardized DEX subgraphs hold both, for every pool, in one schema that is the same across protocols and chains. That is what makes pool discovery a single query sent unchanged to every subgraph you list:</p>
+<div class="code"><span class="lang">graphql</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code>{
+  protocols(<span class="t-key">first</span>: 1) { name network }
+  liquidityPools(<span class="t-key">first</span>: 20, <span class="t-key">where</span>: { inputTokens: [&quot;&lt;WETH&gt;&quot;, &quot;&lt;USDC&gt;&quot;] }) {
+    id
+    name
+    inputTokens { id symbol decimals }
+    inputTokenBalances
+    fees { feeType feePercentage }
+  }
+}</code></pre></div>
+<div class="code"><span class="lang">sh</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">python3</span> pools.py <span class="t-key">--dry-run</span><span class="t-com">     # show what it would add</span>
+<span class="t-fn">python3</span> pools.py<span class="t-com">               # add the pools it finds</span></code></pre></div>
+<p>Adding a whole protocol costs <strong>one subgraph id</strong> in <code>.env</code>, because the query does not change. That is the practical argument for the standardized schema: a bespoke subgraph per protocol would mean a bespoke query, a bespoke parser and a bespoke bug per protocol.</p>
+<p>Sensible filters, and why: keep pools with a fee of 0.05% or less holding at least 25,000 USDC. Nobody arbitrages a pool back into line until it is a fee off — about $7 on a 0.3% pool, which is wider than a whole box in most games, so a high-fee pool is a slow, wrong price. Size is read from the USDC the pool actually holds rather than from a subgraph&#x27;s USD figure, which reports some of the largest pools as $0.</p>
+<hr>
+<h2 id="many-pools-one-number">Many pools, one number<a class="anchor" href="#many-pools-one-number" aria-label="Link">#</a></h2>
+<p><code>PoolBook</code> combines them. The rule is <strong>average weighted by in-range liquidity, after discarding any pool more than 50 bps from the weighted median.</strong></p>
+<p>Each half of that does a job:</p>
+<div class="table"><table><thead><tr><th>Approach</th><th>What it gets right</th><th>What it gets wrong</th></tr></thead><tbody><tr><td>One pool</td><td>simple</td><td>one large trade at the bell moves your settlement price</td></tr><tr><td>Median of pools</td><td>very hard to push</td><td>pins to a single pool, usually the biggest, which can go a minute without a trade — the price stops moving</td></tr><tr><td>Plain average</td><td>moves on any trade anywhere</td><td>one broken or pushed pool drags the whole number</td></tr><tr><td><strong>Trim, then weight</strong></td><td>moves with real trading, in proportion</td><td>needs enough pools to have a median worth trimming against</td></tr></tbody></table></div>
+<p>And a chain whose stream falls more than ten seconds behind stops counting at all: its pools&#x27; last prices are no longer that chain&#x27;s current prices.</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick.feeds <span class="t-key">import</span> <span class="t-type">PoolBook</span>
+book = <span class="t-fn">PoolBook</span>()
+book.<span class="t-fn">apply</span>(line, wall_now)      <span class="t-com"># one stream line</span>
+book.<span class="t-fn">price</span>(wall_now)            <span class="t-com"># the combined number, or None</span>
+book.<span class="t-fn">live_pools</span>(wall_now)       <span class="t-com"># what is actually counting right now</span></code></pre></div>
+<p>More pools is not decoration. The odds are priced from volatility measured over the last minute, so <strong>every pool added is one more venue whose trades give the estimator something real to measure</strong>. A stretch where no watched pool trades reads as a calm market — correctly — and after fifteen seconds of it the game stops selling.</p>
+<hr>
+<h2 id="running-it">Running it<a class="anchor" href="#running-it" aria-label="Link">#</a></h2>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-com"># 1. get a Substreams key and build the module (see substreams/)</span>
+<span class="t-fn">substreams</span> auth
+<span class="t-fn">cargo</span> build <span class="t-key">--target</span> wasm32-unknown-unknown <span class="t-key">--release</span>
+
+<span class="t-com"># 2. start the relay on a machine that can keep a connection open</span>
+<span class="t-fn">python3</span> substreams/relay.py <span class="t-key">--port</span> 8787
+<span class="t-com"># relay on http://192.168.1.24:8787/stream</span>
+
+<span class="t-com"># 3. point the device at it</span>
+echo <span class="t-str">&#x27;TICK_MARKET_SOURCE=substreams&#x27;</span>            &gt;&gt; .env
+echo <span class="t-str">&#x27;SUBSTREAMS_BASE_URL=http://192.168.1.24:8787&#x27;</span> &gt;&gt; .env
+
+<span class="t-com"># 4. check it before you trust it</span>
+<span class="t-fn">tick</span> pools <span class="t-key">-v</span></code></pre></div>
+<p><code>tick pools -v</code> prints every block, every pool, and how far each pool is from the combined price in basis points. If that is quiet or noisy, fix it before writing a line of game code.</p>
+<hr>
+<h2 id="using-it-in-a-game">Using it in a game<a class="anchor" href="#using-it-in-a-game" aria-label="Link">#</a></h2>
+<p>Nothing changes in your game. That is the point of the seam:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">class</span> <span class="t-fn">MyGame</span>(<span class="t-type">Game</span>):
+    <span class="t-key">def</span> <span class="t-fn">on_action</span>(<span class="t-key">self</span>, ctx, action):
+        <span class="t-key">if</span> action.name == <span class="t-str">&#x27;A&#x27;</span>:
+            ctx.<span class="t-fn">bet</span>(ctx.price - <span class="t-num">1</span>, ctx.price + <span class="t-num">1</span>)     <span class="t-com"># same code on every feed</span></code></pre></div>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">tick</span> run mygame.py <span class="t-key">--source</span> sim<span class="t-com">           # develop</span>
+<span class="t-fn">tick</span> run mygame.py <span class="t-key">--source</span> substreams<span class="t-com">    # demo</span></code></pre></div>
+<h3 id="reading-the-pools-yourself">Reading the pools yourself<a class="anchor" href="#reading-the-pools-yourself" aria-label="Link">#</a></h3>
+<p>If your game wants more than one number — a spread between chains, a per-venue display, a &quot;which pool moved&quot; callout — take the raw stream:</p>
+<div class="code"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-key">from</span> tick <span class="t-key">import</span> <span class="t-type">PoolStream</span>
+
+<span class="t-key">for</span> block <span class="t-key">in</span> <span class="t-fn">PoolStream</span>(<span class="t-str">&#x27;http://localhost:8787&#x27;</span>).<span class="t-fn">blocks</span>():
+    <span class="t-fn">print</span>(block.chain, block.number, block.<span class="t-fn">age</span>(time.<span class="t-fn">time</span>()))
+    <span class="t-key">for</span> pool <span class="t-key">in</span> block.prices:
+        <span class="t-fn">print</span>(<span class="t-str">&#x27;   &#x27;</span>, pool.pool[:<span class="t-num">10</span>], pool.price, pool.liquidity)</code></pre></div>
+<p><code>PoolStream</code> reconnects on its own and yields <code>Block</code> objects with validated per-pool prices. See <a href="src-examples-pools.html"><code>examples/pools.py</code></a>.</p>
+<hr>
+<h2 id="checking-a-settled-round-afterwards">Checking a settled round afterwards<a class="anchor" href="#checking-a-settled-round-afterwards" aria-label="Link">#</a></h2>
+<p>Each price the module emits carries the hash of the transaction behind it. That means a round settled at 14:32:07 can be traced to the exact swap that set the price — by the player, after the fact, with no trust in the device at all. If you are going to take someone&#x27;s money on a number, being able to show them the trade is worth more than any amount of UI.</p>
+<hr>
+<h2 id="recording-it">Recording it<a class="anchor" href="#recording-it" aria-label="Link">#</a></h2>
+<p>Live markets are a terrible thing to develop against: you cannot make the price do what you need to see, and you cannot make it do it twice. Record once, replay forever:</p>
+<div class="code"><span class="lang">bash</span><button class="copy" type="button" aria-label="Copy">copy</button><pre><code><span class="t-fn">tick</span> record <span class="t-key">-o</span> eth.ndjson <span class="t-key">--source</span> substreams <span class="t-key">--seconds</span> 600
+<span class="t-fn">tick</span> run mygame.py <span class="t-key">--source</span> replay<span class="t-com">          # TICK_REPLAY_FILE=eth.ndjson</span></code></pre></div>
+<p>Replay reproduces the recorded <code>source_age</code> too, so the gap that voided a round in the wild voids it again on your desk.</p></article>
+    <nav class="pager"><a class="prev" href="writing-a-game.html"><span>Previous</span>Writing a game</a><a class="next" href="money-arc.html"><span>Next</span>Real money</a></nav>
+  </main>
+  <aside class="toc"><h4>On this page</h4><ul><li class="l2"><a href="#why-an-exchange-ticker-is-not-enough">Why an exchange ticker is not enough</a></li><li class="l2"><a href="#the-shape-of-it">The shape of it</a></li><li class="l2"><a href="#the-module">The module</a></li><li class="l2"><a href="#where-the-pool-list-comes-from">Where the pool list comes from</a></li><li class="l2"><a href="#many-pools-one-number">Many pools, one number</a></li><li class="l2"><a href="#running-it">Running it</a></li><li class="l2"><a href="#using-it-in-a-game">Using it in a game</a></li><li class="l3"><a href="#reading-the-pools-yourself">Reading the pools yourself</a></li><li class="l2"><a href="#checking-a-settled-round-afterwards">Checking a settled round afterwards</a></li><li class="l2"><a href="#recording-it">Recording it</a></li></ul></aside>
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

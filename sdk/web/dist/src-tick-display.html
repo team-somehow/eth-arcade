@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/display.py - TICK SDK</title>
+<meta name="description" content="Source of tick/display.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">display.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/display.py &middot; 147 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span><span>128</span><span>129</span><span>130</span><span>131</span><span>132</span><span>133</span><span>134</span><span>135</span><span>136</span><span>137</span><span>138</span><span>139</span><span>140</span><span>141</span><span>142</span><span>143</span><span>144</span><span>145</span><span>146</span><span>147</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;One canvas, 480x320, landscape, whatever the panel underneath is doing.
+
+Your game draws on a 480x320 surface and never thinks about the display again.
+If the actual panel is portrait -- like the 320x480 Waveshare SPI screen on
+this handheld -- `present()` turns each finished frame onto it. Touch and mouse
+positions are turned back the other way, so a tap lands where the player
+pointed, not where the panel thinks they did.
+
+That seam is worth its small cost: a game written against a rotating canvas is
+a game with rotation maths smeared through its draw code and its input code,
+and it is wrong in a different way on every device.
+
+On the Pi
+---------
+
+`bootstrap()` runs before pygame is imported for real. It sets the SDL driver
+for KMSDRM when nothing owns the display, and re-execs into the system Python
+if the active pygame came from pip -- the pip wheel has no KMSDRM support, so
+without this the game opens on nothing at all and the panel stays black.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">import</span> importlib.util
+<span class="t-key">import</span> os
+<span class="t-key">import</span> sys
+
+<span class="t-type">WIDTH</span>, <span class="t-type">HEIGHT</span> = <span class="t-num">480</span>, <span class="t-num">320</span>
+<span class="t-type">FPS</span> = <span class="t-num">30</span>
+
+<span class="t-type">SYSTEM_PYTHON</span> = <span class="t-str">&#x27;/usr/bin/python3&#x27;</span>
+
+_rotation = <span class="t-num">0</span>
+_canvas = <span class="t-key">None</span>
+
+
+<span class="t-com"># ---- Pi bootstrap (call before importing pygame) --------------------------</span>
+<span class="t-key">def</span> <span class="t-fn">configure_sdl</span>() -&gt; <span class="t-key">None</span>:
+    <span class="t-com"># Prefer a running desktop (Wayland or X11); only claim DRM when nothing</span>
+    <span class="t-com"># else owns it.</span>
+    <span class="t-key">if</span> <span class="t-key">not</span> (os.environ.<span class="t-fn">get</span>(<span class="t-str">&#x27;WAYLAND_DISPLAY&#x27;</span>) <span class="t-key">or</span> os.environ.<span class="t-fn">get</span>(<span class="t-str">&#x27;DISPLAY&#x27;</span>)):
+        os.environ.<span class="t-fn">setdefault</span>(<span class="t-str">&#x27;SDL_VIDEODRIVER&#x27;</span>, <span class="t-str">&#x27;kmsdrm&#x27;</span>)
+        <span class="t-com"># The card index of the panel varies by board: set</span>
+        <span class="t-com"># SDL_VIDEO_KMSDRM_DEVICE_INDEX for yours rather than trusting this.</span>
+        os.environ.<span class="t-fn">setdefault</span>(<span class="t-str">&#x27;SDL_VIDEO_KMSDRM_DEVICE_INDEX&#x27;</span>, <span class="t-str">&#x27;2&#x27;</span>)
+    os.environ.<span class="t-fn">setdefault</span>(<span class="t-str">&#x27;SDL_MOUSE_RELATIVE&#x27;</span>, <span class="t-str">&#x27;0&#x27;</span>)
+
+
+<span class="t-key">def</span> <span class="t-fn">_venv_free_env</span>() -&gt; dict:
+    env = os.environ.<span class="t-fn">copy</span>()
+    venv = env.<span class="t-fn">pop</span>(<span class="t-str">&#x27;VIRTUAL_ENV&#x27;</span>, <span class="t-key">None</span>)
+    <span class="t-key">if</span> venv:
+        venv_bin = os.path.<span class="t-fn">realpath</span>(os.path.<span class="t-fn">join</span>(venv, <span class="t-str">&#x27;bin&#x27;</span>))
+        env[<span class="t-str">&#x27;PATH&#x27;</span>] = <span class="t-str">&#x27;:&#x27;</span>.<span class="t-fn">join</span>(p <span class="t-key">for</span> p <span class="t-key">in</span> env.<span class="t-fn">get</span>(<span class="t-str">&#x27;PATH&#x27;</span>, <span class="t-str">&#x27;&#x27;</span>).<span class="t-fn">split</span>(<span class="t-str">&#x27;:&#x27;</span>)
+                               <span class="t-key">if</span> p <span class="t-key">and</span> os.path.<span class="t-fn">realpath</span>(p) != venv_bin)
+    <span class="t-key">return</span> env
+
+
+<span class="t-key">def</span> <span class="t-fn">bootstrap</span>() -&gt; <span class="t-key">None</span>:
+    <span class="t-doc">&quot;&quot;&quot;Configure SDL and, on a Pi, re-exec under the system pygame if needed.&quot;&quot;&quot;</span>
+    <span class="t-key">if</span> <span class="t-key">not</span> sys.platform.<span class="t-fn">startswith</span>(<span class="t-str">&#x27;linux&#x27;</span>):
+        <span class="t-key">return</span>
+    <span class="t-fn">configure_sdl</span>()
+    spec = importlib.util.<span class="t-fn">find_spec</span>(<span class="t-str">&#x27;pygame&#x27;</span>)
+    <span class="t-key">if</span> <span class="t-key">not</span> spec <span class="t-key">or</span> <span class="t-key">not</span> spec.origin:
+        <span class="t-key">return</span>
+    origin = spec.origin
+    <span class="t-key">if</span> <span class="t-str">&#x27;dist-packages&#x27;</span> <span class="t-key">in</span> origin <span class="t-key">or</span> <span class="t-str">&#x27;site-packages&#x27;</span> <span class="t-key">not</span> <span class="t-key">in</span> origin:
+        <span class="t-key">return</span>
+    <span class="t-key">if</span> <span class="t-key">not</span> os.path.<span class="t-fn">exists</span>(<span class="t-type">SYSTEM_PYTHON</span>):
+        <span class="t-key">return</span>
+    os.<span class="t-fn">execve</span>(<span class="t-type">SYSTEM_PYTHON</span>, [<span class="t-type">SYSTEM_PYTHON</span>, *sys.argv], <span class="t-fn">_venv_free_env</span>())
+
+
+<span class="t-com"># ---- the canvas ----------------------------------------------------------</span>
+<span class="t-key">def</span> <span class="t-fn">_pick_rotation</span>(pygame) -&gt; int:
+    <span class="t-com"># TICK_ROTATE=0/90/180/270 forces it; &quot;auto&quot; turns the canvas only when the</span>
+    <span class="t-com"># screen is portrait, and only on Linux (a desktop window is never turned).</span>
+    value = os.environ.<span class="t-fn">get</span>(<span class="t-str">&#x27;TICK_ROTATE&#x27;</span>, <span class="t-str">&#x27;auto&#x27;</span>).<span class="t-fn">strip</span>().<span class="t-fn">lower</span>()
+    <span class="t-key">if</span> value != <span class="t-str">&#x27;auto&#x27;</span>:
+        angle = <span class="t-fn">int</span>(value) % <span class="t-num">360</span>
+        <span class="t-key">if</span> angle <span class="t-key">not</span> <span class="t-key">in</span> (<span class="t-num">0</span>, <span class="t-num">90</span>, <span class="t-num">180</span>, <span class="t-num">270</span>):
+            <span class="t-key">raise</span> <span class="t-fn">ValueError</span>(<span class="t-str">&#x27;TICK_ROTATE must be auto, 0, 90, 180 or 270&#x27;</span>)
+        <span class="t-key">return</span> angle
+    <span class="t-key">if</span> <span class="t-key">not</span> sys.platform.<span class="t-fn">startswith</span>(<span class="t-str">&#x27;linux&#x27;</span>):
+        <span class="t-key">return</span> <span class="t-num">0</span>
+    sizes = pygame.display.<span class="t-fn">get_desktop_sizes</span>()
+    <span class="t-key">return</span> <span class="t-num">90</span> <span class="t-key">if</span> sizes <span class="t-key">and</span> sizes[<span class="t-num">0</span>][<span class="t-num">0</span>] &lt; sizes[<span class="t-num">0</span>][<span class="t-num">1</span>] <span class="t-key">else</span> <span class="t-num">0</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">init_display</span>(title: str = <span class="t-str">&#x27;TICK&#x27;</span>):
+    <span class="t-doc">&quot;&quot;&quot;Return the 480x320 surface to draw on. Show it with `present()`.&quot;&quot;&quot;</span>
+    <span class="t-key">import</span> pygame
+    <span class="t-key">global</span> _rotation, _canvas
+    pygame.<span class="t-fn">init</span>()
+    _rotation = <span class="t-fn">_pick_rotation</span>(pygame)
+    size = (<span class="t-type">HEIGHT</span>, <span class="t-type">WIDTH</span>) <span class="t-key">if</span> _rotation <span class="t-key">in</span> (<span class="t-num">90</span>, <span class="t-num">270</span>) <span class="t-key">else</span> (<span class="t-type">WIDTH</span>, <span class="t-type">HEIGHT</span>)
+    <span class="t-com"># The Pi panel is the whole display; on a desktop keep a plain window so a</span>
+    <span class="t-com"># test run does not take over the screen.</span>
+    flags = pygame.<span class="t-type">FULLSCREEN</span> | pygame.<span class="t-type">NOFRAME</span> <span class="t-key">if</span> sys.platform.<span class="t-fn">startswith</span>(<span class="t-str">&#x27;linux&#x27;</span>) <span class="t-key">else</span> <span class="t-num">0</span>
+    <span class="t-key">try</span>:
+        screen = pygame.display.<span class="t-fn">set_mode</span>(size, flags)
+    <span class="t-key">except</span> <span class="t-type">Exception</span>:
+        screen = pygame.display.<span class="t-fn">set_mode</span>(size)
+    pygame.display.<span class="t-fn">set_caption</span>(title)
+    pygame.mouse.<span class="t-fn">set_visible</span>(<span class="t-key">True</span>)
+    <span class="t-key">if</span> _rotation == <span class="t-num">0</span>:
+        _canvas = <span class="t-key">None</span>
+        <span class="t-key">return</span> screen
+    _canvas = pygame.<span class="t-fn">Surface</span>((<span class="t-type">WIDTH</span>, <span class="t-type">HEIGHT</span>)).<span class="t-fn">convert</span>()
+    <span class="t-key">return</span> _canvas
+
+
+<span class="t-key">def</span> <span class="t-fn">present</span>() -&gt; <span class="t-key">None</span>:
+    <span class="t-doc">&quot;&quot;&quot;Put the finished frame on the panel, turned if the panel is portrait.&quot;&quot;&quot;</span>
+    <span class="t-key">import</span> pygame
+    <span class="t-key">if</span> _canvas <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+        display = pygame.display.<span class="t-fn">get_surface</span>()
+        frame = pygame.transform.<span class="t-fn">rotate</span>(_canvas, _rotation)
+        <span class="t-key">if</span> frame.<span class="t-fn">get_size</span>() != display.<span class="t-fn">get_size</span>():
+            frame = pygame.transform.<span class="t-fn">scale</span>(frame, display.<span class="t-fn">get_size</span>())
+        display.<span class="t-fn">blit</span>(frame, (<span class="t-num">0</span>, <span class="t-num">0</span>))
+    pygame.display.<span class="t-fn">flip</span>()
+
+
+<span class="t-key">def</span> <span class="t-fn">to_canvas</span>(fx: float, fy: float) -&gt; tuple[int, int]:
+    <span class="t-doc">&quot;&quot;&quot;A point on the display, as fractions 0..1, to canvas pixels.&quot;&quot;&quot;</span>
+    <span class="t-key">if</span> _rotation == <span class="t-num">90</span>:
+        fx, fy = <span class="t-num">1.0</span> - fy, fx
+    <span class="t-key">elif</span> _rotation == <span class="t-num">180</span>:
+        fx, fy = <span class="t-num">1.0</span> - fx, <span class="t-num">1.0</span> - fy
+    <span class="t-key">elif</span> _rotation == <span class="t-num">270</span>:
+        fx, fy = fy, <span class="t-num">1.0</span> - fx
+    <span class="t-key">return</span> (<span class="t-fn">min</span>(<span class="t-fn">max</span>(<span class="t-fn">int</span>(fx * <span class="t-type">WIDTH</span>), <span class="t-num">0</span>), <span class="t-type">WIDTH</span> - <span class="t-num">1</span>),
+            <span class="t-fn">min</span>(<span class="t-fn">max</span>(<span class="t-fn">int</span>(fy * <span class="t-type">HEIGHT</span>), <span class="t-num">0</span>), <span class="t-type">HEIGHT</span> - <span class="t-num">1</span>))
+
+
+<span class="t-key">def</span> <span class="t-fn">display_to_canvas</span>(pos: tuple[int, int]) -&gt; tuple[int, int]:
+    <span class="t-doc">&quot;&quot;&quot;A mouse position in display pixels to canvas pixels.&quot;&quot;&quot;</span>
+    <span class="t-key">import</span> pygame
+    <span class="t-key">if</span> _canvas <span class="t-key">is</span> <span class="t-key">None</span>:
+        <span class="t-key">return</span> pos
+    w, h = pygame.display.<span class="t-fn">get_surface</span>().<span class="t-fn">get_size</span>()
+    <span class="t-key">return</span> <span class="t-fn">to_canvas</span>(pos[<span class="t-num">0</span>] / w, pos[<span class="t-num">1</span>] / h)
+
+
+<span class="t-key">def</span> <span class="t-fn">rotation</span>() -&gt; int:
+    <span class="t-key">return</span> _rotation
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

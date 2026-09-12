@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/ui.py - TICK SDK</title>
+<meta name="description" content="Source of tick/ui.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">ui.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/ui.py &middot; 273 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span><span>128</span><span>129</span><span>130</span><span>131</span><span>132</span><span>133</span><span>134</span><span>135</span><span>136</span><span>137</span><span>138</span><span>139</span><span>140</span><span>141</span><span>142</span><span>143</span><span>144</span><span>145</span><span>146</span><span>147</span><span>148</span><span>149</span><span>150</span><span>151</span><span>152</span><span>153</span><span>154</span><span>155</span><span>156</span><span>157</span><span>158</span><span>159</span><span>160</span><span>161</span><span>162</span><span>163</span><span>164</span><span>165</span><span>166</span><span>167</span><span>168</span><span>169</span><span>170</span><span>171</span><span>172</span><span>173</span><span>174</span><span>175</span><span>176</span><span>177</span><span>178</span><span>179</span><span>180</span><span>181</span><span>182</span><span>183</span><span>184</span><span>185</span><span>186</span><span>187</span><span>188</span><span>189</span><span>190</span><span>191</span><span>192</span><span>193</span><span>194</span><span>195</span><span>196</span><span>197</span><span>198</span><span>199</span><span>200</span><span>201</span><span>202</span><span>203</span><span>204</span><span>205</span><span>206</span><span>207</span><span>208</span><span>209</span><span>210</span><span>211</span><span>212</span><span>213</span><span>214</span><span>215</span><span>216</span><span>217</span><span>218</span><span>219</span><span>220</span><span>221</span><span>222</span><span>223</span><span>224</span><span>225</span><span>226</span><span>227</span><span>228</span><span>229</span><span>230</span><span>231</span><span>232</span><span>233</span><span>234</span><span>235</span><span>236</span><span>237</span><span>238</span><span>239</span><span>240</span><span>241</span><span>242</span><span>243</span><span>244</span><span>245</span><span>246</span><span>247</span><span>248</span><span>249</span><span>250</span><span>251</span><span>252</span><span>253</span><span>254</span><span>255</span><span>256</span><span>257</span><span>258</span><span>259</span><span>260</span><span>261</span><span>262</span><span>263</span><span>264</span><span>265</span><span>266</span><span>267</span><span>268</span><span>269</span><span>270</span><span>271</span><span>272</span><span>273</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;The look and the noise: a 480x320 pixel kit you do not have to design.
+
+Two things live here. A **palette and a handful of drawing helpers** so a game
+written in an afternoon still looks like it belongs on this device. And
+**`Sounds`**, which synthesizes every cue and every music bed at startup from
+square waves -- no audio assets, no dependencies, about 0.16s to build.
+
+Why synthesized: a handheld you play with your thumb has to tell you things
+your eyes are too busy to read. The two that matter most are the swoops when
+the price crosses into or out of your bet, and the countdown ticks pitched by
+whether you are currently winning. Together they tell you the state of your
+money without looking at the screen, which is the whole point of the format.
+
+Sound is optional by construction. If the mixer cannot open -- a headless Pi,
+no speaker, a locked audio device -- every `play` and `music` becomes a no-op
+and the game runs silently. It never raises.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">from</span> array <span class="t-key">import</span> array
+<span class="t-key">from</span> functools <span class="t-key">import</span> lru_cache
+<span class="t-key">import</span> math
+<span class="t-key">import</span> random
+
+<span class="t-key">import</span> pygame
+
+<span class="t-com"># Night-city palette. Named by role, so a game reads `MUTED` not `(144,167,173)`.</span>
+<span class="t-type">NAVY</span> = (<span class="t-num">12</span>, <span class="t-num">25</span>, <span class="t-num">36</span>)
+<span class="t-type">PANEL</span> = (<span class="t-num">22</span>, <span class="t-num">40</span>, <span class="t-num">51</span>)
+<span class="t-type">GRID</span> = (<span class="t-num">30</span>, <span class="t-num">50</span>, <span class="t-num">61</span>)
+<span class="t-type">CREAM</span> = (<span class="t-num">244</span>, <span class="t-num">236</span>, <span class="t-num">210</span>)
+<span class="t-type">MUTED</span> = (<span class="t-num">144</span>, <span class="t-num">167</span>, <span class="t-num">173</span>)
+<span class="t-type">YELLOW</span> = (<span class="t-num">255</span>, <span class="t-num">204</span>, <span class="t-num">72</span>)
+<span class="t-type">MINT</span> = (<span class="t-num">127</span>, <span class="t-num">228</span>, <span class="t-num">184</span>)
+<span class="t-type">RED</span> = (<span class="t-num">233</span>, <span class="t-num">100</span>, <span class="t-num">91</span>)
+
+
+@<span class="t-fn">lru_cache</span>(maxsize=<span class="t-num">16</span>)
+<span class="t-key">def</span> <span class="t-fn">font</span>(size: int) -&gt; pygame.font.<span class="t-type">Font</span>:
+    <span class="t-key">return</span> pygame.font.<span class="t-fn">SysFont</span>(<span class="t-str">&#x27;menlo,dejavusansmono,monospace&#x27;</span>, size, bold=<span class="t-key">True</span>)
+
+
+<span class="t-key">def</span> <span class="t-fn">label</span>(s: pygame.<span class="t-type">Surface</span>, words: str, x: int, y: int, size: int = <span class="t-num">16</span>,
+          color: tuple = <span class="t-type">CREAM</span>, center: bool = <span class="t-key">False</span>) -&gt; <span class="t-key">None</span>:
+    art = <span class="t-fn">font</span>(size).<span class="t-fn">render</span>(words, <span class="t-key">False</span>, color)
+    s.<span class="t-fn">blit</span>(art, art.<span class="t-fn">get_rect</span>(midtop=(<span class="t-fn">round</span>(x), <span class="t-fn">round</span>(y))) <span class="t-key">if</span> center <span class="t-key">else</span> (<span class="t-fn">round</span>(x), <span class="t-fn">round</span>(y)))
+
+
+<span class="t-key">def</span> <span class="t-fn">say</span>(s: pygame.<span class="t-type">Surface</span>, words: str, x: float, y: float, size: int = <span class="t-num">16</span>,
+        color: tuple = <span class="t-type">CREAM</span>, center: bool = <span class="t-key">False</span>) -&gt; <span class="t-key">None</span>:
+    <span class="t-doc">&quot;&quot;&quot;A label with a drop shadow, so it reads over a busy scene.&quot;&quot;&quot;</span>
+    <span class="t-fn">label</span>(s, words, <span class="t-fn">round</span>(x) + <span class="t-num">1</span>, <span class="t-fn">round</span>(y) + <span class="t-num">1</span>, size, (<span class="t-num">0</span>, <span class="t-num">0</span>, <span class="t-num">0</span>), center)
+    <span class="t-fn">label</span>(s, words, <span class="t-fn">round</span>(x), <span class="t-fn">round</span>(y), size, color, center)
+
+
+<span class="t-key">def</span> <span class="t-fn">say_right</span>(s: pygame.<span class="t-type">Surface</span>, words: str, right: int, y: int,
+              size: int = <span class="t-num">16</span>, color: tuple = <span class="t-type">CREAM</span>) -&gt; <span class="t-key">None</span>:
+    <span class="t-fn">say</span>(s, words, right - <span class="t-fn">font</span>(size).<span class="t-fn">size</span>(words)[<span class="t-num">0</span>], y, size, color)
+
+
+<span class="t-key">def</span> <span class="t-fn">footer</span>(s: pygame.<span class="t-type">Surface</span>, back: str, go: str) -&gt; <span class="t-key">None</span>:
+    <span class="t-doc">&quot;&quot;&quot;The two-button strip: red dot is back on the left, yellow is go.&quot;&quot;&quot;</span>
+    pygame.draw.<span class="t-fn">rect</span>(s, <span class="t-type">PANEL</span>, (<span class="t-num">0</span>, <span class="t-num">274</span>, <span class="t-num">480</span>, <span class="t-num">46</span>))
+    pygame.draw.<span class="t-fn">circle</span>(s, <span class="t-type">RED</span>, (<span class="t-num">20</span>, <span class="t-num">297</span>), <span class="t-num">6</span>)
+    pygame.draw.<span class="t-fn">circle</span>(s, <span class="t-type">YELLOW</span>, (<span class="t-num">254</span>, <span class="t-num">297</span>), <span class="t-num">6</span>)
+    <span class="t-fn">label</span>(s, back, <span class="t-num">34</span>, <span class="t-num">286</span>, <span class="t-num">16</span>)
+    <span class="t-fn">label</span>(s, go, <span class="t-num">268</span>, <span class="t-num">286</span>, <span class="t-num">16</span>)
+
+
+<span class="t-key">def</span> <span class="t-fn">dashed_rect</span>(s: pygame.<span class="t-type">Surface</span>, rect: pygame.<span class="t-type">Rect</span>, color: tuple, dash: int = <span class="t-num">6</span>) -&gt; <span class="t-key">None</span>:
+    <span class="t-doc">&quot;&quot;&quot;A dashed outline: the SDK&#x27;s convention for &quot;not committed yet&quot;.&quot;&quot;&quot;</span>
+    <span class="t-key">for</span> x <span class="t-key">in</span> <span class="t-fn">range</span>(rect.left, rect.right, dash * <span class="t-num">2</span>):
+        end = <span class="t-fn">min</span>(x + dash, rect.right)
+        pygame.draw.<span class="t-fn">line</span>(s, color, (x, rect.top), (end, rect.top), <span class="t-num">2</span>)
+        pygame.draw.<span class="t-fn">line</span>(s, color, (x, rect.bottom - <span class="t-num">1</span>), (end, rect.bottom - <span class="t-num">1</span>), <span class="t-num">2</span>)
+    <span class="t-key">for</span> y <span class="t-key">in</span> <span class="t-fn">range</span>(rect.top, rect.bottom, dash * <span class="t-num">2</span>):
+        end = <span class="t-fn">min</span>(y + dash, rect.bottom)
+        pygame.draw.<span class="t-fn">line</span>(s, color, (rect.left, y), (rect.left, end), <span class="t-num">2</span>)
+        pygame.draw.<span class="t-fn">line</span>(s, color, (rect.right - <span class="t-num">1</span>, y), (rect.right - <span class="t-num">1</span>, end), <span class="t-num">2</span>)
+
+
+<span class="t-key">def</span> <span class="t-fn">ease_out</span>(p: float) -&gt; float:
+    p = <span class="t-fn">min</span>(<span class="t-num">1.0</span>, <span class="t-fn">max</span>(<span class="t-num">0.0</span>, p))
+    <span class="t-key">return</span> <span class="t-num">1</span> - (<span class="t-num">1</span> - p) ** <span class="t-num">3</span>
+
+
+<span class="t-key">class</span> <span class="t-type">Sounds</span>:
+    <span class="t-doc">&quot;&quot;&quot;Square-wave arcade audio, synthesized at startup.
+
+    **Clips** are one-shot cues: a list of (start_hz, end_hz, seconds) segments
+    with phase carried across them, so a clip can glide in pitch instead of
+    only beeping.
+
+    **Beds** are looping music, assembled from a cached palette of note renders
+    rather than computed per sample per bar -- the difference between 0.16s and
+    several seconds of work at boot on a Pi. Each layer is monophonic on its own
+    reserved channel, so the mixer does the polyphony and Python never mixes a
+    sample (which matters: `audioop` was removed in 3.13). Every layer in every
+    mode is the same length, so switching bed restarts the bar cleanly instead
+    of drifting the parts apart.
+    &quot;&quot;&quot;</span>
+
+    <span class="t-com"># Of 32767. Sized so three overlapping cues plus a bed peak near 21k:</span>
+    <span class="t-com"># nothing clips, and music sits at about half the level of the cues.</span>
+    <span class="t-type">VOLUME</span> = <span class="t-num">6000</span>
+    <span class="t-type">MUSIC_LEVEL</span> = <span class="t-num">0.5</span>
+    <span class="t-type">DETENTS</span> = <span class="t-num">8</span>            <span class="t-com"># crank pitches, low near spot, high at full reach</span>
+    <span class="t-type">STEP</span> = <span class="t-num">0.125</span>           <span class="t-com"># one sixteenth at 120 BPM</span>
+    <span class="t-type">BARS</span> = <span class="t-num">16</span>              <span class="t-com"># steps per loop: a two-second bar</span>
+    <span class="t-type">LAYERS</span> = <span class="t-num">3</span>             <span class="t-com"># reserved channels for the music</span>
+
+    <span class="t-com"># A minor: brooding when idle, driving when there is money on the table.</span>
+    <span class="t-type">A2</span>, <span class="t-type">C3</span>, <span class="t-type">E3</span>, <span class="t-type">G3</span> = <span class="t-num">110.00</span>, <span class="t-num">130.81</span>, <span class="t-num">164.81</span>, <span class="t-num">196.00</span>
+    <span class="t-type">A4</span>, <span class="t-type">C5</span>, <span class="t-type">E5</span>, <span class="t-type">G5</span>, <span class="t-type">A5</span> = <span class="t-num">440.00</span>, <span class="t-num">523.25</span>, <span class="t-num">659.25</span>, <span class="t-num">784.00</span>, <span class="t-num">880.00</span>
+    <span class="t-type">N</span> = <span class="t-key">None</span>
+
+    <span class="t-key">def</span> <span class="t-fn">beds_wanted</span>(<span class="t-key">self</span>) -&gt; dict:
+        bass_idle = [<span class="t-key">self</span>.<span class="t-type">A2</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">E3</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>,
+                     <span class="t-key">self</span>.<span class="t-type">A2</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">G3</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>]
+        bass_drive = [<span class="t-key">self</span>.<span class="t-type">A2</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">A2</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">E3</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">E3</span>, <span class="t-key">self</span>.<span class="t-type">N</span>,
+                      <span class="t-key">self</span>.<span class="t-type">A2</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">A2</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">G3</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">G3</span>, <span class="t-key">self</span>.<span class="t-type">E3</span>]
+        arp_slow = [<span class="t-key">self</span>.<span class="t-type">A4</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">C5</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>,
+                    <span class="t-key">self</span>.<span class="t-type">E5</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">C5</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>, <span class="t-key">self</span>.<span class="t-type">N</span>]
+        arp_fast = [<span class="t-key">self</span>.<span class="t-type">A4</span>, <span class="t-key">self</span>.<span class="t-type">C5</span>, <span class="t-key">self</span>.<span class="t-type">E5</span>, <span class="t-key">self</span>.<span class="t-type">A5</span>, <span class="t-key">self</span>.<span class="t-type">E5</span>, <span class="t-key">self</span>.<span class="t-type">C5</span>, <span class="t-key">self</span>.<span class="t-type">A4</span>, <span class="t-key">self</span>.<span class="t-type">C5</span>,
+                    <span class="t-key">self</span>.<span class="t-type">E5</span>, <span class="t-key">self</span>.<span class="t-type">A5</span>, <span class="t-key">self</span>.<span class="t-type">C5</span>, <span class="t-key">self</span>.<span class="t-type">E5</span>, <span class="t-key">self</span>.<span class="t-type">A4</span>, <span class="t-key">self</span>.<span class="t-type">C5</span>, <span class="t-key">self</span>.<span class="t-type">E5</span>, <span class="t-key">self</span>.<span class="t-type">A5</span>]
+        arp_tense = [<span class="t-key">self</span>.<span class="t-type">A5</span>, <span class="t-key">self</span>.<span class="t-type">G5</span>, <span class="t-key">self</span>.<span class="t-type">E5</span>, <span class="t-key">self</span>.<span class="t-type">G5</span>, <span class="t-key">self</span>.<span class="t-type">A5</span>, <span class="t-key">self</span>.<span class="t-type">G5</span>, <span class="t-key">self</span>.<span class="t-type">E5</span>, <span class="t-key">self</span>.<span class="t-type">C5</span>,
+                     <span class="t-key">self</span>.<span class="t-type">A5</span>, <span class="t-key">self</span>.<span class="t-type">G5</span>, <span class="t-key">self</span>.<span class="t-type">E5</span>, <span class="t-key">self</span>.<span class="t-type">G5</span>, <span class="t-key">self</span>.<span class="t-type">A5</span>, <span class="t-key">self</span>.<span class="t-type">E5</span>, <span class="t-key">self</span>.<span class="t-type">C5</span>, <span class="t-key">self</span>.<span class="t-type">A4</span>]
+        hats = [<span class="t-num">1</span> <span class="t-key">if</span> i % <span class="t-num">2</span> == <span class="t-num">0</span> <span class="t-key">else</span> <span class="t-key">None</span> <span class="t-key">for</span> i <span class="t-key">in</span> <span class="t-fn">range</span>(<span class="t-key">self</span>.<span class="t-type">BARS</span>)]
+        drive_hats = [<span class="t-num">1</span>] * <span class="t-key">self</span>.<span class="t-type">BARS</span>
+        <span class="t-key">return</span> {
+            <span class="t-str">&#x27;idle&#x27;</span>: [(bass_idle, <span class="t-str">&#x27;square&#x27;</span>, .<span class="t-num">45</span>), (arp_slow, <span class="t-str">&#x27;square&#x27;</span>, .<span class="t-num">30</span>)],
+            <span class="t-str">&#x27;live&#x27;</span>: [(bass_drive, <span class="t-str">&#x27;square&#x27;</span>, .<span class="t-num">50</span>), (arp_fast, <span class="t-str">&#x27;square&#x27;</span>, .<span class="t-num">30</span>),
+                     (hats, <span class="t-str">&#x27;noise&#x27;</span>, .<span class="t-num">18</span>)],
+            <span class="t-str">&#x27;final&#x27;</span>: [(bass_drive, <span class="t-str">&#x27;square&#x27;</span>, .<span class="t-num">55</span>), (arp_tense, <span class="t-str">&#x27;square&#x27;</span>, .<span class="t-num">34</span>),
+                      (drive_hats, <span class="t-str">&#x27;noise&#x27;</span>, .<span class="t-num">22</span>)],
+        }
+
+    <span class="t-key">def</span> <span class="t-fn">clips_wanted</span>(<span class="t-key">self</span>) -&gt; dict[str, list[tuple[float, float, float]]]:
+        beeps = {
+            <span class="t-str">&#x27;bell&#x27;</span>: [(<span class="t-num">880</span>, <span class="t-num">880</span>, .<span class="t-num">035</span>), (<span class="t-num">1320</span>, <span class="t-num">1320</span>, .<span class="t-num">085</span>)],   <span class="t-com"># a round rolled</span>
+            <span class="t-str">&#x27;hot&#x27;</span>: [(<span class="t-num">600</span>, <span class="t-num">1020</span>, .<span class="t-num">07</span>)],        <span class="t-com"># price entered your bet</span>
+            <span class="t-str">&#x27;cold&#x27;</span>: [(<span class="t-num">1020</span>, <span class="t-num">520</span>, .<span class="t-num">09</span>)],       <span class="t-com"># price left it</span>
+            <span class="t-str">&#x27;tick_in&#x27;</span>: [(<span class="t-num">920</span>, <span class="t-num">920</span>, .<span class="t-num">035</span>)],    <span class="t-com"># last seconds, currently winning</span>
+            <span class="t-str">&#x27;tick_out&#x27;</span>: [(<span class="t-num">400</span>, <span class="t-num">400</span>, .<span class="t-num">05</span>)],    <span class="t-com"># last seconds, currently losing</span>
+            <span class="t-str">&#x27;buy1&#x27;</span>: [(<span class="t-num">520</span>, <span class="t-num">780</span>, .<span class="t-num">05</span>)],
+            <span class="t-str">&#x27;buy2&#x27;</span>: [(<span class="t-num">660</span>, <span class="t-num">990</span>, .<span class="t-num">05</span>)],
+            <span class="t-str">&#x27;buy3&#x27;</span>: [(<span class="t-num">780</span>, <span class="t-num">1170</span>, .<span class="t-num">06</span>)],
+            <span class="t-str">&#x27;win_small&#x27;</span>: [(<span class="t-num">523</span>, <span class="t-num">523</span>, .<span class="t-num">08</span>), (<span class="t-num">659</span>, <span class="t-num">659</span>, .<span class="t-num">08</span>), (<span class="t-num">784</span>, <span class="t-num">784</span>, .<span class="t-num">14</span>)],
+            <span class="t-str">&#x27;win_big&#x27;</span>: [(<span class="t-num">523</span>, <span class="t-num">523</span>, .<span class="t-num">06</span>), (<span class="t-num">659</span>, <span class="t-num">659</span>, .<span class="t-num">06</span>), (<span class="t-num">784</span>, <span class="t-num">784</span>, .<span class="t-num">06</span>),
+                        (<span class="t-num">1047</span>, <span class="t-num">1047</span>, .<span class="t-num">06</span>), (<span class="t-num">1319</span>, <span class="t-num">1319</span>, .<span class="t-num">22</span>)],
+            <span class="t-str">&#x27;jackpot&#x27;</span>: [(<span class="t-num">523</span>, <span class="t-num">523</span>, .<span class="t-num">05</span>), (<span class="t-num">784</span>, <span class="t-num">784</span>, .<span class="t-num">05</span>), (<span class="t-num">1047</span>, <span class="t-num">1047</span>, .<span class="t-num">05</span>),
+                        (<span class="t-num">1319</span>, <span class="t-num">1319</span>, .<span class="t-num">05</span>), (<span class="t-num">1568</span>, <span class="t-num">1568</span>, .<span class="t-num">05</span>), (<span class="t-num">2093</span>, <span class="t-num">2093</span>, .<span class="t-num">28</span>)],
+            <span class="t-str">&#x27;hattrick&#x27;</span>: [(<span class="t-num">392</span>, <span class="t-num">392</span>, .<span class="t-num">06</span>), (<span class="t-num">523</span>, <span class="t-num">523</span>, .<span class="t-num">06</span>), (<span class="t-num">659</span>, <span class="t-num">659</span>, .<span class="t-num">06</span>),
+                         (<span class="t-num">784</span>, <span class="t-num">1568</span>, .<span class="t-num">32</span>)],
+            <span class="t-str">&#x27;fizzle&#x27;</span>: [(<span class="t-num">900</span>, <span class="t-num">180</span>, .<span class="t-num">3</span>)],       <span class="t-com"># a streak ends</span>
+            <span class="t-str">&#x27;void&#x27;</span>: [(<span class="t-num">200</span>, <span class="t-num">160</span>, .<span class="t-num">18</span>)],
+            <span class="t-str">&#x27;warn&#x27;</span>: [(<span class="t-num">240</span>, <span class="t-num">200</span>, .<span class="t-num">06</span>), (<span class="t-num">240</span>, <span class="t-num">200</span>, .<span class="t-num">06</span>)],
+            <span class="t-str">&#x27;stale&#x27;</span>: [(<span class="t-num">520</span>, <span class="t-num">300</span>, .<span class="t-num">16</span>)],       <span class="t-com"># the feed went stale</span>
+            <span class="t-str">&#x27;crossline&#x27;</span>: [(<span class="t-num">1500</span>, <span class="t-num">1500</span>, .<span class="t-num">012</span>)],
+            <span class="t-str">&#x27;nav&#x27;</span>: [(<span class="t-num">440</span>, <span class="t-num">440</span>, .<span class="t-num">02</span>)],
+            <span class="t-str">&#x27;enter&#x27;</span>: [(<span class="t-num">392</span>, <span class="t-num">588</span>, .<span class="t-num">07</span>), (<span class="t-num">784</span>, <span class="t-num">784</span>, .<span class="t-num">10</span>)],
+            <span class="t-str">&#x27;back&#x27;</span>: [(<span class="t-num">588</span>, <span class="t-num">392</span>, .<span class="t-num">09</span>)],
+            <span class="t-str">&#x27;coin&#x27;</span>: [(<span class="t-num">988</span>, <span class="t-num">988</span>, .<span class="t-num">04</span>), (<span class="t-num">1319</span>, <span class="t-num">1319</span>, .<span class="t-num">10</span>)],     <span class="t-com"># money loaded</span>
+            <span class="t-str">&#x27;move&#x27;</span>: [(<span class="t-num">330</span>, <span class="t-num">330</span>, .<span class="t-num">025</span>)],
+            <span class="t-str">&#x27;select&#x27;</span>: [(<span class="t-num">550</span>, <span class="t-num">550</span>, .<span class="t-num">05</span>), (<span class="t-num">740</span>, <span class="t-num">740</span>, .<span class="t-num">07</span>)],
+            <span class="t-str">&#x27;lock&#x27;</span>: [(<span class="t-num">220</span>, <span class="t-num">220</span>, .<span class="t-num">06</span>), (<span class="t-num">440</span>, <span class="t-num">440</span>, .<span class="t-num">06</span>), (<span class="t-num">880</span>, <span class="t-num">880</span>, .<span class="t-num">10</span>)],
+            <span class="t-str">&#x27;tick&#x27;</span>: [(<span class="t-num">660</span>, <span class="t-num">660</span>, .<span class="t-num">055</span>)],
+            <span class="t-str">&#x27;hit&#x27;</span>: [(<span class="t-num">523</span>, <span class="t-num">523</span>, .<span class="t-num">10</span>), (<span class="t-num">659</span>, <span class="t-num">659</span>, .<span class="t-num">10</span>), (<span class="t-num">784</span>, <span class="t-num">784</span>, .<span class="t-num">10</span>), (<span class="t-num">1047</span>, <span class="t-num">1047</span>, .<span class="t-num">18</span>)],
+            <span class="t-str">&#x27;miss&#x27;</span>: [(<span class="t-num">330</span>, <span class="t-num">330</span>, .<span class="t-num">12</span>), (<span class="t-num">247</span>, <span class="t-num">247</span>, .<span class="t-num">12</span>), (<span class="t-num">165</span>, <span class="t-num">165</span>, .<span class="t-num">20</span>)],
+        }
+        <span class="t-com"># A crank that rises in pitch as the bet moves out to the risky end.</span>
+        <span class="t-key">for</span> i <span class="t-key">in</span> <span class="t-fn">range</span>(<span class="t-key">self</span>.<span class="t-type">DETENTS</span>):
+            hz = <span class="t-num">300</span> * (<span class="t-num">1.13</span> ** i)
+            beeps[f<span class="t-str">&#x27;detent{i}&#x27;</span>] = [(hz, hz, .<span class="t-num">018</span>)]
+        <span class="t-key">return</span> beeps
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, enabled: bool = <span class="t-key">True</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.clips: dict[str, pygame.mixer.<span class="t-type">Sound</span>] = {}
+        <span class="t-key">self</span>.beds: dict[str, list[pygame.mixer.<span class="t-type">Sound</span>]] = {}
+        <span class="t-key">self</span>.mode = <span class="t-str">&#x27;off&#x27;</span>
+        <span class="t-key">self</span>.ok = <span class="t-key">False</span>
+        <span class="t-key">self</span>.rng = random.<span class="t-fn">Random</span>(<span class="t-num">7</span>)
+        <span class="t-key">self</span>._notes: dict[tuple, array] = {}
+        <span class="t-key">if</span> <span class="t-key">not</span> enabled:
+            <span class="t-key">return</span>
+        <span class="t-key">try</span>:
+            <span class="t-key">if</span> pygame.mixer.<span class="t-fn">get_init</span>() <span class="t-key">is</span> <span class="t-key">None</span>:
+                pygame.mixer.<span class="t-fn">init</span>(frequency=<span class="t-num">22050</span>, size=-<span class="t-num">16</span>, channels=<span class="t-num">1</span>, buffer=<span class="t-num">512</span>)
+            rate, sample_format, channels = pygame.mixer.<span class="t-fn">get_init</span>()
+            <span class="t-key">if</span> sample_format != -<span class="t-num">16</span>:
+                <span class="t-key">return</span>
+            pygame.mixer.<span class="t-fn">set_num_channels</span>(<span class="t-num">24</span>)
+            pygame.mixer.<span class="t-fn">set_reserved</span>(<span class="t-key">self</span>.<span class="t-type">LAYERS</span>)
+            <span class="t-key">for</span> name, segments <span class="t-key">in</span> <span class="t-key">self</span>.<span class="t-fn">clips_wanted</span>().<span class="t-fn">items</span>():
+                <span class="t-key">self</span>.clips[name] = pygame.mixer.<span class="t-fn">Sound</span>(buffer=<span class="t-key">self</span>.<span class="t-fn">render</span>(segments, rate, channels))
+            <span class="t-key">for</span> mode, layers <span class="t-key">in</span> <span class="t-key">self</span>.<span class="t-fn">beds_wanted</span>().<span class="t-fn">items</span>():
+                <span class="t-key">self</span>.beds[mode] = [
+                    pygame.mixer.<span class="t-fn">Sound</span>(buffer=<span class="t-key">self</span>.<span class="t-fn">pattern</span>(steps, wave, level, rate, channels))
+                    <span class="t-key">for</span> steps, wave, level <span class="t-key">in</span> layers]
+            <span class="t-key">self</span>._notes.<span class="t-fn">clear</span>()
+            <span class="t-key">self</span>.ok = <span class="t-key">True</span>
+        <span class="t-key">except</span> (pygame.error, <span class="t-type">AttributeError</span>):
+            <span class="t-com"># Audio is optional: a headless Pi, or a device with no speaker.</span>
+            <span class="t-key">pass</span>
+
+    <span class="t-com"># ---- synthesis -------------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">render</span>(<span class="t-key">self</span>, segments, rate: int, channels: int) -&gt; array:
+        samples = <span class="t-fn">array</span>(<span class="t-str">&#x27;h&#x27;</span>)
+        phase = <span class="t-num">0.0</span>
+        step = <span class="t-num">2</span> * math.pi / rate
+        <span class="t-key">for</span> start_hz, end_hz, duration <span class="t-key">in</span> segments:
+            count = <span class="t-fn">int</span>(rate * duration)
+            <span class="t-key">for</span> i <span class="t-key">in</span> <span class="t-fn">range</span>(count):
+                fade = i / <span class="t-fn">max</span>(<span class="t-num">1</span>, count - <span class="t-num">1</span>)
+                phase += step * (start_hz + (end_hz - start_hz) * fade)
+                envelope = <span class="t-fn">min</span>(<span class="t-num">1</span>, i / <span class="t-fn">max</span>(<span class="t-num">1</span>, rate * .<span class="t-num">004</span>), (count - i) / <span class="t-fn">max</span>(<span class="t-num">1</span>, rate * .<span class="t-num">02</span>))
+                value = <span class="t-fn">int</span>(<span class="t-key">self</span>.<span class="t-type">VOLUME</span> * envelope * (<span class="t-num">1</span> <span class="t-key">if</span> math.<span class="t-fn">sin</span>(phase) &gt;= <span class="t-num">0</span> <span class="t-key">else</span> -<span class="t-num">1</span>))
+                samples.<span class="t-fn">extend</span>([value] * channels)
+        <span class="t-key">return</span> samples
+
+    <span class="t-key">def</span> <span class="t-fn">note</span>(<span class="t-key">self</span>, hz, count: int, wave: str, level: float, rate: int, channels: int) -&gt; array:
+        key = (hz, count, wave, level, channels)
+        cached = <span class="t-key">self</span>._notes.<span class="t-fn">get</span>(key)
+        <span class="t-key">if</span> cached <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+            <span class="t-key">return</span> cached
+        samples = <span class="t-fn">array</span>(<span class="t-str">&#x27;h&#x27;</span>)
+        peak = <span class="t-key">self</span>.<span class="t-type">VOLUME</span> * level
+        <span class="t-key">for</span> i <span class="t-key">in</span> <span class="t-fn">range</span>(count):
+            <span class="t-com"># Percussive decay, so a repeated note reads as a pulse not a drone.</span>
+            envelope = <span class="t-fn">min</span>(<span class="t-num">1</span>, i / <span class="t-fn">max</span>(<span class="t-num">1</span>, rate * .<span class="t-num">003</span>)) * (<span class="t-num">1</span> - i / count) ** .<span class="t-num">7</span>
+            shape = (<span class="t-key">self</span>.rng.<span class="t-fn">choice</span>((<span class="t-num">1</span>, -<span class="t-num">1</span>)) <span class="t-key">if</span> wave == <span class="t-str">&#x27;noise&#x27;</span>
+                     <span class="t-key">else</span> (<span class="t-num">1</span> <span class="t-key">if</span> math.<span class="t-fn">sin</span>(<span class="t-num">2</span> * math.pi * hz * i / rate) &gt;= <span class="t-num">0</span> <span class="t-key">else</span> -<span class="t-num">1</span>))
+            samples.<span class="t-fn">extend</span>([<span class="t-fn">int</span>(peak * envelope * shape)] * channels)
+        <span class="t-key">self</span>._notes[key] = samples
+        <span class="t-key">return</span> samples
+
+    <span class="t-key">def</span> <span class="t-fn">pattern</span>(<span class="t-key">self</span>, steps, wave: str, level: float, rate: int, channels: int) -&gt; array:
+        span = <span class="t-fn">int</span>(rate * <span class="t-key">self</span>.<span class="t-type">STEP</span>)
+        sounding = <span class="t-fn">int</span>(span * (.<span class="t-num">55</span> <span class="t-key">if</span> wave == <span class="t-str">&#x27;noise&#x27;</span> <span class="t-key">else</span> .<span class="t-num">92</span>))
+        rest = <span class="t-fn">array</span>(<span class="t-str">&#x27;h&#x27;</span>, <span class="t-fn">bytes</span>(<span class="t-num">2</span> * (span - sounding) * channels))
+        silence = <span class="t-fn">array</span>(<span class="t-str">&#x27;h&#x27;</span>, <span class="t-fn">bytes</span>(<span class="t-num">2</span> * span * channels))
+        out = <span class="t-fn">array</span>(<span class="t-str">&#x27;h&#x27;</span>)
+        <span class="t-key">for</span> hz <span class="t-key">in</span> steps:
+            <span class="t-key">if</span> hz <span class="t-key">is</span> <span class="t-key">None</span>:
+                out.<span class="t-fn">extend</span>(silence)
+                <span class="t-key">continue</span>
+            out.<span class="t-fn">extend</span>(<span class="t-key">self</span>.<span class="t-fn">note</span>(<span class="t-num">6000</span> <span class="t-key">if</span> wave == <span class="t-str">&#x27;noise&#x27;</span> <span class="t-key">else</span> hz,
+                                 sounding, wave, level, rate, channels))
+            out.<span class="t-fn">extend</span>(rest)
+        <span class="t-key">return</span> out
+
+    <span class="t-com"># ---- playback --------------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">detent</span>(<span class="t-key">self</span>, fraction: float) -&gt; str:
+        <span class="t-doc">&quot;&quot;&quot;Clip name for a crank click at `fraction` of full reach (0-1).&quot;&quot;&quot;</span>
+        index = <span class="t-fn">int</span>(<span class="t-fn">min</span>(<span class="t-num">1.0</span>, <span class="t-fn">max</span>(<span class="t-num">0.0</span>, fraction)) * (<span class="t-key">self</span>.<span class="t-type">DETENTS</span> - <span class="t-num">1</span>) + .<span class="t-num">5</span>)
+        <span class="t-key">return</span> f<span class="t-str">&#x27;detent{index}&#x27;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">music</span>(<span class="t-key">self</span>, mode: str) -&gt; <span class="t-key">None</span>:
+        <span class="t-doc">&quot;&quot;&quot;Switch the bed. Cheap to call every frame; only a change acts.&quot;&quot;&quot;</span>
+        <span class="t-key">if</span> mode == <span class="t-key">self</span>.mode <span class="t-key">or</span> (mode != <span class="t-str">&#x27;off&#x27;</span> <span class="t-key">and</span> mode <span class="t-key">not</span> <span class="t-key">in</span> <span class="t-key">self</span>.beds):
+            <span class="t-key">return</span>
+        <span class="t-key">self</span>.mode = mode
+        <span class="t-key">for</span> index <span class="t-key">in</span> <span class="t-fn">range</span>(<span class="t-key">self</span>.<span class="t-type">LAYERS</span>):
+            pygame.mixer.<span class="t-fn">Channel</span>(index).<span class="t-fn">stop</span>()
+        <span class="t-key">for</span> index, sound <span class="t-key">in</span> <span class="t-fn">enumerate</span>(<span class="t-key">self</span>.beds.<span class="t-fn">get</span>(mode, [])):
+            channel = pygame.mixer.<span class="t-fn">Channel</span>(index)
+            channel.<span class="t-fn">set_volume</span>(<span class="t-key">self</span>.<span class="t-type">MUSIC_LEVEL</span>)
+            channel.<span class="t-fn">play</span>(sound, loops=-<span class="t-num">1</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">play</span>(<span class="t-key">self</span>, name: str) -&gt; <span class="t-key">None</span>:
+        clip = <span class="t-key">self</span>.clips.<span class="t-fn">get</span>(name)
+        <span class="t-key">if</span> clip <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+            clip.<span class="t-fn">play</span>()
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

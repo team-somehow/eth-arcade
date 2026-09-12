@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tests/test_game.py - TICK SDK</title>
+<meta name="description" content="Source of tests/test_game.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">test_game.py<a class="anchor" href="#top">#</a></h1><p class="path">tests/test_game.py &middot; 199 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span><span>128</span><span>129</span><span>130</span><span>131</span><span>132</span><span>133</span><span>134</span><span>135</span><span>136</span><span>137</span><span>138</span><span>139</span><span>140</span><span>141</span><span>142</span><span>143</span><span>144</span><span>145</span><span>146</span><span>147</span><span>148</span><span>149</span><span>150</span><span>151</span><span>152</span><span>153</span><span>154</span><span>155</span><span>156</span><span>157</span><span>158</span><span>159</span><span>160</span><span>161</span><span>162</span><span>163</span><span>164</span><span>165</span><span>166</span><span>167</span><span>168</span><span>169</span><span>170</span><span>171</span><span>172</span><span>173</span><span>174</span><span>175</span><span>176</span><span>177</span><span>178</span><span>179</span><span>180</span><span>181</span><span>182</span><span>183</span><span>184</span><span>185</span><span>186</span><span>187</span><span>188</span><span>189</span><span>190</span><span>191</span><span>192</span><span>193</span><span>194</span><span>195</span><span>196</span><span>197</span><span>198</span><span>199</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;The whole machine, headless: a real game class against a real market.&quot;&quot;&quot;</span>
+<span class="t-key">import</span> unittest
+
+<span class="t-key">from</span> tick <span class="t-key">import</span> <span class="t-type">Game</span>, <span class="t-type">InputAction</span>
+<span class="t-key">from</span> tick.feeds.sim <span class="t-key">import</span> <span class="t-type">FrozenFeed</span>
+<span class="t-key">from</span> tick.money <span class="t-key">import</span> <span class="t-type">MICRO</span>
+<span class="t-key">from</span> tick.testing <span class="t-key">import</span> <span class="t-type">Harness</span>, <span class="t-type">ScriptedFeed</span>
+
+
+<span class="t-key">class</span> <span class="t-fn">Sitter</span>(<span class="t-type">Game</span>):
+    <span class="t-doc">&quot;&quot;&quot;Bets a fixed band around spot whenever A is pressed. No drawing.&quot;&quot;&quot;</span>
+    title = <span class="t-str">&#x27;SITTER&#x27;</span>
+    window_s = <span class="t-num">10.0</span>
+    band_bps = <span class="t-num">4.0</span>
+
+    <span class="t-key">def</span> <span class="t-fn">setup</span>(<span class="t-key">self</span>, ctx):
+        <span class="t-key">self</span>.placed, <span class="t-key">self</span>.settled, <span class="t-key">self</span>.rounds_seen = [], [], <span class="t-num">0</span>
+
+    <span class="t-key">def</span> <span class="t-fn">band</span>(<span class="t-key">self</span>, ctx):
+        half = ctx.price * <span class="t-key">self</span>.band_bps / <span class="t-num">10_000</span>
+        <span class="t-key">return</span> ctx.price - half, ctx.price + half
+
+    <span class="t-key">def</span> <span class="t-fn">on_action</span>(<span class="t-key">self</span>, ctx, action):
+        <span class="t-key">if</span> action.name == <span class="t-str">&#x27;A&#x27;</span>:
+            low, high = <span class="t-key">self</span>.<span class="t-fn">band</span>(ctx)
+            bet = ctx.<span class="t-fn">bet</span>(low, high)
+            <span class="t-key">if</span> bet <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+                <span class="t-key">self</span>.placed.<span class="t-fn">append</span>(bet)
+
+    <span class="t-key">def</span> <span class="t-fn">on_settle</span>(<span class="t-key">self</span>, ctx, settlement):
+        <span class="t-key">self</span>.settled.<span class="t-fn">append</span>(settlement)
+
+    <span class="t-key">def</span> <span class="t-fn">on_round_start</span>(<span class="t-key">self</span>, ctx, round_):
+        <span class="t-key">self</span>.rounds_seen += <span class="t-num">1</span>
+
+    <span class="t-key">def</span> <span class="t-fn">draw</span>(<span class="t-key">self</span>, ctx, screen):
+        <span class="t-key">pass</span>
+
+
+<span class="t-key">class</span> <span class="t-fn">TestLifecycle</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_the_clock_starts_on_the_first_price_and_keeps_rolling</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Sitter</span>()) <span class="t-key">as</span> h:
+            h.<span class="t-fn">advance</span>(<span class="t-num">35</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertTrue</span>(h.rounds.started)
+            <span class="t-key">self</span>.<span class="t-fn">assertGreaterEqual</span>(h.rounds.index, <span class="t-num">3</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertGreaterEqual</span>(h.game.rounds_seen, <span class="t-num">3</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_bet_is_debited_placed_and_settled_without_a_single_call_from_the_game</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Sitter</span>(), balance=<span class="t-num">100</span> * <span class="t-type">MICRO</span>, stake=<span class="t-num">10</span> * <span class="t-type">MICRO</span>) <span class="t-key">as</span> h:
+            h.<span class="t-fn">warm</span>(<span class="t-num">20</span>)
+            h.<span class="t-fn">press</span>(<span class="t-type">InputAction</span>.<span class="t-type">A</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">len</span>(h.game.placed), <span class="t-num">1</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(h.balance, <span class="t-num">90</span> * <span class="t-type">MICRO</span>)
+            h.<span class="t-fn">advance</span>(<span class="t-num">25</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(<span class="t-fn">len</span>(h.game.settled), <span class="t-num">1</span>)
+            settlement = h.game.settled[<span class="t-num">0</span>]
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(settlement.stake, <span class="t-num">10</span> * <span class="t-type">MICRO</span>)
+            <span class="t-key">if</span> settlement.hit:
+                <span class="t-key">self</span>.<span class="t-fn">assertGreater</span>(h.balance, <span class="t-num">90</span> * <span class="t-type">MICRO</span>)
+            <span class="t-key">else</span>:
+                <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(h.balance, <span class="t-num">90</span> * <span class="t-type">MICRO</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_bet_settles_at_the_bell_not_when_the_price_passes_through</span>(<span class="t-key">self</span>):
+        <span class="t-com"># The price visits the band mid-round and leaves before the bell.</span>
+        rows = [(<span class="t-num">0.0</span>, <span class="t-num">2500.0</span>)]
+        rows += [(<span class="t-num">0.1</span> * i, <span class="t-num">2500.0</span> + i * <span class="t-num">0.02</span>) <span class="t-key">for</span> i <span class="t-key">in</span> <span class="t-fn">range</span>(<span class="t-num">1</span>, <span class="t-num">400</span>)]
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Sitter</span>(), feed=<span class="t-fn">ScriptedFeed</span>(rows), source=<span class="t-str">&#x27;scripted&#x27;</span>, window_s=<span class="t-num">10.0</span>) <span class="t-key">as</span> h:
+            h.<span class="t-fn">warm</span>(<span class="t-num">12</span>)
+            h.<span class="t-fn">press</span>(<span class="t-type">InputAction</span>.<span class="t-type">A</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertTrue</span>(h.game.placed, h.ctx.refused)
+            band = h.game.placed[<span class="t-num">0</span>]
+            h.<span class="t-fn">advance</span>(<span class="t-num">32</span>)
+            done = [s <span class="t-key">for</span> s <span class="t-key">in</span> h.book.history <span class="t-key">if</span> s.bet <span class="t-key">is</span> band]
+            <span class="t-key">self</span>.<span class="t-fn">assertTrue</span>(done)
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(done[<span class="t-num">0</span>].hit, band.<span class="t-fn">contains</span>(done[<span class="t-num">0</span>].price))
+
+
+<span class="t-key">class</span> <span class="t-fn">TestRefusals</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_a_dead_flat_market_sells_nothing</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Sitter</span>(), feed=<span class="t-fn">FrozenFeed</span>(<span class="t-num">2500.0</span>), source=<span class="t-str">&#x27;frozen&#x27;</span>) <span class="t-key">as</span> h:
+            h.<span class="t-fn">advance</span>(<span class="t-num">30</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertIsNone</span>(h.ctx.<span class="t-fn">bet</span>(<span class="t-num">2499.0</span>, <span class="t-num">2501.0</span>))
+            <span class="t-key">self</span>.<span class="t-fn">assertIn</span>(<span class="t-str">&#x27;QUIET&#x27;</span>, h.ctx.refused)
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(h.balance, <span class="t-num">1000</span> * <span class="t-type">MICRO</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_nothing_is_sold_before_the_feed_has_been_read</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Sitter</span>()) <span class="t-key">as</span> h:
+            h.<span class="t-fn">advance</span>(<span class="t-num">0.2</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertIsNone</span>(h.ctx.<span class="t-fn">bet</span>(<span class="t-num">2499.0</span>, <span class="t-num">2501.0</span>))
+            <span class="t-key">self</span>.<span class="t-fn">assertIn</span>(<span class="t-str">&#x27;READING&#x27;</span>, h.ctx.refused)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_near_certain_bet_is_not_worth_selling</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Sitter</span>()) <span class="t-key">as</span> h:
+            h.<span class="t-fn">warm</span>(<span class="t-num">25</span>)
+            <span class="t-com"># A band a mile wide is a certainty, and a certainty is not a bet.</span>
+            <span class="t-key">self</span>.<span class="t-fn">assertIsNone</span>(h.ctx.<span class="t-fn">bet</span>(h.price * <span class="t-num">0.5</span>, h.price * <span class="t-num">1.5</span>))
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(h.ctx.refused, <span class="t-str">&#x27;TOO SURE TO SELL&#x27;</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_stale_feed_blocks_new_bets</span>(<span class="t-key">self</span>):
+        rows = [(i * <span class="t-num">0.05</span>, <span class="t-num">2500.0</span> + (i % <span class="t-num">5</span>) * <span class="t-num">0.4</span>) <span class="t-key">for</span> i <span class="t-key">in</span> <span class="t-fn">range</span>(<span class="t-num">400</span>)]
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Sitter</span>(), feed=<span class="t-fn">ScriptedFeed</span>(rows), source=<span class="t-str">&#x27;scripted&#x27;</span>) <span class="t-key">as</span> h:
+            h.<span class="t-fn">warm</span>(<span class="t-num">21</span>)                 <span class="t-com"># the recording ran out at 20s</span>
+            h.<span class="t-fn">advance</span>(<span class="t-num">6</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertIsNone</span>(h.ctx.<span class="t-fn">bet</span>(h.price - <span class="t-num">1</span>, h.price + <span class="t-num">1</span>))
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(h.ctx.refused, <span class="t-str">&#x27;FEED STALE&#x27;</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_win_past_what_the_escrow_can_pay_is_refused</span>(<span class="t-key">self</span>):
+        <span class="t-key">from</span> tick.money <span class="t-key">import</span> <span class="t-type">DemoFunding</span>
+
+        <span class="t-key">class</span> <span class="t-fn">Capped</span>(<span class="t-type">DemoFunding</span>):
+            cap = <span class="t-num">120</span> * <span class="t-type">MICRO</span>
+
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Sitter</span>(), balance=<span class="t-num">100</span> * <span class="t-type">MICRO</span>, stake=<span class="t-num">10</span> * <span class="t-type">MICRO</span>) <span class="t-key">as</span> h:
+            h.wallet.funding = <span class="t-fn">Capped</span>()
+            h.<span class="t-fn">warm</span>(<span class="t-num">25</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertIsNone</span>(h.ctx.<span class="t-fn">bet</span>(h.price - <span class="t-num">0.01</span>, h.price + <span class="t-num">0.01</span>))
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(h.ctx.refused, <span class="t-str">&#x27;MAX WIN REACHED / CASH OUT&#x27;</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_an_empty_wallet_refuses_before_anything_else_moves</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Sitter</span>(), balance=<span class="t-num">5</span> * <span class="t-type">MICRO</span>, stake=<span class="t-num">10</span> * <span class="t-type">MICRO</span>) <span class="t-key">as</span> h:
+            h.<span class="t-fn">warm</span>(<span class="t-num">25</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertIsNone</span>(h.ctx.<span class="t-fn">bet</span>(h.price - <span class="t-num">1</span>, h.price + <span class="t-num">1</span>))
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(h.ctx.refused, <span class="t-str">&#x27;NOT ENOUGH USDC&#x27;</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(h.balance, <span class="t-num">5</span> * <span class="t-type">MICRO</span>)
+
+
+<span class="t-key">class</span> <span class="t-fn">TestArming</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_presses_just_after_a_bell_are_swallowed</span>(<span class="t-key">self</span>):
+        <span class="t-key">class</span> <span class="t-fn">Armed</span>(<span class="t-type">Sitter</span>):
+            arm_s = <span class="t-num">2.0</span>
+
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Armed</span>()) <span class="t-key">as</span> h:
+            h.<span class="t-fn">warm</span>(<span class="t-num">25</span>)
+            index = h.rounds.index
+            <span class="t-key">while</span> h.rounds.index == index:      <span class="t-com"># roll to just after a bell</span>
+                h.<span class="t-fn">frame</span>()
+            <span class="t-key">self</span>.<span class="t-fn">assertFalse</span>(h.ctx.armed)
+            <span class="t-key">self</span>.<span class="t-fn">assertIsNone</span>(h.ctx.<span class="t-fn">bet</span>(h.price - <span class="t-num">1</span>, h.price + <span class="t-num">1</span>))
+            <span class="t-key">self</span>.<span class="t-fn">assertEqual</span>(h.ctx.refused, <span class="t-str">&#x27;ARMING&#x27;</span>)
+            h.<span class="t-fn">advance</span>(<span class="t-num">3</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertTrue</span>(h.ctx.armed)
+
+
+<span class="t-key">class</span> <span class="t-fn">TestOddsAreFair</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_over_many_rounds_a_fair_book_neither_prints_nor_burns_money</span>(<span class="t-key">self</span>):
+        <span class="t-doc">&quot;&quot;&quot;The strongest claim this SDK makes, so it is the one that is tested.
+
+        Stake a band on every round for a long simulated market and the balance
+        should end near where it started -- not exactly, because variance is
+        real, but the drift should be small against the money staked.
+        &quot;&quot;&quot;</span>
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Sitter</span>(), balance=<span class="t-num">100_000</span> * <span class="t-type">MICRO</span>, stake=<span class="t-num">10</span> * <span class="t-type">MICRO</span>) <span class="t-key">as</span> h:
+            h.<span class="t-fn">warm</span>(<span class="t-num">25</span>)
+            <span class="t-key">for</span> _ <span class="t-key">in</span> <span class="t-fn">range</span>(<span class="t-num">300</span>):
+                h.<span class="t-fn">press</span>(<span class="t-type">InputAction</span>.<span class="t-type">A</span>)
+                h.<span class="t-fn">advance</span>(<span class="t-num">10.5</span>)
+            settled = [s <span class="t-key">for</span> s <span class="t-key">in</span> h.book.history <span class="t-key">if</span> <span class="t-key">not</span> s.voided]
+            <span class="t-key">self</span>.<span class="t-fn">assertGreater</span>(<span class="t-fn">len</span>(settled), <span class="t-num">200</span>)
+            staked = <span class="t-fn">sum</span>(s.stake <span class="t-key">for</span> s <span class="t-key">in</span> settled)
+            paid = <span class="t-fn">sum</span>(s.payout <span class="t-key">for</span> s <span class="t-key">in</span> settled)
+            drift = <span class="t-fn">abs</span>(paid - staked) / staked
+            <span class="t-key">self</span>.<span class="t-fn">assertLess</span>(drift, <span class="t-num">0.35</span>, f<span class="t-str">&#x27;staked {staked}, paid {paid}&#x27;</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">test_a_box_further_from_spot_always_pays_more</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Sitter</span>()) <span class="t-key">as</span> h:
+            h.<span class="t-fn">warm</span>(<span class="t-num">25</span>)
+            half = h.price * <span class="t-num">0.0002</span>
+            near = h.ctx.<span class="t-fn">quote</span>(h.price - half, h.price + half)
+            far = h.ctx.<span class="t-fn">quote</span>(h.price + <span class="t-num">4</span> * half, h.price + <span class="t-num">6</span> * half)
+            <span class="t-key">self</span>.<span class="t-fn">assertGreater</span>(far, near)
+
+    <span class="t-key">def</span> <span class="t-fn">test_buying_a_round_early_prices_more_drift</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Sitter</span>()) <span class="t-key">as</span> h:
+            h.<span class="t-fn">warm</span>(<span class="t-num">25</span>)
+            half = h.price * <span class="t-num">0.0002</span>
+            this_bell = h.ctx.<span class="t-fn">quote</span>(h.price - half, h.price + half, rounds_ahead=<span class="t-num">1</span>)
+            next_bell = h.ctx.<span class="t-fn">quote</span>(h.price - half, h.price + half, rounds_ahead=<span class="t-num">2</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertGreater</span>(next_bell, this_bell)
+
+
+<span class="t-key">class</span> <span class="t-fn">TestQuitting</span>(unittest.<span class="t-type">TestCase</span>):
+    <span class="t-key">def</span> <span class="t-fn">test_quit_from_an_action_stops_the_loop</span>(<span class="t-key">self</span>):
+        <span class="t-key">class</span> <span class="t-fn">Quitter</span>(<span class="t-type">Sitter</span>):
+            <span class="t-key">def</span> <span class="t-fn">on_action</span>(<span class="t-key">self</span>, ctx, action):
+                <span class="t-key">return</span> <span class="t-str">&#x27;quit&#x27;</span>
+
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Quitter</span>()) <span class="t-key">as</span> h:
+            h.<span class="t-fn">warm</span>(<span class="t-num">2</span>)
+            h.<span class="t-fn">press</span>(<span class="t-type">InputAction</span>.<span class="t-type">A</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertFalse</span>(h.ctx.running)
+
+    <span class="t-key">def</span> <span class="t-fn">test_the_quit_action_stops_the_loop_whatever_the_game_says</span>(<span class="t-key">self</span>):
+        <span class="t-key">with</span> <span class="t-fn">Harness</span>(<span class="t-fn">Sitter</span>()) <span class="t-key">as</span> h:
+            h.<span class="t-fn">press</span>(<span class="t-type">InputAction</span>.<span class="t-type">QUIT</span>)
+            <span class="t-key">self</span>.<span class="t-fn">assertFalse</span>(h.ctx.running)
+
+
+<span class="t-key">if</span> __name__ == <span class="t-str">&#x27;__main__&#x27;</span>:
+    unittest.<span class="t-fn">main</span>()
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

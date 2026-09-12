@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/templates/game.py - TICK SDK</title>
+<meta name="description" content="Source of tick/templates/game.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html" class="on">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">game.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/templates/game.py &middot; 93 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;GAME_TITLE -- a TICK game.
+
+Run it:      python this_file.py
+Live prices: TICK_MARKET_SOURCE=coinbase python this_file.py
+Real money:  TICK_FUNDING=arc-testnet python this_file.py
+
+Controls: dial or Up/Down moves the aim, A (Enter/Space/yellow) buys,
+B (Backspace/red) quits, Escape quits.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> tick <span class="t-key">import</span> <span class="t-type">Game</span>, run
+<span class="t-key">from</span> tick.hud <span class="t-key">import</span> <span class="t-type">Ladder</span>, clear, draw_bet, draw_clock, draw_cursor, draw_hud, draw_open_line
+<span class="t-key">from</span> tick.ui <span class="t-key">import</span> <span class="t-type">MINT</span>, <span class="t-type">MUTED</span>, <span class="t-type">RED</span>, <span class="t-type">YELLOW</span>, say
+
+
+<span class="t-key">class</span> <span class="t-fn">ClassName</span>(<span class="t-type">Game</span>):
+    title = <span class="t-str">&#x27;GAME_TITLE&#x27;</span>
+    window_s = <span class="t-num">10.0</span>       <span class="t-com"># a round every ten seconds; the clock never stops</span>
+    arm_s = <span class="t-num">1.0</span>           <span class="t-com"># swallow presses for a beat after each bell</span>
+
+    <span class="t-com"># The aim box, in basis points of the price: one step, half a box, and how</span>
+    <span class="t-com"># far the box may be cranked from the round&#x27;s opening price.</span>
+    <span class="t-type">STEP_BPS</span> = <span class="t-num">1.0</span>
+    <span class="t-type">BOX_BPS</span> = <span class="t-num">8.0</span>
+    <span class="t-type">REACH_BPS</span> = <span class="t-num">12.0</span>
+
+    <span class="t-key">def</span> <span class="t-fn">setup</span>(<span class="t-key">self</span>, ctx):
+        <span class="t-key">self</span>.offset = <span class="t-num">0</span>            <span class="t-com"># steps away from the round&#x27;s opening price</span>
+
+    <span class="t-com"># ---- geometry --------------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">unit</span>(<span class="t-key">self</span>, ctx):
+        <span class="t-doc">&quot;&quot;&quot;One basis point of this round&#x27;s opening price.&quot;&quot;&quot;</span>
+        <span class="t-key">return</span> <span class="t-fn">max</span>(ctx.open_price, <span class="t-num">1.0</span>) / <span class="t-num">10_000</span>
+
+    <span class="t-key">def</span> <span class="t-fn">aim</span>(<span class="t-key">self</span>, ctx):
+        <span class="t-doc">&quot;&quot;&quot;(low, high) of the aim box right now.&quot;&quot;&quot;</span>
+        centre = ctx.open_price + <span class="t-key">self</span>.offset * <span class="t-key">self</span>.<span class="t-type">STEP_BPS</span> * <span class="t-key">self</span>.<span class="t-fn">unit</span>(ctx)
+        half = <span class="t-key">self</span>.<span class="t-type">BOX_BPS</span> / <span class="t-num">2</span> * <span class="t-key">self</span>.<span class="t-fn">unit</span>(ctx)
+        <span class="t-key">return</span> centre - half, centre + half
+
+    <span class="t-com"># ---- input -----------------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">on_action</span>(<span class="t-key">self</span>, ctx, action):
+        <span class="t-key">if</span> action.name == <span class="t-str">&#x27;B&#x27;</span>:
+            <span class="t-key">return</span> <span class="t-str">&#x27;quit&#x27;</span>
+        <span class="t-key">if</span> action.name <span class="t-key">in</span> (<span class="t-str">&#x27;UP&#x27;</span>, <span class="t-str">&#x27;DOWN&#x27;</span>):
+            reach = <span class="t-fn">int</span>(<span class="t-key">self</span>.<span class="t-type">REACH_BPS</span> / <span class="t-key">self</span>.<span class="t-type">STEP_BPS</span>)
+            moved = <span class="t-key">self</span>.offset + (<span class="t-num">1</span> <span class="t-key">if</span> action.name == <span class="t-str">&#x27;UP&#x27;</span> <span class="t-key">else</span> -<span class="t-num">1</span>)
+            <span class="t-key">self</span>.offset = <span class="t-fn">max</span>(-reach, <span class="t-fn">min</span>(reach, moved))
+            ctx.<span class="t-fn">play</span>(ctx.sounds.<span class="t-fn">detent</span>(<span class="t-fn">abs</span>(<span class="t-key">self</span>.offset) / reach) <span class="t-key">if</span> ctx.sounds <span class="t-key">else</span> <span class="t-str">&#x27;move&#x27;</span>)
+        <span class="t-key">if</span> action.name == <span class="t-str">&#x27;A&#x27;</span>:
+            low, high = <span class="t-key">self</span>.<span class="t-fn">aim</span>(ctx)
+            <span class="t-key">if</span> ctx.<span class="t-fn">bet</span>(low, high) <span class="t-key">is</span> <span class="t-key">None</span>:
+                ctx.<span class="t-fn">note</span>(ctx.refused <span class="t-key">or</span> <span class="t-str">&#x27;NO BET&#x27;</span>)
+                ctx.<span class="t-fn">play</span>(<span class="t-str">&#x27;warn&#x27;</span>)
+            <span class="t-key">else</span>:
+                ctx.<span class="t-fn">play</span>(<span class="t-str">&#x27;buy1&#x27;</span>)
+
+    <span class="t-key">def</span> <span class="t-fn">on_round_end</span>(<span class="t-key">self</span>, ctx, round_):
+        <span class="t-com"># The cursor is pulled back to the new round&#x27;s anchor.</span>
+        <span class="t-key">self</span>.offset = <span class="t-num">0</span>
+
+    <span class="t-com"># ---- screen ----------------------------------------------------------</span>
+    <span class="t-key">def</span> <span class="t-fn">draw</span>(<span class="t-key">self</span>, ctx, screen):
+        <span class="t-fn">clear</span>(screen)
+        anchor = ctx.open_price <span class="t-key">or</span> ctx.price
+        ladder = <span class="t-fn">Ladder</span>(anchor, <span class="t-fn">max</span>(<span class="t-key">self</span>.<span class="t-type">REACH_BPS</span> + <span class="t-key">self</span>.<span class="t-type">BOX_BPS</span>, <span class="t-num">1</span>) * <span class="t-key">self</span>.<span class="t-fn">unit</span>(ctx))
+        <span class="t-fn">draw_open_line</span>(screen, ladder, anchor)
+
+        <span class="t-com"># Where the price is now.</span>
+        y = <span class="t-fn">int</span>(ladder.<span class="t-fn">y_of</span>(ctx.price))
+        <span class="t-key">for</span> x <span class="t-key">in</span> <span class="t-fn">range</span>(<span class="t-num">0</span>, <span class="t-num">480</span>, <span class="t-num">8</span>):
+            screen.<span class="t-fn">fill</span>(<span class="t-type">MINT</span>, (x, y, <span class="t-num">4</span>, <span class="t-num">2</span>))
+
+        <span class="t-com"># Bets already down, then the cursor on top.</span>
+        <span class="t-key">for</span> bet <span class="t-key">in</span> ctx.live_bets:
+            glow = bet.<span class="t-fn">contains</span>(ctx.price)
+            <span class="t-fn">draw_bet</span>(screen, ladder, bet, <span class="t-num">300</span>, <span class="t-num">90</span>, <span class="t-type">YELLOW</span>, solid=<span class="t-key">True</span>, glow=glow)
+        <span class="t-key">for</span> bet <span class="t-key">in</span> ctx.next_bets:
+            <span class="t-fn">draw_bet</span>(screen, ladder, bet, <span class="t-num">396</span>, <span class="t-num">76</span>, <span class="t-type">MUTED</span>, solid=<span class="t-key">True</span>)
+        low, high = <span class="t-key">self</span>.<span class="t-fn">aim</span>(ctx)
+        rect = <span class="t-fn">draw_cursor</span>(screen, ladder, low, high, <span class="t-num">180</span>, <span class="t-num">100</span>)
+        <span class="t-fn">say</span>(screen, f<span class="t-str">&#x27;{ctx.quote(low, high):.1f}x&#x27;</span>, rect.right + <span class="t-num">6</span>, rect.centery - <span class="t-num">8</span>, <span class="t-num">16</span>, <span class="t-type">YELLOW</span>)
+
+        <span class="t-fn">draw_clock</span>(ctx, screen)
+        last = ctx.book.last
+        <span class="t-key">if</span> last <span class="t-key">is</span> <span class="t-key">not</span> <span class="t-key">None</span>:
+            colour = <span class="t-type">MUTED</span> <span class="t-key">if</span> last.voided <span class="t-key">else</span> (<span class="t-type">MINT</span> <span class="t-key">if</span> last.hit <span class="t-key">else</span> <span class="t-type">RED</span>)
+            word = <span class="t-str">&#x27;VOID&#x27;</span> <span class="t-key">if</span> last.voided <span class="t-key">else</span> (<span class="t-str">&#x27;HIT&#x27;</span> <span class="t-key">if</span> last.hit <span class="t-key">else</span> <span class="t-str">&#x27;MISS&#x27;</span>)
+            <span class="t-fn">say</span>(screen, f<span class="t-str">&#x27;{word}  {ctx.usdc(last.net)}&#x27;</span>, <span class="t-num">240</span>, <span class="t-num">250</span>, <span class="t-num">18</span>, colour, center=<span class="t-key">True</span>)
+        <span class="t-fn">draw_hud</span>(ctx, screen, back=<span class="t-str">&#x27;QUIT&#x27;</span>, go=<span class="t-str">&#x27;BUY&#x27;</span>)
+
+
+<span class="t-key">if</span> __name__ == <span class="t-str">&#x27;__main__&#x27;</span>:
+    <span class="t-fn">run</span>(<span class="t-fn">ClassName</span>())
+</code></pre></div></div></article>
+    <nav class="pager"><a class="prev" href="src-examples-pools.html"><span>Previous</span>Pools</a><a class="next" href="source.html"><span>Next</span>All source</a></nav>
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

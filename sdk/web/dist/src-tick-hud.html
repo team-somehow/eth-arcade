@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tick/hud.py - TICK SDK</title>
+<meta name="description" content="Source of tick/hud.py.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127918;</text></svg>">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('tick-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><span class="mark">T</span> TICK <span class="sdk">SDK</span></a>
+  <div class="find">
+    <input id="q" type="search" placeholder="Search the docs&hellip;  /" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <div class="tools">
+    <span class="version">v0.1.0</span>
+    <button id="theme" class="ghost" type="button" aria-label="Switch theme">&#9680;</button>
+    <button id="menu" class="ghost only-narrow" type="button" aria-label="Menu">&#9776;</button>
+  </div>
+</header>
+<div class="shell">
+  <div class="side" id="side"><nav class="nav" aria-label="Documentation"><div class="nav-group"><h4>Start</h4><ul><li><a href="index.html">Overview</a></li><li><a href="plan.html">The plan</a></li><li><a href="writing-a-game.html">Writing a game</a></li></ul></div><div class="nav-group"><h4>Build with</h4><ul><li><a href="prices-substreams.html">Prices on-chain</a></li><li><a href="money-arc.html">Real money</a></li><li><a href="identity-ens.html">Player names</a></li></ul></div><div class="nav-group"><h4>Reference</h4><ul><li><a href="api.html">API</a></li><li><a href="device.html">The device</a></li><li><a href="docs-site.html">This site</a></li></ul></div><div class="nav-group"><h4>Examples</h4><ul><li><a href="src-examples-coinflip.html">Coinflip</a></li><li><a href="src-examples-ladder.html">Ladder</a></li><li><a href="src-examples-ticker.html">Ticker</a></li><li><a href="src-examples-pools.html">Pools</a></li><li><a href="src-tick-templates-game.html">Template</a></li><li><a href="source.html">All source</a></li></ul></div></nav></div>
+  <main>
+    <article class="doc"><h1 id="top">hud.py<a class="anchor" href="#top">#</a></h1><p class="path">tick/hud.py &middot; 163 lines</p><div class="code source"><span class="lang">python</span><button class="copy" type="button" aria-label="Copy">copy</button><div class="rows"><div class="numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span>48</span><span>49</span><span>50</span><span>51</span><span>52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span><span>66</span><span>67</span><span>68</span><span>69</span><span>70</span><span>71</span><span>72</span><span>73</span><span>74</span><span>75</span><span>76</span><span>77</span><span>78</span><span>79</span><span>80</span><span>81</span><span>82</span><span>83</span><span>84</span><span>85</span><span>86</span><span>87</span><span>88</span><span>89</span><span>90</span><span>91</span><span>92</span><span>93</span><span>94</span><span>95</span><span>96</span><span>97</span><span>98</span><span>99</span><span>100</span><span>101</span><span>102</span><span>103</span><span>104</span><span>105</span><span>106</span><span>107</span><span>108</span><span>109</span><span>110</span><span>111</span><span>112</span><span>113</span><span>114</span><span>115</span><span>116</span><span>117</span><span>118</span><span>119</span><span>120</span><span>121</span><span>122</span><span>123</span><span>124</span><span>125</span><span>126</span><span>127</span><span>128</span><span>129</span><span>130</span><span>131</span><span>132</span><span>133</span><span>134</span><span>135</span><span>136</span><span>137</span><span>138</span><span>139</span><span>140</span><span>141</span><span>142</span><span>143</span><span>144</span><span>145</span><span>146</span><span>147</span><span>148</span><span>149</span><span>150</span><span>151</span><span>152</span><span>153</span><span>154</span><span>155</span><span>156</span><span>157</span><span>158</span><span>159</span><span>160</span><span>161</span><span>162</span><span>163</span></div><pre><code><span class="t-doc">&quot;&quot;&quot;A screen that already looks like the device, so your game can be one file.
+
+Three pieces, all optional:
+
+* `draw_hud(ctx, screen)` -- the top bar (game, price, balance) and the bottom
+  bar (button hints and the status line). Two calls and your game is legible.
+* `Ladder` -- price to pixels and back. Every game here is a claim about where
+  a number will be, so every game needs a vertical price scale; this is it.
+* `draw_bet` / `draw_cursor` -- the SDK&#x27;s drawing convention for bets, so a
+  player who has used one of these games can read the next one: **dashed means
+  not committed, solid means money is on it.**
+
+Anchoring
+---------
+
+Anchor the ladder on the round&#x27;s **opening price**, not on spot. Anchoring on
+spot re-centres the view every tick and pins the newest point to the middle of
+the screen, which makes movement impossible to see -- the price looks still
+while the world slides around it. Against a reference that holds still for the
+whole round, a move reads instantly.
+&quot;&quot;&quot;</span>
+<span class="t-key">from</span> __future__ <span class="t-key">import</span> annotations
+
+<span class="t-key">import</span> pygame
+
+<span class="t-key">from</span> .ui <span class="t-key">import</span> <span class="t-type">CREAM</span>, <span class="t-type">GRID</span>, <span class="t-type">MINT</span>, <span class="t-type">MUTED</span>, <span class="t-type">NAVY</span>, <span class="t-type">PANEL</span>, <span class="t-type">RED</span>, <span class="t-type">YELLOW</span>, dashed_rect, font, label, say
+
+<span class="t-type">TOP_H</span> = <span class="t-num">30</span>
+<span class="t-type">BOTTOM_Y</span> = <span class="t-num">274</span>
+
+
+<span class="t-key">def</span> <span class="t-fn">draw_hud</span>(ctx, s: pygame.<span class="t-type">Surface</span>, back: str = <span class="t-str">&#x27;HOME&#x27;</span>, go: str = <span class="t-str">&#x27;BUY&#x27;</span>,
+             top: bool = <span class="t-key">True</span>, bottom: bool = <span class="t-key">True</span>) -&gt; <span class="t-key">None</span>:
+    <span class="t-doc">&quot;&quot;&quot;The standard top and bottom bars. Draw your game between them.&quot;&quot;&quot;</span>
+    <span class="t-key">if</span> top:
+        pygame.draw.<span class="t-fn">rect</span>(s, <span class="t-type">PANEL</span>, (<span class="t-num">0</span>, <span class="t-num">0</span>, <span class="t-num">480</span>, <span class="t-type">TOP_H</span>))
+        <span class="t-fn">label</span>(s, ctx.game.title[:<span class="t-num">18</span>], <span class="t-num">8</span>, <span class="t-num">7</span>, <span class="t-num">16</span>, <span class="t-type">CREAM</span>)
+        asset = <span class="t-fn">getattr</span>(ctx.market.asset, <span class="t-str">&#x27;symbol&#x27;</span>, <span class="t-str">&#x27;ETH&#x27;</span>)
+        price = <span class="t-fn">getattr</span>(ctx.market.asset, <span class="t-str">&#x27;format&#x27;</span>, <span class="t-key">lambda</span> p: f<span class="t-str">&#x27;{p:,.2f}&#x27;</span>)(ctx.price)
+        <span class="t-fn">label</span>(s, f<span class="t-str">&#x27;{asset} {price}&#x27;</span>, <span class="t-num">168</span>, <span class="t-num">7</span>, <span class="t-num">16</span>, <span class="t-type">MINT</span> <span class="t-key">if</span> ctx.market.<span class="t-fn">fresh</span>(ctx.now) <span class="t-key">else</span> <span class="t-type">RED</span>)
+        balance = ctx.<span class="t-fn">usdc</span>(ctx.wallet.balance)
+        art = <span class="t-fn">font</span>(<span class="t-num">16</span>).<span class="t-fn">size</span>(balance + <span class="t-str">&#x27; USDC&#x27;</span>)[<span class="t-num">0</span>]
+        <span class="t-fn">label</span>(s, balance + <span class="t-str">&#x27; USDC&#x27;</span>, <span class="t-num">472</span> - art, <span class="t-num">7</span>, <span class="t-num">16</span>, <span class="t-type">YELLOW</span>)
+    <span class="t-key">if</span> bottom:
+        pygame.draw.<span class="t-fn">rect</span>(s, <span class="t-type">PANEL</span>, (<span class="t-num">0</span>, <span class="t-type">BOTTOM_Y</span>, <span class="t-num">480</span>, <span class="t-num">320</span> - <span class="t-type">BOTTOM_Y</span>))
+        pygame.draw.<span class="t-fn">circle</span>(s, <span class="t-type">RED</span>, (<span class="t-num">20</span>, <span class="t-num">297</span>), <span class="t-num">6</span>)
+        pygame.draw.<span class="t-fn">circle</span>(s, <span class="t-type">YELLOW</span>, (<span class="t-num">254</span>, <span class="t-num">297</span>), <span class="t-num">6</span>)
+        <span class="t-fn">label</span>(s, back, <span class="t-num">34</span>, <span class="t-num">289</span>, <span class="t-num">15</span>, <span class="t-type">MUTED</span>)
+        <span class="t-fn">label</span>(s, go, <span class="t-num">268</span>, <span class="t-num">289</span>, <span class="t-num">15</span>, <span class="t-type">MUTED</span>)
+        line = ctx.<span class="t-fn">status_line</span>()
+        <span class="t-key">if</span> line:
+            art = <span class="t-fn">font</span>(<span class="t-num">15</span>).<span class="t-fn">size</span>(line)[<span class="t-num">0</span>]
+            <span class="t-fn">label</span>(s, line, <span class="t-num">472</span> - art, <span class="t-num">289</span>, <span class="t-num">15</span>, <span class="t-type">CREAM</span>)
+
+
+<span class="t-key">def</span> <span class="t-fn">draw_clock</span>(ctx, s: pygame.<span class="t-type">Surface</span>, x: int = <span class="t-num">240</span>, y: int = <span class="t-num">36</span>) -&gt; <span class="t-key">None</span>:
+    <span class="t-doc">&quot;&quot;&quot;Seconds to the bell, big, centred -- the one number a player must see.&quot;&quot;&quot;</span>
+    left = ctx.remaining
+    colour = <span class="t-type">RED</span> <span class="t-key">if</span> left &lt;= <span class="t-num">3</span> <span class="t-key">else</span> <span class="t-type">CREAM</span>
+    <span class="t-fn">say</span>(s, f<span class="t-str">&#x27;{left:04.1f}s&#x27;</span>, x, y, <span class="t-num">22</span>, colour, center=<span class="t-key">True</span>)
+
+
+<span class="t-key">class</span> <span class="t-type">Ladder</span>:
+    <span class="t-doc">&quot;&quot;&quot;A vertical price scale: price in, pixels out.
+
+    `half` is half the visible band in quote currency. Size it to the round&#x27;s
+    reachable range and no wider: widen it to fit every possible bet and a
+    dollar of real movement becomes an invisible wobble.
+    &quot;&quot;&quot;</span>
+
+    <span class="t-key">def</span> <span class="t-fn">__init__</span>(<span class="t-key">self</span>, centre: float, half: float, top: int = <span class="t-num">34</span>, bottom: int = <span class="t-num">268</span>) -&gt; <span class="t-key">None</span>:
+        <span class="t-key">self</span>.centre = centre
+        <span class="t-key">self</span>.half = <span class="t-fn">max</span>(half, <span class="t-num">1e</span>-<span class="t-num">9</span>)
+        <span class="t-key">self</span>.top = top
+        <span class="t-key">self</span>.bottom = bottom
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">middle</span>(<span class="t-key">self</span>) -&gt; float:
+        <span class="t-key">return</span> (<span class="t-key">self</span>.top + <span class="t-key">self</span>.bottom) / <span class="t-num">2</span>
+
+    @property
+    <span class="t-key">def</span> <span class="t-fn">pixels</span>(<span class="t-key">self</span>) -&gt; float:
+        <span class="t-key">return</span> (<span class="t-key">self</span>.bottom - <span class="t-key">self</span>.top) / <span class="t-num">2</span>
+
+    <span class="t-key">def</span> <span class="t-fn">y_of</span>(<span class="t-key">self</span>, price: float) -&gt; float:
+        <span class="t-key">return</span> <span class="t-key">self</span>.middle - (price - <span class="t-key">self</span>.centre) / <span class="t-key">self</span>.half * <span class="t-key">self</span>.pixels
+
+    <span class="t-key">def</span> <span class="t-fn">price_at</span>(<span class="t-key">self</span>, y: float) -&gt; float:
+        <span class="t-key">return</span> <span class="t-key">self</span>.centre + (<span class="t-key">self</span>.middle - y) / <span class="t-key">self</span>.pixels * <span class="t-key">self</span>.half
+
+    <span class="t-key">def</span> <span class="t-fn">clamped_y</span>(<span class="t-key">self</span>, price: float) -&gt; tuple[float, bool]:
+        <span class="t-doc">&quot;&quot;&quot;(y, off_scale). Clamp rather than draw a bet off the screen edge.&quot;&quot;&quot;</span>
+        y = <span class="t-key">self</span>.<span class="t-fn">y_of</span>(price)
+        <span class="t-key">if</span> y &lt; <span class="t-key">self</span>.top:
+            <span class="t-key">return</span> <span class="t-key">self</span>.top, <span class="t-key">True</span>
+        <span class="t-key">if</span> y &gt; <span class="t-key">self</span>.bottom:
+            <span class="t-key">return</span> <span class="t-key">self</span>.bottom, <span class="t-key">True</span>
+        <span class="t-key">return</span> y, <span class="t-key">False</span>
+
+    <span class="t-key">def</span> <span class="t-fn">rect</span>(<span class="t-key">self</span>, low: float, high: float, x: int, width: int) -&gt; pygame.<span class="t-type">Rect</span>:
+        top, _ = <span class="t-key">self</span>.<span class="t-fn">clamped_y</span>(high)
+        bottom, _ = <span class="t-key">self</span>.<span class="t-fn">clamped_y</span>(low)
+        <span class="t-key">return</span> pygame.<span class="t-fn">Rect</span>(x, <span class="t-fn">int</span>(top), width, <span class="t-fn">max</span>(<span class="t-num">3</span>, <span class="t-fn">int</span>(bottom - top)))
+
+
+<span class="t-key">def</span> <span class="t-fn">draw_grid</span>(s: pygame.<span class="t-type">Surface</span>, ladder: <span class="t-type">Ladder</span>, step: float, colour=<span class="t-type">GRID</span>) -&gt; <span class="t-key">None</span>:
+    <span class="t-doc">&quot;&quot;&quot;Faint horizontal lines every `step` of price, so movement has a scale.&quot;&quot;&quot;</span>
+    <span class="t-key">if</span> step &lt;= <span class="t-num">0</span>:
+        <span class="t-key">return</span>
+    price = ladder.centre - ladder.half
+    price -= price % step
+    <span class="t-key">while</span> price &lt;= ladder.centre + ladder.half:
+        y = ladder.<span class="t-fn">y_of</span>(price)
+        <span class="t-key">if</span> ladder.top &lt;= y &lt;= ladder.bottom:
+            pygame.draw.<span class="t-fn">line</span>(s, colour, (<span class="t-num">0</span>, <span class="t-fn">int</span>(y)), (<span class="t-num">480</span>, <span class="t-fn">int</span>(y)))
+        price += step
+
+
+<span class="t-key">def</span> <span class="t-fn">draw_open_line</span>(s: pygame.<span class="t-type">Surface</span>, ladder: <span class="t-type">Ladder</span>, price: float) -&gt; <span class="t-key">None</span>:
+    <span class="t-doc">&quot;&quot;&quot;The round&#x27;s opening price: the reference everything else is read against.&quot;&quot;&quot;</span>
+    y = <span class="t-fn">int</span>(ladder.<span class="t-fn">y_of</span>(price))
+    <span class="t-key">for</span> x <span class="t-key">in</span> <span class="t-fn">range</span>(<span class="t-num">0</span>, <span class="t-num">480</span>, <span class="t-num">10</span>):
+        pygame.draw.<span class="t-fn">line</span>(s, (<span class="t-num">74</span>, <span class="t-num">96</span>, <span class="t-num">103</span>), (x, y), (x + <span class="t-num">5</span>, y))
+
+
+<span class="t-key">def</span> <span class="t-fn">draw_bet</span>(s: pygame.<span class="t-type">Surface</span>, ladder: <span class="t-type">Ladder</span>, bet, x: int, width: int,
+             colour=<span class="t-type">YELLOW</span>, solid: bool = <span class="t-key">True</span>, glow: bool = <span class="t-key">False</span>) -&gt; pygame.<span class="t-type">Rect</span>:
+    <span class="t-doc">&quot;&quot;&quot;A placed bet: solid means the money is committed.&quot;&quot;&quot;</span>
+    rect = ladder.<span class="t-fn">rect</span>(bet.low, bet.high, x, width)
+    <span class="t-key">if</span> glow:
+        pygame.draw.<span class="t-fn">rect</span>(s, (<span class="t-num">44</span>, <span class="t-num">80</span>, <span class="t-num">98</span>), rect)
+    <span class="t-key">if</span> solid:
+        pygame.draw.<span class="t-fn">rect</span>(s, colour, rect, <span class="t-num">2</span>)
+    <span class="t-key">else</span>:
+        <span class="t-fn">dashed_rect</span>(s, rect, colour)
+    <span class="t-key">return</span> rect
+
+
+<span class="t-key">def</span> <span class="t-fn">draw_cursor</span>(s: pygame.<span class="t-type">Surface</span>, ladder: <span class="t-type">Ladder</span>, low: float, high: float,
+                x: int, width: int, colour=<span class="t-type">YELLOW</span>) -&gt; pygame.<span class="t-type">Rect</span>:
+    <span class="t-doc">&quot;&quot;&quot;The aim box: dashed, because nothing has been bought yet.&quot;&quot;&quot;</span>
+    rect = ladder.<span class="t-fn">rect</span>(low, high, x, width)
+    <span class="t-fn">dashed_rect</span>(s, rect, colour)
+    <span class="t-key">return</span> rect
+
+
+<span class="t-key">def</span> <span class="t-fn">draw_price_line</span>(s: pygame.<span class="t-type">Surface</span>, ladder: <span class="t-type">Ladder</span>, history, now: float,
+                    seconds: float = <span class="t-num">12.0</span>, px_per_s: float = <span class="t-num">16.0</span>,
+                    right_x: int = <span class="t-num">240</span>, colour=<span class="t-type">MINT</span>) -&gt; <span class="t-key">None</span>:
+    <span class="t-doc">&quot;&quot;&quot;The recent price trace, time running left to right into `right_x`.&quot;&quot;&quot;</span>
+    points = []
+    <span class="t-key">for</span> t, p <span class="t-key">in</span> history:
+        age = now - t
+        <span class="t-key">if</span> age &gt; seconds:
+            <span class="t-key">continue</span>
+        y = ladder.<span class="t-fn">y_of</span>(p)
+        points.<span class="t-fn">append</span>((right_x - age * px_per_s, <span class="t-fn">max</span>(ladder.top, <span class="t-fn">min</span>(ladder.bottom, y))))
+    <span class="t-key">if</span> <span class="t-fn">len</span>(points) &gt; <span class="t-num">1</span>:
+        pygame.draw.<span class="t-fn">lines</span>(s, colour, <span class="t-key">False</span>, points, <span class="t-num">2</span>)
+
+
+<span class="t-key">def</span> <span class="t-fn">clear</span>(s: pygame.<span class="t-type">Surface</span>, colour=<span class="t-type">NAVY</span>) -&gt; <span class="t-key">None</span>:
+    s.<span class="t-fn">fill</span>(colour)
+</code></pre></div></div></article>
+    
+  </main>
+  
+</div>
+<script src="search-index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

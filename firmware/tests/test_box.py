@@ -836,6 +836,34 @@ class GameTests(unittest.TestCase):
         self.game.buy()
         self.assertIsNotNone(m.pending)
 
+    def test_pressing_on_past_the_bell_never_locks_the_new_box(self):
+        """The run of presses that was pumping the live box cannot end on a buy."""
+        m = self.game.model
+        self.game.buy()
+        while m.live is None:                        # the bell rings mid-run
+            self.frames(1)
+        balance = m.wallet.balance
+        for _ in range(40):                          # a finger that keeps going,
+            self.frames(6)                           # every fifth of a second,
+            self.game.buy()                          # right through the next bell
+            self.assertIsNone(m.pending)
+        self.assertEqual(m.wallet.balance, balance)  # not a cent spent
+        while self.game.clock < self.game.arm_at:    # the run ends; it arms
+            self.frames(1)
+        self.game.buy()
+        self.assertIsNotNone(m.pending)
+
+    def test_aiming_the_new_box_arms_it_at_once(self):
+        m = self.game.model
+        self.game.buy()
+        while m.live is None:
+            self.frames(1)
+        self.game.buy()                              # a carried-over press: held
+        self.assertIsNone(m.pending)
+        self.game.crank(1)                           # but an aim is a decision
+        self.game.buy()
+        self.assertIsNotNone(m.pending)
+
     def test_pressing_a_with_no_money_opens_the_loader(self):
         from games.box import BoxGame
         game = BoxGame(seed=7, sound=False, source='sim',
