@@ -72,6 +72,7 @@ export function Film() {
         </p>
         <div className="ctas">
           <a className="key hot big" href="#demo">Play Box Run <span aria-hidden>↗</span></a>
+          <a className="key big" href="#launch"><span aria-hidden>▶</span> Watch our launch</a>
           <a className="text-link" href="#sdk">Build a game <span aria-hidden>→</span></a>
         </div>
         <div className="hero-facts"><span><b>10s</b> per round</span><span><b>100%</b> open source</span></div>

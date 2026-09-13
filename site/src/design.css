@@ -251,3 +251,10 @@ footer .wordmark { font-size: clamp(28px, 4vw, 48px); }
 }
 .topbar .docs-nav { border: 0; padding: 10px 0; }
 @media (max-width: 560px) { .topbar .baraction { gap: 12px; } .topbar .key.hot { padding: 11px 12px; } .topbar .key.hot span:last-child { margin-left: 4px; } .topbar .docs-nav { font-size: 12px; } }
+
+.launch-section { padding: 80px 6%; scroll-margin-top: 90px; max-width: 1440px; margin: 0 auto; }
+.launch-section h2 { font: 600 clamp(36px, 5vw, 64px)/1.05 var(--display); letter-spacing: -.04em; margin: 16px 0; }
+.launch-section > p { color: var(--dim); line-height: 1.6; margin-bottom: 28px; }
+.launch-player { aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid var(--edge); border-radius: 16px; background: #20251f; box-shadow: 0 18px 50px #20251f18; }
+.launch-player iframe { display: block; width: 100%; height: 100%; border: 0; }
+@media (max-width: 560px) { .launch-section { padding: 48px 6%; } .launch-player { border-radius: 10px; } }

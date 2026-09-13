@@ -34,7 +34,7 @@ from eth_utils import keccak, to_checksum_address
 
 from wallet import Deposit, parse_usdc
 
-TICK_DIR = Path(__file__).resolve().parent / '.tick'
+TICK_DIR = Path(os.environ.get('TICK_DATA_DIR', Path(__file__).resolve().parent / '.tick')).expanduser()
 FUNDING_KINDS = ('arc-testnet',)
 
 # Arc logs every USDC movement, native send or ERC-20 transfer, as a Transfer

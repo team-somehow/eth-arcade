@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=TICK BOX RUN
+Comment=Play the handheld arcade with Arc testnet USDC and live Coinbase prices
+Exec=/usr/bin/tick-box-run
+Icon=tick-box-run
+Terminal=false
+Categories=Game;ArcadeGame;
+StartupNotify=false

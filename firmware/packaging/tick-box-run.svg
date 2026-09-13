@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+<rect width="128" height="128" rx="26" fill="#101921"/>
+<path d="M10 85 28 76 41 81 60 57 75 65 93 37 117 46" fill="none" stroke="#7dd6bb" stroke-width="5" stroke-linejoin="round"/>
+<rect x="71" y="27" width="35" height="39" rx="3" fill="none" stroke="#ffe285" stroke-width="5"/>
+<text x="64" y="112" font-family="sans-serif" font-weight="bold" font-size="23" text-anchor="middle" fill="#fff4d9">TICK</text>
+</svg>

@@ -1,11 +1,5 @@
 import { useEffect, useState } from 'react';
-
-/**
- * SET THIS BEFORE SHARING THE PAGE. Until it is a real inbox, every request
- * drafted below is addressed nowhere. It is deliberately left as a placeholder
- * rather than guessed at: publishing someone's address is the author's call.
- */
-const PREORDER_EMAIL = 'orders@example.com';
+import { saveSignup } from '../signups';
 
 /**
  * What an assembled unit would cost to build and send. This is an indication,
@@ -15,17 +9,14 @@ const PREORDER_EMAIL = 'orders@example.com';
 const PRICE = 150;
 
 /** A reference the sender can quote back. Generated here, so it is never a claim about an order. */
-function reference() {
-  const d = new Date();
-  const stamp = [d.getFullYear() % 100, d.getMonth() + 1, d.getDate()].map((n) => String(n).padStart(2, '0')).join('');
-  return `TK-${stamp}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
-}
+function reference() { return `EA-${crypto.randomUUID()}`; }
 
 export function Reserve() {
   const [qty, setQty] = useState(1);
   const [email, setEmail] = useState('');
   const [reserved, setReserved] = useState<{ body: string; ref: string } | null>(null);
-  const [copied, setCopied] = useState<'idle' | 'ok' | 'fail'>('idle');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     try {
@@ -34,20 +25,22 @@ export function Reserve() {
     } catch { /* storage unavailable */ }
   }, []);
 
-  const submit = (e: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const input = e.currentTarget.elements.namedItem('email') as HTMLInputElement;
     if (!input.checkValidity()) { input.focus(); input.reportValidity(); return; }
+    if (saving) return;
+    setSaving(true);
+    setError('');
     const ref = reference();
     const body = `I'd want an ETH Arcade handheld\n\nReference: ${ref}\nHow many: ${qty}\nIndicative cost: $${qty * PRICE} (not an order, nothing owed)\nContact: ${email.trim()}\n\nSent from the ETH Arcade page on ${new Date().toISOString().slice(0, 10)}.`;
-    setReserved({ body, ref });
+    try {
+      await saveSignup(email, qty, ref);
+      setReserved({ body, ref });
     try { localStorage.setItem('tick-reservation', JSON.stringify({ qty, email: email.trim(), ref, at: Date.now() })); } catch { /* ignore */ }
-    location.href = `mailto:${PREORDER_EMAIL}?subject=${encodeURIComponent(`ETH Arcade reservation × ${qty}`)}&body=${encodeURIComponent(body)}`;
-  };
-
-  const copy = async () => {
-    try { await navigator.clipboard.writeText(reserved?.body ?? ''); setCopied('ok'); } catch { setCopied('fail'); }
-    setTimeout(() => setCopied('idle'), 1600);
+    } catch {
+      setError('We couldn’t save your signup. Please check your connection and try again.');
+    } finally { setSaving(false); }
   };
 
   return (
@@ -86,18 +79,18 @@ export function Reserve() {
             <form onSubmit={submit} noValidate>
               <h3>Say you want one</h3>
               <p className="lede">
-                This goes to a person, not a shop. Nothing is charged, now or later.
+                Leave your email for ETH Arcade updates. Nothing is charged, now or later.
               </p>
               <div className="field">
                 <label htmlFor="email">Email</label>
-                <input id="email" name="email" type="email" required autoComplete="email" placeholder="you@somewhere.eth" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <input id="email" name="email" type="email" maxLength={254} disabled={saving} required autoComplete="email" placeholder="you@somewhere.eth" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div className="field">
                 <label htmlFor="qty">How many</label>
                 <div className="qty">
-                  <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="One fewer">−</button>
+                  <button type="button" disabled={saving} onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="One fewer">−</button>
                   <output id="qty">{qty}</output>
-                  <button type="button" onClick={() => setQty((q) => Math.min(10, q + 1))} aria-label="One more">+</button>
+                  <button type="button" disabled={saving} onClick={() => setQty((q) => Math.min(10, q + 1))} aria-label="One more">+</button>
                 </div>
               </div>
               <div className="perf" aria-hidden />
@@ -108,23 +101,22 @@ export function Reserve() {
                 <div><span>charged later</span><b>$0</b></div>
                 <div className="due"><span>would cost about</span><b>${(qty * PRICE).toLocaleString('en-US')}</b></div>
               </div>
-              <button className="key hot big reservebtn" type="submit"><span className="cap" />I&rsquo;d want one</button>
+              <button className="key hot big reservebtn" type="submit" disabled={saving}><span className="cap" />{saving ? 'Saving…' : 'Keep me updated'}</button>
+              {error && <p role="alert">{error}</p>}
               <p className="fineprint">
-                This opens a prefilled email that you send yourself. It is a message, not an order:
-                there is no queue to join and no date to miss.
+                We’ll save your email and interest so we can contact you about ETH Arcade. This is not an order or a production commitment.
               </p>
             </form>
           ) : (
-            <div className="done">
+            <div className="done" role="status">
               <div className="mark" aria-hidden>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m5 12.5 4.5 4.5L19 7.5" />
                 </svg>
               </div>
-              <h3>Noted.</h3>
+              <h3>You’re on the list.</h3>
               <p className="lede">
-                The message is drafted in your mail app &mdash; send it and I will see it. If nothing
-                opened, copy it below.
+                Your signup is saved. We’ll email you when there’s news about ETH Arcade.
               </p>
               <div className="perf" aria-hidden />
               <div className="stub">
@@ -132,11 +124,7 @@ export function Reserve() {
                 <div><span>how many</span><b>{qty}</b></div>
                 <div className="due"><span>would cost about</span><b>${(qty * PRICE).toLocaleString('en-US')}</b></div>
               </div>
-              <pre>{reserved.body}</pre>
-              <div className="row">
-                <button className="key" type="button" onClick={copy}>{copied === 'ok' ? 'Copied' : copied === 'fail' ? 'Select and copy above' : 'Copy the request'}</button>
-                <button className="key" type="button" onClick={() => { setReserved(null); setQty(1); }}>Reserve another</button>
-              </div>
+
             </div>
           )}
         </div>

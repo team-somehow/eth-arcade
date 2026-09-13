@@ -96,8 +96,13 @@ class BoardFeed:
         """Read now, starting the reader the first time."""
         if self._thread is None:
             if self.read is None:
-                import names    # needs eth-abi; demo play without the board does not
-                self.read = names.Standings().read
+                try:
+                    import names
+                    self.read = names.Standings().read
+                except ImportError as exc:
+                    # Merely focusing LEADERS with the dial must never kill play.
+                    self.error = f'LEADERBOARD UNAVAILABLE: {exc}'[:80]
+                    return
             self._thread = threading.Thread(target=self._run, name='ens-board', daemon=True)
             self._thread.start()
         self._wake.set()

@@ -26,7 +26,7 @@ export function Footer() {
         testnet. Nothing here runs on mainnet. Firmware, odds engine, contracts and CAD are open
         source.
       </p>
-      <a className="source-link" href="https://github.com/Jovian-Dsouza/ethonline-2026" target="_blank" rel="noopener noreferrer">Explore the source ↗</a>
+      <a className="source-link" href="https://github.com/team-somehow/eth-arcade" target="_blank" rel="noopener noreferrer">Explore the source ↗</a>
     </footer>
   );
 }

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-const REPO = 'https://github.com/Jovian-Dsouza/ethonline-2026';
+const REPO = 'https://github.com/team-somehow/eth-arcade';
 const ARC = 'https://testnet.arcscan.app';
 const SEPOLIA = 'https://sepolia.etherscan.io';
 const ESCROW = '0x4FA3D366A08aD06D60A0aB141FFb9981EDeE8627';
@@ -136,7 +136,7 @@ export function Proof() {
         <figcaption><div className="eyebrow">A RECORDED CROSS-CHAIN SESSION</div><h3>Follow the payout.<br />Find it on the name.</h3><p>For <code>rusty-mink.tick.eth</code>, the recorded 0.040 USDC deposit closed at 0.045 USDC. The scorekeeper wrote one session, one winning session, and +0.005 USDC session P&amp;L to ENS. These are historical transaction records, not a live leaderboard. P&amp;L excludes the funding fee and gas.</p></figcaption>
         <div className="session-receipts"><Link href={`${ARC}/tx/${CLOSE_TX}`}>01 / Arc · 0.045 USDC payout</Link><span aria-hidden>↓</span><Link href={`${SEPOLIA}/tx/${STATS_TX}`}>02 / Sepolia · stats updated</Link><Link href={code('ens/README.md')}>Reproduce the event → record flow</Link></div>
       </figure>
-      <div className="judge-actions"><a className="key" href="#demo">Play Box Run</a><a className="key" href="#sdk">Build with the SDK</a><Link href={REPO}>Review the repository</Link></div>
+      <div className="judge-actions"><a className="key" href="#launch">Watch our launch <span aria-hidden>↗</span></a><a className="key" href="#demo">Play Box Run</a><a className="key" href="#sdk">Build with the SDK</a><Link href={REPO}>Review the repository</Link></div>
     </section>
   );
 }

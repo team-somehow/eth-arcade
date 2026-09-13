@@ -1,0 +1,12 @@
+#!/bin/sh
+# Desktop launch uses the logged-in display session and distribution SDL.
+set -eu
+state="${XDG_STATE_HOME:-$HOME/.local/state}/tick-box-run"
+mkdir -p "$state"
+exec 9>"$state/app.lock"
+flock -n 9 || exit 0
+cd "$state"
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPATH="/opt/tick-box-run/vendor${PYTHONPATH:+:$PYTHONPATH}"
+export PYGAME_HIDE_SUPPORT_PROMPT=1
+exec /usr/bin/python3 /opt/tick-box-run/desktop.py >"$state/game.log" 2>&1
