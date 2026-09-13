@@ -3,6 +3,7 @@ import { Film } from './sections/Film';
 import { Demo } from './sections/Demo';
 import { SDK } from './sections/SDK';
 import { Proof, SponsorStrip } from './sections/Proof';
+import { LaunchTweet } from './sections/LaunchTweet';
 import { Reserve } from './sections/Reserve';
 
 export default function App() {
@@ -28,6 +29,7 @@ export default function App() {
           />
         </div>
       </section>
+      <LaunchTweet />
       <SponsorStrip />
       <Demo />
       <SDK />

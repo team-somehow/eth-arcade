@@ -258,3 +258,10 @@ footer .wordmark { font-size: clamp(28px, 4vw, 48px); }
 .launch-player { aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid var(--edge); border-radius: 16px; background: #20251f; box-shadow: 0 18px 50px #20251f18; }
 .launch-player iframe { display: block; width: 100%; height: 100%; border: 0; }
 @media (max-width: 560px) { .launch-section { padding: 48px 6%; } .launch-player { border-radius: 10px; } }
+
+.launch-tweet { max-width: 1440px; margin: 0 auto; padding: 0 6% 80px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+.launch-tweet h3 { font: 600 clamp(32px, 4vw, 50px)/1.05 var(--display); letter-spacing: -.04em; margin: 16px 0; }
+.launch-tweet p { color: var(--dim); line-height: 1.6; margin-bottom: 24px; max-width: 420px; }
+.launch-tweet-embed { min-width: 0; width: 100%; }
+.launch-tweet-embed .twitter-tweet { margin: 0 auto !important; }
+@media (max-width: 760px) { .launch-tweet { grid-template-columns: 1fr; gap: 28px; padding-bottom: 48px; } }
