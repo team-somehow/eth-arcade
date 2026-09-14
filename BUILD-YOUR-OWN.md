@@ -6,11 +6,6 @@ red and yellow buttons, a rear speaker, and a battery inside a two-part printed
 press-fit shell. It runs **Box Run with ten-second rounds and paper USDC**.
 The Graph, Arc testnet, and ENS integrations can be added after the device works.
 
-The reference for this version is [the landing-page specification](site/src/sections/Film.tsx)
-and [its included-parts list](site/src/sections/Reserve.tsx). Older design notes
-refer to a Pi Zero 2 W, a Pi 5, tape assembly, or twenty-second rounds. Those
-are not the target of this guide.
-
 **Go straight to:** [display wiring](#4-prepare-the-pi-and-display) ·
 [controls and wiring order](#5-wire-and-check-the-controls) ·
 [speaker and power](#6-add-the-rear-speaker-and-battery) ·
