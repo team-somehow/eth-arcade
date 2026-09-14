@@ -24,6 +24,10 @@ To play on it, run [`substreams/relay.py`](substreams/) and set `TICK_MARKET_SOU
 
 ## Quick start
 
+To assemble the handheld described on the landing page, follow the
+[build-your-own guide](BUILD-YOUR-OWN.md): parts, wiring, printed shell, software,
+and optional backend setup, including the hardware details still to verify.
+
 ```bash
 cd firmware
 python3 -m venv .venv
