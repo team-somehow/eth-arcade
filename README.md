@@ -28,6 +28,10 @@ To assemble the handheld described on the landing page, follow the
 [build-your-own guide](BUILD-YOUR-OWN.md): parts, wiring, printed shell, software,
 and optional backend setup, including the hardware details still to verify.
 
+Direct links: [display wiring](BUILD-YOUR-OWN.md#4-prepare-the-pi-and-display),
+[knob and button wiring](BUILD-YOUR-OWN.md#5-wire-and-check-the-controls), and
+[CAD/STL downloads and printing instructions](design/cad/README.md).
+
 ```bash
 cd firmware
 python3 -m venv .venv

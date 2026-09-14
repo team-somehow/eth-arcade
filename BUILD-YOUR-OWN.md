@@ -11,6 +11,11 @@ and [its included-parts list](site/src/sections/Reserve.tsx). Older design notes
 refer to a Pi Zero 2 W, a Pi 5, tape assembly, or twenty-second rounds. Those
 are not the target of this guide.
 
+**Go straight to:** [display wiring](#4-prepare-the-pi-and-display) ·
+[controls and wiring order](#5-wire-and-check-the-controls) ·
+[speaker and power](#6-add-the-rear-speaker-and-battery) ·
+[CAD downloads and print instructions](design/cad/README.md).
+
 ## 1. Understand what is ready
 
 The game, input readers, enclosure source, and printable shell files are in this
@@ -113,6 +118,33 @@ moves the backlight to physical pin 32, and the controls also use later pins.
 Check cable orientation and continuity before applying power. Do not assume
 an unmodified display cable already includes the GPIO12 backlight change.
 
+### Connect the display cable
+
+1. Unplug external power and disconnect the battery. Locate physical pin 1
+   using the Pi board's pin-1 marking or board documentation. Count physical
+   positions from that end: odd pins are in one row, even pins in the other.
+   The tables describe the Pi header, **not** the numbering of the connector
+   on the display. Viewing the back of a connector mirrors its layout.
+2. Identify each display lead by its signal name or cable continuity, not wire
+   colour. Connect VCC to physical pin 4 and GND to physical pin 6. The panel
+   supply is 5 V; that does not make its signal pins 5 V tolerant.
+3. Connect the three SPI leads: MISO → pin 21, MOSI → pin 19, SCLK → pin 23.
+   Connect CS → pin 24, DC → pin 15, and RESET → pin 13.
+4. Route the backlight lead to **physical pin 32 / GPIO12**. In this build it
+   must not remain connected to physical pin 12 / GPIO18 as well. Use a
+   breakout or individually routed leads if the stock cable cannot provide
+   the documented mapping.
+5. Connect the touch leads: SDA → pin 3, SCL → pin 5, INT → pin 7, RESET →
+   pin 11. Keep the LCD reset and touch reset labels distinct.
+6. With power still disconnected, check continuity from each display signal
+   to its intended Pi pin and check for accidental solder bridges. Configure
+   the matching display overlay, then power up and verify the panel before
+   adding the controls. Disconnect power again before changing any wiring.
+
+The display needs a cable connection so the Pi header remains accessible to
+the controls. A full-size header breakout can make the shared connections
+easier to assemble; include its height and cables in your enclosure fit check.
+
 ## 5. Wire and check the controls
 
 Disconnect power while wiring. These are **BCM GPIO numbers** with physical
@@ -132,6 +164,41 @@ The switches use internal pull-ups; each press connects its GPIO to ground.
 The encoder click is A; holding it for about 0.65 seconds and releasing is B.
 Yellow is A, red is B. Sources: [encoder.py](firmware/encoder.py) and
 [buttons.py](firmware/buttons.py).
+
+### Connect one control at a time
+
+1. Mount the encoder so its shaft exits the right wall, leaving its solder
+   joints accessible. Read the module labels: KY-040 boards can arrange their
+   terminals differently. Connect `+` / VCC → physical pin 1 and GND → pin 9.
+2. Connect CLK → pin 40, DT → pin 38, and SW → pin 36. Insulate the joints and
+   leave enough slack to remove the case lid without pulling on them.
+3. Connect one red-switch contact to pin 33 and the other to ground pin 34.
+   Connect one yellow-switch contact to pin 37 and the other to ground pin 39.
+   The two contacts of an ordinary unlit switch have no polarity. If your
+   switch has extra LED terminals, identify the actual switch contacts with
+   continuity testing; the firmware wiring here does not power the LED.
+4. Check that each switch is open at rest and closes to ground when pressed.
+   If a switch has four legs, identify the switched pair with the meter;
+   two legs may already be connected internally.
+5. Check against this control harness sketch, then power up and test. Stop the
+   game and disconnect power before correcting a connection.
+
+```text
+Pi physical pin                  Control terminal
+ 1  (3.3 V) -------------------- encoder VCC / +
+ 9  (GND) ---------------------- encoder GND
+40  (GPIO21) ------------------- encoder CLK
+38  (GPIO20) ------------------- encoder DT
+36  (GPIO16) ------------------- encoder SW
+
+33  (GPIO13) -------- [ red switch ] -------- 34 (GND)
+37  (GPIO26) -------- [yellow switch] ------- 39 (GND)
+```
+
+All listed ground pins share the Pi's ground. Use proper branches or a
+distribution connector if multiple wires need the same ground connection;
+do not force two loose connectors onto one header pin. Keep the knob and
+switch wiring clear of the lid's press-fit lip.
 
 Run from the Pi's local desktop session, with the same demo settings:
 
@@ -189,6 +256,9 @@ chosen assembly; the repository supplies no verified figures.
 ## 7. Print and assemble the landing-page shell
 
 Use these files, rather than the older tape-build appearance studies:
+
+**[Open the CAD download and printing page](design/cad/README.md)** for a
+file-by-file checklist, previews, print quantities, and export commands.
 
 - [3D OpenSCAD source](design/cad/tick-case-3d.scad)
 - [Body STL](design/cad/tick-body.stl) and [lid STL](design/cad/tick-lid.stl)
